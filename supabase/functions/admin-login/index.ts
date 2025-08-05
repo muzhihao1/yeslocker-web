@@ -112,7 +112,7 @@ serve(async (req) => {
       if (environment === 'development') {
         // For development only - use default dev password from environment
         const devPassword = Deno.env.get('DEV_ADMIN_PASSWORD')
-        isPasswordValid = devPassword && password === devPassword
+        isPasswordValid = !!devPassword && password === devPassword
         
         if (isPasswordValid) {
           // Migrate to secure password system
