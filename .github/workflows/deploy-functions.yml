@@ -119,14 +119,9 @@ jobs:
               ;;
           esac
 
-      - name: Link Supabase project
-        run: |
-          supabase link --project-ref $PROJECT_REF
-        working-directory: supabase
-
       - name: Run database migrations
         run: |
-          supabase db push
+          supabase db push --project-ref $PROJECT_REF
         working-directory: supabase
 
       - name: Set function secrets
