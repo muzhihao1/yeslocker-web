@@ -1,0 +1,30 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 存杆图标：台球杆进入杆柜 -->
+  <defs>
+    <style>
+      .primary { stroke: #1B5E20; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .accent { fill: #FFA000; }
+      .secondary { stroke: #757575; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+    </style>
+  </defs>
+  
+  <!-- 杆柜外框 -->
+  <rect x="3" y="6" width="18" height="14" rx="2" class="primary"/>
+  
+  <!-- 杆柜内部分隔 -->
+  <line x1="9" y1="6" x2="9" y2="20" class="secondary"/>
+  <line x1="15" y1="6" x2="15" y2="20" class="secondary"/>
+  <line x1="3" y1="13" x2="21" y2="13" class="secondary"/>
+  
+  <!-- 台球杆（斜着插入） -->
+  <line x1="1" y1="4" x2="11" y2="10" class="primary"/>
+  
+  <!-- 台球杆头部 -->
+  <circle cx="11" cy="10" r="1.5" class="accent"/>
+  
+  <!-- 动作箭头（表示存入动作） -->
+  <path d="m8 8 2 2-2 2" class="primary"/>
+  
+  <!-- 杆柜锁（表示安全存储） -->
+  <circle cx="18" cy="10" r="1" fill="#4CAF50"/>
+</svg>

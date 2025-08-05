@@ -1,0 +1,23 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 台球装饰图标 -->
+  <defs>
+    <style>
+      .ball-body { fill: #1B5E20; }
+      .ball-stripe { fill: #FFFFFF; }
+      .ball-number { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; font-weight: bold; text-anchor: middle; }
+      .ball-highlight { fill: #FFFFFF; opacity: 0.3; }
+    </style>
+  </defs>
+  
+  <!-- 球体 -->
+  <circle cx="12" cy="12" r="10" class="ball-body"/>
+  
+  <!-- 中间条纹 -->
+  <rect x="2" y="9" width="20" height="6" rx="3" class="ball-stripe"/>
+  
+  <!-- 数字 -->
+  <text x="12" y="13.5" class="ball-number">8</text>
+  
+  <!-- 高光 -->
+  <ellipse cx="8" cy="7" rx="3" ry="2" class="ball-highlight" transform="rotate(-30 8 7)"/>
+</svg>

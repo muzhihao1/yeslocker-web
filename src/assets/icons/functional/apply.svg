@@ -1,0 +1,33 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 申请图标：文档+笔的组合 -->
+  <defs>
+    <style>
+      .primary { stroke: #1B5E20; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .accent { fill: #FFA000; stroke: none; }
+      .secondary { stroke: #757575; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+      .fill-primary { fill: #1B5E20; stroke: none; }
+    </style>
+  </defs>
+  
+  <!-- 申请表单背景 -->
+  <rect x="4" y="2" width="14" height="18" rx="2" class="primary"/>
+  
+  <!-- 表单内容线条 -->
+  <line x1="7" y1="6" x2="15" y2="6" class="secondary"/>
+  <line x1="7" y1="9" x2="15" y2="9" class="secondary"/>
+  <line x1="7" y1="12" x2="13" y2="12" class="secondary"/>
+  
+  <!-- 申请人头像占位 -->
+  <circle cx="9" cy="16" r="1.5" class="secondary"/>
+  <path d="M7 19 C7 18 8 17 9 17 C10 17 11 18 11 19" class="secondary"/>
+  
+  <!-- 台球元素（表示台球杆申请） -->
+  <circle cx="13" cy="15" r="1" class="accent"/>
+  
+  <!-- 笔（表示填写申请） -->
+  <line x1="15" y1="14" x2="20" y2="9" class="primary"/>
+  <path d="M19 8 L21 10 L20 11 L18 9 Z" class="fill-primary"/>
+  
+  <!-- 勾选标记（表示提交申请） -->
+  <path d="m14 16 1 1 2-2" class="primary"/>
+</svg>

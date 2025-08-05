@@ -1,0 +1,61 @@
+<svg width="280" height="48" viewBox="0 0 280 48" xmlns="http://www.w3.org/2000/svg">
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1B5E20;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="yellowAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFA000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo图标部分 - 缩小版本 -->
+  <g id="icon">
+    <!-- 杆柜主体 -->
+    <rect x="4" y="6" width="36" height="36" rx="8" ry="8" fill="url(#greenGradient)" stroke="#1B5E20" stroke-width="2"/>
+    
+    <!-- 杆柜网格 -->
+    <line x1="16" y1="6" x2="16" y2="42" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="28" y1="6" x2="28" y2="42" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="4" y1="18" x2="40" y2="18" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="4" y1="30" x2="40" y2="30" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    
+    <!-- 台球元素 -->
+    <circle cx="10" cy="12" r="2" fill="url(#yellowAccent)"/>
+    <circle cx="22" cy="24" r="2" fill="url(#yellowAccent)"/>
+    <circle cx="34" cy="36" r="2" fill="url(#yellowAccent)"/>
+    
+    <!-- 锁定图标 -->
+    <rect x="18" y="22" width="8" height="6" rx="1" fill="#FFFFFF"/>
+    <path d="M20 22 V20 C20 18.9 20.9 18 22 18 C23.1 18 24 18.9 24 20 V22" stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <!-- 品牌文字 - 水平排列 -->
+  <g id="text">
+    <!-- Yes部分 -->
+    <text x="52" y="30" font-family="SF Pro Text, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#1B5E20">Yes</text>
+    
+    <!-- Locker部分 -->
+    <text x="92" y="30" font-family="SF Pro Text, -apple-system, sans-serif" font-size="24" font-weight="500" fill="#757575">Locker</text>
+    
+    <!-- 分隔线 -->
+    <line x1="180" y1="18" x2="180" y2="30" stroke="#E0E0E0" stroke-width="1"/>
+    
+    <!-- 中文标语 -->
+    <text x="190" y="22" font-family="PingFang SC, sans-serif" font-size="12" font-weight="500" fill="#1B5E20">台球杆柜</text>
+    <text x="190" y="34" font-family="PingFang SC, sans-serif" font-size="12" font-weight="400" fill="#757575">智能管理</text>
+  </g>
+  
+  <!-- 装饰元素 - 台球杆 -->
+  <g id="decoration">
+    <!-- 台球杆杆身 -->
+    <line x1="250" y1="24" x2="270" y2="24" stroke="url(#yellowAccent)" stroke-width="3" stroke-linecap="round"/>
+    <!-- 台球杆头 -->
+    <circle cx="272" cy="24" r="3" fill="url(#yellowAccent)"/>
+    <!-- 台球 -->
+    <circle cx="245" cy="24" r="4" fill="#FFFFFF" stroke="url(#greenGradient)" stroke-width="2"/>
+    <text x="245" y="27" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="url(#greenGradient)" text-anchor="middle">8</text>
+  </g>
+</svg>

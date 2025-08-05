@@ -1,0 +1,39 @@
+{
+  "name": "yeslocker-edge-case-testing",
+  "version": "1.0.0",
+  "description": "Comprehensive edge case and failure testing framework for YesLocker production readiness validation",
+  "main": "comprehensive-edge-case-runner.js",
+  "scripts": {
+    "test": "node comprehensive-edge-case-runner.js",
+    "test:edge-cases": "node edge-case-testing-framework.js",
+    "test:database": "node database-edge-cases.js",
+    "test:security": "node security-boundary-tests.js",
+    "test:failures": "node failure-simulation-suite.js",
+    "test:comprehensive": "node comprehensive-edge-case-runner.js"
+  },
+  "keywords": [
+    "testing",
+    "edge-cases",
+    "security",
+    "database",
+    "resilience",
+    "production-readiness"
+  ],
+  "author": "YesLocker Engineering Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yeslocker/yeslocker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yeslocker/yeslocker/issues"
+  },
+  "homepage": "https://github.com/yeslocker/yeslocker#readme"
+}

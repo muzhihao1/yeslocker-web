@@ -1,0 +1,31 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 取杆图标：台球杆从杆柜取出 -->
+  <defs>
+    <style>
+      .primary { stroke: #1B5E20; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .accent { fill: #FFA000; }
+      .secondary { stroke: #757575; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+    </style>
+  </defs>
+  
+  <!-- 杆柜外框 -->
+  <rect x="2" y="6" width="18" height="14" rx="2" class="primary"/>
+  
+  <!-- 杆柜内部分隔 -->
+  <line x1="8" y1="6" x2="8" y2="20" class="secondary"/>
+  <line x1="14" y1="6" x2="14" y2="20" class="secondary"/>
+  <line x1="2" y1="13" x2="20" y2="13" class="secondary"/>
+  
+  <!-- 台球杆（从杆柜取出） -->
+  <line x1="12" y1="10" x2="22" y2="4" class="primary"/>
+  
+  <!-- 台球杆头部 -->
+  <circle cx="22" cy="4" r="1.5" class="accent"/>
+  
+  <!-- 动作箭头（表示取出动作） -->
+  <path d="m16 6 2-2-2-2" class="primary"/>
+  
+  <!-- 杆柜开锁状态 -->
+  <rect x="16" y="9" width="3" height="2" rx="0.5" fill="none" stroke="#4CAF50" stroke-width="1.5"/>
+  <path d="M17 9 V8 C17 7.5 17.5 7 18 7 C18.5 7 19 7.5 19 8" stroke="#4CAF50" stroke-width="1.5" fill="none"/>
+</svg>

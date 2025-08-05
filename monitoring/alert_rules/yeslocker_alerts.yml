@@ -1,0 +1,311 @@
+groups:
+  # Critical System Alerts
+  - name: yeslocker_critical
+    interval: 30s
+    rules:
+      # API Service Down
+      - alert: YesLockerAPIDown
+        expr: up{job="yeslocker-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: api
+          team: backend
+        annotations:
+          summary: "YesLocker API service is down"
+          description: "The YesLocker API service has been down for more than 30 seconds"
+          runbook_url: "https://docs.yeslocker.com/runbooks/api-down"
+          dashboard_url: "https://grafana.yeslocker.com/d/api-overview"
+
+      # Admin Panel Down
+      - alert: YesLockerAdminDown
+        expr: up{job="yeslocker-admin"} == 0
+        for: 60s
+        labels:
+          severity: critical
+          service: admin
+          team: frontend
+        annotations:
+          summary: "YesLocker Admin Panel is down"
+          description: "The YesLocker Admin Panel has been unreachable for more than 1 minute"
+          runbook_url: "https://docs.yeslocker.com/runbooks/admin-down"
+
+      # Database Connection Failed
+      - alert: DatabaseConnectionFailed
+        expr: up{job="postgres-exporter"} == 0
+        for: 60s
+        labels:
+          severity: critical
+          service: database
+          team: backend
+        annotations:
+          summary: "Database connection failed"
+          description: "Unable to connect to PostgreSQL database for more than 1 minute"
+          runbook_url: "https://docs.yeslocker.com/runbooks/database-connection"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="yeslocker-api",status=~"5.."}[5m]) /
+            rate(http_requests_total{job="yeslocker-api"}[5m])
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+          team: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for more than 2 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/high-error-rate"
+
+  # High Priority Alerts
+  - name: yeslocker_high
+    interval: 60s
+    rules:
+      # High Response Time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job="yeslocker-api"}[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: high
+          service: api
+          team: backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for more than 5 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/high-response-time"
+
+      # Authentication Failures
+      - alert: HighAuthFailureRate
+        expr: |
+          (
+            rate(auth_failures_total[5m]) /
+            rate(auth_attempts_total[5m])
+          ) * 100 > 10
+        for: 3m
+        labels:
+          severity: high
+          service: auth
+          team: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value | humanizePercentage }} for more than 3 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/auth-failures"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) /
+            node_memory_MemTotal_bytes
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: high
+          service: system
+          team: infrastructure
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} for more than 5 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/high-memory"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          (
+            100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          ) > 80
+        for: 5m
+        labels:
+          severity: high
+          service: system
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} for more than 5 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/high-cpu"
+
+      # SSL Certificate Expiring
+      - alert: SSLCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7 # 7 days
+        for: 1h
+        labels:
+          severity: high
+          service: ssl
+          team: infrastructure
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+          runbook_url: "https://docs.yeslocker.com/runbooks/ssl-renewal"
+
+  # Medium Priority Alerts
+  - name: yeslocker_medium
+    interval: 120s
+    rules:
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) /
+            node_filesystem_size_bytes{fstype!="tmpfs"}
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: medium
+          service: system
+          team: infrastructure
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.device }}"
+          runbook_url: "https://docs.yeslocker.com/runbooks/disk-space"
+
+      # High Database Connection Count
+      - alert: HighDatabaseConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: medium
+          service: database
+          team: backend
+        annotations:
+          summary: "High database connection count"
+          description: "Database has {{ $value }} active connections"
+          runbook_url: "https://docs.yeslocker.com/runbooks/db-connections"
+
+      # User Registration Rate Drop
+      - alert: UserRegistrationRateDrop
+        expr: |
+          (
+            rate(user_registrations_total[1h]) <
+            0.5 * rate(user_registrations_total[24h] offset 7d)
+          )
+        for: 2h
+        labels:
+          severity: medium
+          service: business
+          team: product
+        annotations:
+          summary: "User registration rate has dropped significantly"
+          description: "Current registration rate is 50% below last week's average"
+          runbook_url: "https://docs.yeslocker.com/runbooks/registration-drop"
+
+      # High Admin Login Failures
+      - alert: HighAdminLoginFailures
+        expr: |
+          increase(admin_login_failures_total[15m]) > 10
+        for: 0s
+        labels:
+          severity: medium
+          service: security
+          team: security
+        annotations:
+          summary: "High number of admin login failures"
+          description: "{{ $value }} admin login failures in the last 15 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/admin-security"
+
+  # Business Logic Alerts
+  - name: yeslocker_business
+    interval: 300s
+    rules:
+      # Locker Utilization Rate
+      - alert: LowLockerUtilization
+        expr: |
+          (
+            occupied_lockers_total /
+            total_lockers_available
+          ) * 100 < 30
+        for: 4h
+        labels:
+          severity: low
+          service: business
+          team: operations
+        annotations:
+          summary: "Low locker utilization rate"
+          description: "Locker utilization is only {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.yeslocker.com/runbooks/utilization"
+
+      # High Application Rejection Rate
+      - alert: HighApplicationRejectionRate
+        expr: |
+          (
+            rate(application_rejections_total[24h]) /
+            rate(applications_total[24h])
+          ) * 100 > 25
+        for: 6h
+        labels:
+          severity: medium
+          service: business
+          team: operations
+        annotations:
+          summary: "High application rejection rate"
+          description: "Application rejection rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.yeslocker.com/runbooks/rejection-rate"
+
+      # Daily Revenue Drop
+      - alert: DailyRevenueDrop
+        expr: |
+          (
+            increase(revenue_total[1d]) <
+            0.7 * increase(revenue_total[1d] offset 7d)
+          )
+        for: 2h
+        labels:
+          severity: high
+          service: business
+          team: finance
+        annotations:
+          summary: "Daily revenue has dropped significantly"
+          description: "Today's revenue is 30% below last week's average"
+          runbook_url: "https://docs.yeslocker.com/runbooks/revenue-drop"
+
+  # Security Alerts
+  - name: yeslocker_security
+    interval: 60s
+    rules:
+      # Suspicious Login Pattern
+      - alert: SuspiciousLoginPattern
+        expr: |
+          increase(failed_login_attempts_total{source_ip!=""}[5m]) by (source_ip) > 20
+        for: 0s
+        labels:
+          severity: high
+          service: security
+          team: security
+        annotations:
+          summary: "Suspicious login pattern detected"
+          description: "{{ $value }} failed login attempts from IP {{ $labels.source_ip }} in 5 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/suspicious-login"
+
+      # Rate Limit Triggered
+      - alert: RateLimitTriggered
+        expr: |
+          increase(rate_limit_triggered_total[10m]) > 100
+        for: 0s
+        labels:
+          severity: medium
+          service: security
+          team: security
+        annotations:
+          summary: "Rate limiting has been triggered frequently"
+          description: "Rate limit triggered {{ $value }} times in 10 minutes"
+          runbook_url: "https://docs.yeslocker.com/runbooks/rate-limit"
+
+      # Unusual Admin Activity
+      - alert: UnusualAdminActivity
+        expr: |
+          increase(admin_actions_total[1h]) > 
+          2 * avg_over_time(increase(admin_actions_total[1h])[7d:1h])
+        for: 30m
+        labels:
+          severity: medium
+          service: security
+          team: security
+        annotations:
+          summary: "Unusual admin activity detected"
+          description: "Admin activity is {{ $value }}x higher than normal"
+          runbook_url: "https://docs.yeslocker.com/runbooks/admin-activity"

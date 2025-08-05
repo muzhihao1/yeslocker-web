@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 成功状态图标：圆形背景+勾选 -->
+  <defs>
+    <style>
+      .success-bg { fill: #4CAF50; }
+      .success-check { stroke: #FFFFFF; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  
+  <!-- 圆形背景 -->
+  <circle cx="12" cy="12" r="10" class="success-bg"/>
+  
+  <!-- 勾选符号 -->
+  <path d="M7 12 L10 15 L17 8" class="success-check"/>
+</svg>

@@ -1,0 +1,48 @@
+{
+  "name": "yeslocker",
+  "version": "1.0.0",
+  "description": "台球杆柜管理小程序 - 前端用户端",
+  "main": "index.js",
+  "scripts": {
+    "dev": "uni",
+    "build": "uni build",
+    "build:h5": "uni build --platform h5",
+    "dev:admin": "cd admin && npm run dev",
+    "build:admin": "cd admin && npm run build",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
+    "functions:serve": "supabase functions serve",
+    "functions:deploy": "supabase functions deploy",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "vue": "^3.2.45",
+    "@dcloudio/uni-app": "^3.0.0-4010520231214001",
+    "@dcloudio/uni-h5": "^3.0.0-4010520231214001",
+    "@dcloudio/uni-components": "^3.0.0-4010520231214001",
+    "pinia": "^2.0.30",
+    "dayjs": "^1.11.7",
+    "axios": "^1.3.4",
+    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/functions-js": "^2.1.1",
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.3.2",
+    "@dcloudio/uni-automator": "^3.0.0-4010520231214001",
+    "@dcloudio/uni-cli-shared": "^3.0.0-4010520231214001",
+    "@dcloudio/uni-stacktracey": "^3.0.0-4010520231214001",
+    "@dcloudio/vite-plugin-uni": "^3.0.0-4010520231214001",
+    "@types/node": "^18.14.0",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "@vue/runtime-core": "^3.2.45",
+    "@vue/tsconfig": "^0.1.3",
+    "typescript": "^4.9.5",
+    "vite": "4.1.4",
+    "vue-tsc": "^1.0.24"
+  },
+  "keywords": ["uni-app", "vue3", "typescript", "台球", "管理系统"],
+  "author": "Terminal 1 Developer",
+  "license": "MIT"
+}

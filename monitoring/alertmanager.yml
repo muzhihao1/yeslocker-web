@@ -1,0 +1,267 @@
+# Alertmanager Configuration for YesLocker
+global:
+  # Default SMTP configuration
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@yeslocker.com'
+  smtp_auth_username: 'alerts@yeslocker.com'
+  smtp_auth_password: 'alert_email_password'
+  smtp_auth_identity: 'alerts@yeslocker.com'
+  
+  # Slack webhook URL (global default)
+  slack_api_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+  
+  # How long to wait before sending a notification again if it has already been sent successfully
+  repeat_interval: 24h
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service']
+  
+  # How long to wait before sending notifications for new group of alerts
+  group_wait: 30s
+  
+  # How long to wait before sending notifications about new alerts added to existing group
+  group_interval: 30s
+
+# Routing tree for alerts
+route:
+  # Root route - catches all alerts
+  receiver: 'default-team'
+  group_by: ['alertname', 'severity', 'service']
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 24h
+  
+  # Sub-routes for different types of alerts
+  routes:
+    # Critical alerts - immediate notification to all channels
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 2h
+      continue: true # Also send to team-specific routes
+      
+    # Security alerts - immediate notification to security team
+    - match:
+        team: security
+      receiver: 'security-team'
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      
+    # Backend/API alerts
+    - match:
+        team: backend
+      receiver: 'backend-team'
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 4h
+      
+    # Frontend/Admin alerts  
+    - match:
+        team: frontend
+      receiver: 'frontend-team'
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 4h
+      
+    # Infrastructure alerts
+    - match:
+        team: infrastructure
+      receiver: 'infrastructure-team'
+      group_wait: 1m
+      group_interval: 5m
+      repeat_interval: 6h
+      
+    # Business/Product alerts
+    - match:
+        team: product
+      receiver: 'product-team'
+      group_wait: 5m
+      group_interval: 30m
+      repeat_interval: 12h
+      
+    # Finance alerts
+    - match:
+        team: finance
+      receiver: 'finance-team'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 8h
+
+# Inhibition rules - prevent sending alerts that are related to already firing alerts
+inhibit_rules:
+  # If API is down, don't alert about high response time
+  - source_match:
+      alertname: YesLockerAPIDown
+    target_match:
+      alertname: HighResponseTime
+    equal: ['service']
+    
+  # If database is down, don't alert about database connections
+  - source_match:
+      alertname: DatabaseConnectionFailed
+    target_match:
+      alertname: HighDatabaseConnections
+    equal: ['service']
+    
+  # If system has high CPU, don't alert about high response time
+  - source_match:
+      alertname: HighCPUUsage
+    target_match:
+      alertname: HighResponseTime
+    equal: ['instance']
+
+# Receiver configurations
+receivers:
+  # Default team (catch-all)
+  - name: 'default-team'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/default-channel'
+        channel: '#alerts-general'
+        title: 'YesLocker Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+        
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    # Slack notification to critical channel
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/critical-alerts'
+        channel: '#alerts-critical'
+        title: '🚨 CRITICAL ALERT - {{ .GroupLabels.alertname }}'
+        text: |
+          <!here> 
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Dashboard:* {{ .Annotations.dashboard_url }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        
+    # Email notification to on-call engineer
+    email_configs:
+      - to: 'oncall@yeslocker.com'
+        subject: '🚨 YesLocker Critical Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert Fired</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Service:</strong> {{ .Labels.service }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          {{ if .Annotations.dashboard_url }}<p><a href="{{ .Annotations.dashboard_url }}">View Dashboard</a></p>{{ end }}
+          {{ if .Annotations.runbook_url }}<p><a href="{{ .Annotations.runbook_url }}">View Runbook</a></p>{{ end }}
+          {{ end }}
+          
+    # PagerDuty integration for critical alerts
+    pagerduty_configs:
+      - routing_key: 'your-pagerduty-integration-key'
+        description: 'YesLocker Critical Alert: {{ .GroupLabels.alertname }}'
+        client: 'YesLocker Alertmanager'
+        client_url: 'https://grafana.yeslocker.com'
+        
+  # Security team alerts
+  - name: 'security-team'
+    slack_configs:
+      - channel: '#security-alerts'
+        title: '🔒 Security Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Security Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+        
+    email_configs:
+      - to: 'security@yeslocker.com'
+        subject: 'YesLocker Security Alert: {{ .GroupLabels.alertname }}'
+        
+  # Backend team alerts
+  - name: 'backend-team'
+    slack_configs:
+      - channel: '#backend-alerts'
+        title: '⚙️ Backend Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          {{ if .Annotations.dashboard_url }}*Dashboard:* {{ .Annotations.dashboard_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+        
+  # Frontend team alerts  
+  - name: 'frontend-team'
+    slack_configs:
+      - channel: '#frontend-alerts'
+        title: '🖥️ Frontend Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          {{ end }}
+        send_resolved: true
+        
+  # Infrastructure team alerts
+  - name: 'infrastructure-team'
+    slack_configs:
+      - channel: '#infrastructure-alerts'
+        title: '🏗️ Infrastructure Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+        
+    email_configs:
+      - to: 'infrastructure@yeslocker.com'
+        subject: 'YesLocker Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        
+  # Product team alerts
+  - name: 'product-team'
+    slack_configs:
+      - channel: '#product-alerts'
+        title: '📊 Product Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Business Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Impact:* {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+        
+  # Finance team alerts
+  - name: 'finance-team'
+    slack_configs:
+      - channel: '#finance-alerts'
+        title: '💰 Finance Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Financial Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        
+    email_configs:
+      - to: 'finance@yeslocker.com'
+        subject: 'YesLocker Financial Alert: {{ .GroupLabels.alertname }}'
+
+# Templates for customizing alert messages
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

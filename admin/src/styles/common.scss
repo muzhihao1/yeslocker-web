@@ -1,0 +1,157 @@
+// 台球杆柜管理系统 - 管理端样式变量
+// Terminal 2: Admin Frontend Styles
+
+// 主色调 - 台球绿
+$primary-color: #1B5E20;
+$primary-light: #4CAF50;
+$primary-dark: #0E3311;
+
+// 辅助色彩
+$secondary-color: #FFA000;
+$accent-color: #FF6F00;
+
+// 状态色彩
+$success-color: #4CAF50;
+$warning-color: #FF9800;
+$error-color: #F44336;
+$info-color: #2196F3;
+
+// 中性色彩
+$text-color-primary: #212121;
+$text-color-secondary: #757575;
+$text-color-disabled: #BDBDBD;
+$divider-color: #E0E0E0;
+
+// 背景色彩
+$bg-color-light: #FAFAFA;
+$bg-color-white: #FFFFFF;
+$bg-color-grey: #F5F5F5;
+
+// 间距系统
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+$spacing-xxl: 64rpx;
+
+// 字体大小
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-md: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-xxl: 48rpx;
+
+// 边框和圆角
+$border-radius: 8rpx;
+$border-radius-sm: 4rpx;
+$border-radius-lg: 16rpx;
+$border-width: 2rpx;
+
+// 阴影
+$box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+$box-shadow-light: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+$box-shadow-heavy: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+
+// 动画时长
+$animation-duration-fast: 200ms;
+$animation-duration-normal: 300ms;
+$animation-duration-slow: 500ms;
+
+// 通用混入
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin card-style {
+  background-color: $bg-color-white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow-light;
+  padding: $spacing-md;
+}
+
+@mixin button-style($bg-color: $primary-color, $text-color: #ffffff) {
+  background-color: $bg-color;
+  color: $text-color;
+  border: none;
+  border-radius: $border-radius;
+  padding: $spacing-sm $spacing-lg;
+  font-size: $font-size-md;
+  font-weight: 500;
+  transition: all $animation-duration-normal;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin input-style {
+  width: 100%;
+  padding: $spacing-md;
+  border: $border-width solid $divider-color;
+  border-radius: $border-radius;
+  font-size: $font-size-md;
+  background-color: $bg-color-white;
+  transition: border-color $animation-duration-normal;
+  
+  &:focus {
+    border-color: $primary-color;
+    outline: none;
+  }
+  
+  &::placeholder {
+    color: $text-color-disabled;
+  }
+}
+
+// 状态标签样式
+@mixin status-badge($bg-color, $text-color: #ffffff) {
+  display: inline-block;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  background-color: $bg-color;
+  color: $text-color;
+}
+
+// 响应式断点
+$breakpoint-mobile: 750rpx;
+$breakpoint-tablet: 1024rpx;
+$breakpoint-desktop: 1440rpx;
+
+@mixin mobile {
+  @media (max-width: #{$breakpoint-mobile}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$breakpoint-mobile + 1rpx}) and (max-width: #{$breakpoint-tablet}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$breakpoint-tablet + 1rpx}) {
+    @content;
+  }
+}

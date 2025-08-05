@@ -1,0 +1,35 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 门店装饰图标 -->
+  <defs>
+    <style>
+      .store-roof { fill: #1B5E20; }
+      .store-awning { fill: #4CAF50; }
+      .store-wall { fill: #F5F5F5; stroke: #E0E0E0; stroke-width: 1; }
+      .store-door { fill: #FFFFFF; stroke: #1B5E20; stroke-width: 1.5; }
+      .store-window { fill: #E3F2FD; stroke: #1B5E20; stroke-width: 1; }
+      .store-sign { fill: #FFA000; }
+    </style>
+  </defs>
+  
+  <!-- 屋顶 -->
+  <path d="M3 9 L12 4 L21 9 L21 10 L3 10 Z" class="store-roof"/>
+  
+  <!-- 遮阳篷波浪 -->
+  <path d="M3 10 Q5 12 7 10 Q9 8 11 10 Q13 12 15 10 Q17 8 19 10 Q21 12 21 10" class="store-awning"/>
+  
+  <!-- 店面主体 -->
+  <rect x="4" y="11" width="16" height="9" class="store-wall"/>
+  
+  <!-- 左窗户 -->
+  <rect x="6" y="13" width="4" height="4" rx="0.5" class="store-window"/>
+  
+  <!-- 门 -->
+  <rect x="10.5" y="14" width="3" height="6" rx="0.5" class="store-door"/>
+  <circle cx="12.5" cy="17" r="0.3" fill="#1B5E20"/>
+  
+  <!-- 右窗户 -->
+  <rect x="14" y="13" width="4" height="4" rx="0.5" class="store-window"/>
+  
+  <!-- 招牌 -->
+  <rect x="9" y="6" width="6" height="2" rx="0.5" class="store-sign"/>
+</svg>

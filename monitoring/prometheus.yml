@@ -1,0 +1,135 @@
+# Prometheus Configuration for YesLocker Monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'yeslocker-production'
+    replica: 'prometheus-01'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Rules configuration
+rule_files:
+  - "alert_rules/*.yml"
+  - "recording_rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # YesLocker API Server Monitoring
+  - job_name: 'yeslocker-api'
+    static_configs:
+      - targets: 
+        - 'localhost:3001'
+        - 'api.yeslocker.com:443'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    scheme: 'https'
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'monitoring'
+      password: 'monitoring_password'
+
+  # Admin Panel Monitoring
+  - job_name: 'yeslocker-admin'
+    static_configs:
+      - targets: 
+        - 'admin.yeslocker.com:443'
+    metrics_path: '/health'
+    scrape_interval: 30s
+    scheme: 'https'
+
+  # Supabase Edge Functions Monitoring
+  - job_name: 'supabase-functions'
+    static_configs:
+      - targets:
+        - 'hsfthqchyupkbmazcuis.supabase.co:443'
+    metrics_path: '/functions/v1/health'
+    scrape_interval: 30s
+    scheme: 'https'
+    params:
+      module: [http_2xx]
+
+  # Database Connection Monitoring
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 15s
+
+  # Redis Monitoring (for caching)
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 15s
+
+  # Node Exporter for System Metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: 
+        - 'node-exporter:9100'
+        - 'api-server:9100'
+        - 'admin-server:9100'
+    scrape_interval: 15s
+
+  # Blackbox Exporter for External Monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://api.yeslocker.com/health
+        - https://admin.yeslocker.com/health
+        - https://yeslocker.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Custom Business Metrics
+  - job_name: 'yeslocker-business-metrics'
+    static_configs:
+      - targets: ['localhost:3001']
+    metrics_path: '/business-metrics'
+    scrape_interval: 60s
+    honor_labels: true
+
+  # SSL Certificate Monitoring
+  - job_name: 'ssl-exporter'
+    static_configs:
+      - targets: ['ssl-exporter:9219']
+    scrape_interval: 300s # Check every 5 minutes
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "https://prometheus-remote-write-endpoint.com/api/v1/write"
+    basic_auth:
+      username: 'remote_write_user'
+      password: 'remote_write_password'
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500
+
+# Remote read configuration for long-term queries
+remote_read:
+  - url: "https://prometheus-remote-read-endpoint.com/api/v1/read"
+    basic_auth:
+      username: 'remote_read_user'  
+      password: 'remote_read_password'

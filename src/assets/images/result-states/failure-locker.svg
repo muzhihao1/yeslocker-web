@@ -1,0 +1,73 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 设备故障插画 -->
+  <defs>
+    <style>
+      .failure-bg { fill: #FFEBEE; }
+      .failure-main { fill: #F44336; }
+      .locker-frame { fill: #F5F5F5; stroke: #BDBDBD; stroke-width: 2; }
+      .locker-door-closed { fill: #FAFAFA; stroke: #F44336; stroke-width: 2; stroke-dasharray: 5 3; }
+      .lock-broken { fill: #F44336; }
+      .cross-mark { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .warning-sign { fill: #FF9800; }
+      .error-waves { stroke: #F44336; stroke-width: 2; opacity: 0.4; stroke-dasharray: 3 2; }
+      .frustrated-face { fill: #BDBDBD; }
+      .text-primary { fill: #C62828; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; }
+    </style>
+  </defs>
+  
+  <!-- 背景圆圈 -->
+  <circle cx="100" cy="100" r="90" class="failure-bg"/>
+  
+  <!-- 错误波形 -->
+  <g transform="translate(100, 100)">
+    <path d="M-50 -20 Q-40 -30 -30 -20 Q-20 -10 -10 -20 Q0 -30 10 -20 Q20 -10 30 -20 Q40 -30 50 -20" class="error-waves"/>
+    <path d="M-50 20 Q-40 10 -30 20 Q-20 30 -10 20 Q0 10 10 20 Q20 30 30 20 Q40 10 50 20" class="error-waves"/>
+  </g>
+  
+  <!-- 故障的杆柜 -->
+  <g transform="translate(70, 60)">
+    <!-- 柜体 -->
+    <rect x="0" y="0" width="60" height="80" rx="4" class="locker-frame"/>
+    
+    <!-- 无法开启的门 -->
+    <rect x="5" y="5" width="50" height="70" rx="2" class="locker-door-closed"/>
+    
+    <!-- 故障锁具 -->
+    <g transform="translate(45, 40)">
+      <rect x="-4" y="-8" width="8" height="12" rx="2" class="lock-broken"/>
+      <circle cx="0" cy="-8" r="4" fill="none" stroke="#F44336" stroke-width="2"/>
+      <!-- 破损效果 -->
+      <path d="M-3 -8 L3 -5" stroke="#F44336" stroke-width="2"/>
+    </g>
+    
+    <!-- 杆柜编号 -->
+    <rect x="25" y="55" width="10" height="6" rx="1" fill="#FFEBEE"/>
+    <text x="30" y="59" fill="#F44336" font-size="6" text-anchor="middle">08</text>
+    
+    <!-- 错误指示灯 -->
+    <circle cx="50" cy="15" r="3" class="failure-main"/>
+  </g>
+  
+  <!-- 错误标志 -->
+  <circle cx="130" cy="50" r="20" class="failure-main"/>
+  <path d="M120 40 L140 60 M140 40 L120 60" class="cross-mark"/>
+  
+  <!-- 警告标志 -->
+  <g transform="translate(40, 130)">
+    <path d="M0 -8 L8 8 L-8 8 Z" class="warning-sign"/>
+    <rect x="-1" y="-2" width="2" height="4" fill="#FFFFFF"/>
+    <circle cx="0" cy="4" r="1" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- 沮丧的用户图标 -->
+  <g transform="translate(150, 130)">
+    <circle cx="0" cy="0" r="6" class="frustrated-face"/>
+    <!-- 沮丧表情 -->
+    <circle cx="-2" cy="-2" r="0.5" fill="#666"/>
+    <circle cx="2" cy="-2" r="0.5" fill="#666"/>
+    <path d="M-2 3 Q0 1 2 3" fill="none" stroke="#666" stroke-width="1"/>
+  </g>
+  
+  <!-- 提示文字 -->
+  <text x="100" y="190" class="text-primary">操作失败，请重试</text>
+</svg>

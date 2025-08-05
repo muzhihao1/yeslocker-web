@@ -1,0 +1,56 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 申请成功插画 -->
+  <defs>
+    <style>
+      .success-bg { fill: #E8F5E9; }
+      .success-main { fill: #4CAF50; }
+      .success-accent { fill: #1B5E20; }
+      .paper-bg { fill: #FFFFFF; stroke: #E0E0E0; stroke-width: 2; }
+      .checkmark { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .trophy-gold { fill: #FFA000; }
+      .trophy-silver { fill: #FFD54F; }
+      .billiard-decoration { fill: #1B5E20; }
+      .celebration { fill: #4CAF50; opacity: 0.6; }
+      .text-primary { fill: #1B5E20; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; }
+    </style>
+  </defs>
+  
+  <!-- 背景圆圈 -->
+  <circle cx="100" cy="100" r="90" class="success-bg"/>
+  
+  <!-- 成功标志主体 -->
+  <circle cx="100" cy="80" r="35" class="success-main"/>
+  
+  <!-- 对勾 -->
+  <path d="M85 80 L95 90 L115 70" class="checkmark"/>
+  
+  <!-- 申请表单 -->
+  <g transform="translate(60, 130)">
+    <rect x="0" y="0" width="80" height="50" rx="4" class="paper-bg"/>
+    <line x1="10" y1="12" x2="70" y2="12" stroke="#E0E0E0" stroke-width="2"/>
+    <line x1="10" y1="20" x2="50" y2="20" stroke="#E0E0E0" stroke-width="2"/>
+    <line x1="10" y1="28" x2="60" y2="28" stroke="#E0E0E0" stroke-width="2"/>
+    
+    <!-- 批准印章 -->
+    <circle cx="55" cy="35" r="10" class="success-main"/>
+    <text x="55" y="38" fill="#FFFFFF" font-size="8" text-anchor="middle">✓</text>
+  </g>
+  
+  <!-- 装饰台球 -->
+  <g transform="translate(140, 45)">
+    <circle cx="0" cy="0" r="8" class="billiard-decoration"/>
+    <rect x="-8" y="-2" width="16" height="4" rx="2" fill="#FFFFFF"/>
+    <text x="0" y="2" fill="#FFFFFF" font-size="8" text-anchor="middle">8</text>
+  </g>
+  
+  <!-- 庆祝元素 -->
+  <g class="celebration">
+    <circle cx="40" cy="60" r="3"/>
+    <circle cx="160" cy="70" r="2"/>
+    <circle cx="50" cy="140" r="2"/>
+    <circle cx="150" cy="130" r="3"/>
+  </g>
+  
+  <!-- 提示文字 -->
+  <text x="100" y="190" class="text-primary">申请提交成功！</text>
+</svg>

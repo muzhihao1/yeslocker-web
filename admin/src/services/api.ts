@@ -1,0 +1,276 @@
+import axios, { AxiosResponse } from 'axios'
+
+// API基础配置
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3001/api'
+  : 'https://your-project.supabase.co/functions/v1'
+
+// 创建axios实例
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// 请求缓存
+const requestCache = new Map()
+const CACHE_DURATION = 2 * 60 * 1000 // 2分钟缓存
+
+// 生成缓存键
+const generateCacheKey = (config: any) => {
+  return `${config.method}_${config.url}_${JSON.stringify(config.params || {})}`
+}
+
+// 请求拦截器 - 优化版本
+apiClient.interceptors.request.use(
+  (config) => {
+    // 添加认证token
+    const token = uni.getStorageSync('admin_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // 为GET请求添加缓存检查
+    if (config.method === 'get') {
+      const cacheKey = generateCacheKey(config)
+      const cachedResponse = requestCache.get(cacheKey)
+      
+      if (cachedResponse && (Date.now() - cachedResponse.timestamp < CACHE_DURATION)) {
+        console.log('使用缓存数据:', cacheKey)
+        // 返回cached response，但需要转换为Promise
+        config._cached = cachedResponse.data
+      }
+    }
+    
+    // 添加请求时间戳
+    config._requestStart = Date.now()
+    
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器 - 优化版本
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    const config = response.config
+    
+    // 性能监控
+    if (config._requestStart) {
+      const duration = Date.now() - config._requestStart
+      console.log(`API请求耗时: ${config.url} - ${duration}ms`)
+      
+      // 记录慢请求
+      if (duration > 1000) {
+        console.warn(`慢请求警告: ${config.url} 耗时 ${duration}ms`)
+      }
+    }
+    
+    // 检查是否有缓存数据
+    if (config._cached) {
+      return config._cached
+    }
+    
+    // 为GET请求缓存响应数据
+    if (config.method === 'get' && response.data) {
+      const cacheKey = generateCacheKey(config)
+      requestCache.set(cacheKey, {
+        data: response.data,
+        timestamp: Date.now()
+      })
+      
+      // 限制缓存大小，避免内存泄漏
+      if (requestCache.size > 50) {
+        const firstKey = requestCache.keys().next().value
+        requestCache.delete(firstKey)
+      }
+    }
+    
+    return response.data
+  },
+  (error) => {
+    console.error('API Error:', error)
+    
+    // 增强错误处理
+    const errorResponse = {
+      message: '请求失败',
+      code: 'UNKNOWN_ERROR',
+      status: 0
+    }
+    
+    if (error.response) {
+      // 服务器响应错误
+      errorResponse.status = error.response.status
+      errorResponse.message = error.response.data?.message || `服务器错误 (${error.response.status})`
+      
+      switch (error.response.status) {
+        case 401:
+          errorResponse.code = 'UNAUTHORIZED'
+          uni.showToast({
+            title: '登录已过期',
+            icon: 'error'
+          })
+          
+          // 清除token并跳转到登录页
+          uni.removeStorageSync('admin_token')
+          uni.removeStorageSync('admin_info')
+          uni.reLaunch({
+            url: '/pages/login/index'
+          })
+          break
+        case 403:
+          errorResponse.code = 'FORBIDDEN'
+          errorResponse.message = '权限不足'
+          break
+        case 404:
+          errorResponse.code = 'NOT_FOUND'
+          errorResponse.message = '请求的资源不存在'
+          break
+        case 500:
+          errorResponse.code = 'SERVER_ERROR'
+          errorResponse.message = '服务器内部错误'
+          break
+      }
+    } else if (error.request) {
+      // 网络错误
+      errorResponse.code = 'NETWORK_ERROR'
+      errorResponse.message = '网络连接失败，请检查网络设置'
+    } else {
+      // 其他错误
+      errorResponse.message = error.message || '未知错误'
+    }
+    
+    return Promise.reject(errorResponse)
+  }
+)
+
+// API接口定义
+export const adminApi = {
+  // 管理员认证
+  login: (phone: string, password: string) => {
+    return apiClient.post('/admin-login', { phone, password })
+  },
+  
+  // 获取申请列表
+  getApplications: (params?: {
+    status?: string
+    limit?: number
+    offset?: number
+  }) => {
+    return apiClient.get('/admin-approval', { params })
+  },
+  
+  // 审核申请
+  approveApplication: (data: {
+    application_id: string
+    action: 'approve' | 'reject'
+    admin_id?: string
+    locker_id?: string
+    reject_reason?: string
+    rejection_reason?: string // Keep for backward compatibility
+  }) => {
+    // Transform rejection_reason to reject_reason for backend compatibility
+    const requestData = { ...data }
+    if (data.rejection_reason && !data.reject_reason) {
+      requestData.reject_reason = data.rejection_reason
+      delete requestData.rejection_reason
+    }
+    return apiClient.post('/admin-approval', requestData)
+  },
+  
+  // 获取门店和杆柜信息
+  getStoresAndLockers: (storeId?: string) => {
+    return apiClient.get('/stores-lockers', {
+      params: storeId ? { store_id: storeId } : {}
+    })
+  },
+  
+  // 创建门店
+  createStore: (data: {
+    name: string
+    address: string
+    phone?: string
+  }) => {
+    return apiClient.post('/stores-lockers', data)
+  },
+  
+  // 获取用户列表
+  getUsers: (params?: {
+    store_id?: string
+    status?: string
+    limit?: number
+    offset?: number
+  }) => {
+    return apiClient.get('/admin-users', { params })
+  },
+  
+  // 获取操作记录
+  getRecords: (params?: {
+    user_id?: string
+    store_id?: string
+    action_type?: string
+    limit?: number
+    offset?: number
+  }) => {
+    return apiClient.get('/admin-records', { params })
+  },
+  
+  // 获取统计数据
+  getStatistics: (params?: {
+    store_id?: string
+    date_range?: string
+  }) => {
+    return apiClient.get('/admin-statistics', { params })
+  },
+  
+  // 发送提醒
+  sendReminder: (data: {
+    user_ids: string[]
+    reminder_type: string
+    message: string
+  }) => {
+    return apiClient.post('/admin-reminders', data)
+  },
+  
+  // 导出数据
+  exportData: (params: {
+    type: 'users' | 'records' | 'statistics'
+    store_id?: string
+    date_range?: string
+  }) => {
+    return apiClient.get('/admin-export', { params })
+  }
+}
+
+// 文件上传API
+export const uploadApi = {
+  uploadImage: async (filePath: string) => {
+    try {
+      const uploadResult = await uni.uploadFile({
+        url: `${API_BASE_URL}/upload-image`,
+        filePath,
+        name: 'file',
+        header: {
+          'Authorization': `Bearer ${uni.getStorageSync('admin_token')}`
+        }
+      })
+      
+      return JSON.parse(uploadResult.data)
+    } catch (error) {
+      console.error('Upload error:', error)
+      throw error
+    }
+  }
+}
+
+// 通用请求函数
+export const request = {
+  get: (url: string, params?: any) => apiClient.get(url, { params }),
+  post: (url: string, data?: any) => apiClient.post(url, data),
+  put: (url: string, data?: any) => apiClient.put(url, data),
+  delete: (url: string) => apiClient.delete(url)
+}

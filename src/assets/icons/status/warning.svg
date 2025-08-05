@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 警告状态图标：三角形背景+感叹号 -->
+  <defs>
+    <style>
+      .warning-bg { fill: #FF9800; }
+      .warning-mark { fill: #FFFFFF; }
+    </style>
+  </defs>
+  
+  <!-- 三角形背景（圆角） -->
+  <path d="M12 2 L22 20 Q22 21 21 21 L3 21 Q2 21 2 20 Z" class="warning-bg"/>
+  
+  <!-- 感叹号 -->
+  <rect x="11" y="8" width="2" height="6" rx="1" class="warning-mark"/>
+  <circle cx="12" cy="17" r="1" class="warning-mark"/>
+</svg>

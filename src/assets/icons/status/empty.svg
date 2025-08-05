@@ -1,0 +1,25 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 空状态图标：虚线圆圈 -->
+  <defs>
+    <style>
+      .empty-circle { 
+        stroke: #BDBDBD; 
+        fill: none; 
+        stroke-width: 2; 
+        stroke-dasharray: 4 2;
+        stroke-linecap: round;
+      }
+      .empty-dot {
+        fill: #BDBDBD;
+      }
+    </style>
+  </defs>
+  
+  <!-- 虚线圆圈 -->
+  <circle cx="12" cy="12" r="9" class="empty-circle"/>
+  
+  <!-- 中心三个点 -->
+  <circle cx="8" cy="12" r="1" class="empty-dot"/>
+  <circle cx="12" cy="12" r="1" class="empty-dot"/>
+  <circle cx="16" cy="12" r="1" class="empty-dot"/>
+</svg>

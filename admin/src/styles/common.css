@@ -1,0 +1,226 @@
+/* 台球杆柜管理系统 - 管理端样式变量 */
+/* Terminal 2: Admin Frontend Styles */
+
+:root {
+  /* 主色调 - 台球绿 */
+  --primary-color: #1B5E20;
+  --primary-light: #4CAF50;
+  --primary-dark: #0E3311;
+  
+  /* 辅助色彩 */
+  --secondary-color: #FFA000;
+  --accent-color: #FF6F00;
+  
+  /* 状态色彩 */
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --error-color: #F44336;
+  --danger-color: #F44336;
+  --info-color: #2196F3;
+  
+  /* 中性色彩 */
+  --text-color: #212121;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --text-disabled: #BDBDBD;
+  --border-color: #E0E0E0;
+  --divider-color: #E0E0E0;
+  
+  /* 背景色彩 */
+  --bg-color: #FAFAFA;
+  --bg-color-light: #FAFAFA;
+  --bg-color-white: #FFFFFF;
+  --bg-color-grey: #F5F5F5;
+  
+  /* 间距系统 */
+  --spacing-xs: 8rpx;
+  --spacing-sm: 16rpx;
+  --spacing-md: 24rpx;
+  --spacing-lg: 32rpx;
+  --spacing-xl: 48rpx;
+  --spacing-xxl: 64rpx;
+  
+  /* 字体大小 */
+  --font-size-xs: 20rpx;
+  --font-size-sm: 24rpx;
+  --font-size-md: 28rpx;
+  --font-size-lg: 32rpx;
+  --font-size-xl: 36rpx;
+  --font-size-xxl: 48rpx;
+  
+  /* 边框和圆角 */
+  --border-radius: 8rpx;
+  --border-radius-sm: 4rpx;
+  --border-radius-lg: 16rpx;
+  --border-width: 2rpx;
+  
+  /* 阴影 */
+  --box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  --box-shadow-light: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  --box-shadow-heavy: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  
+  /* 动画时长 */
+  --animation-duration-fast: 200ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+}
+
+/* 通用样式类 */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-style {
+  background-color: var(--bg-color-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-light);
+  padding: var(--spacing-md);
+}
+
+/* 按钮基础样式 */
+.button-style {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  transition: all var(--animation-duration-normal);
+}
+
+.button-style:hover {
+  opacity: 0.8;
+}
+
+.button-style:active {
+  transform: scale(0.98);
+}
+
+.button-style:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 输入框基础样式 */
+.input-style {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: var(--border-width) solid var(--divider-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-md);
+  background-color: var(--bg-color-white);
+  transition: border-color var(--animation-duration-normal);
+}
+
+.input-style:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.input-style::placeholder {
+  color: var(--text-disabled);
+}
+
+/* 状态标签样式 */
+.status-badge {
+  display: inline-block;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.status-pending {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+.status-approved {
+  background-color: #D4EDDA;
+  color: #155724;
+}
+
+.status-rejected {
+  background-color: #F8D7DA;
+  color: #721C24;
+}
+
+/* 响应式样式 */
+@media (max-width: 750px) {
+  /* 移动端样式 */
+}
+
+@media (min-width: 751px) and (max-width: 1024px) {
+  /* 平板样式 */
+}
+
+@media (min-width: 1025px) {
+  /* 桌面端样式 */
+}
+
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-color);
+  line-height: 1.5;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top: 4rpx solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 通用工具类 */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-disabled { color: var(--text-disabled); }
+
+.bg-primary { background-color: var(--primary-color); }
+.bg-success { background-color: var(--success-color); }
+.bg-warning { background-color: var(--warning-color); }
+.bg-error { background-color: var(--error-color); }
+.bg-info { background-color: var(--info-color); }
+
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }
+
+.p-1 { padding: var(--spacing-xs); }
+.p-2 { padding: var(--spacing-sm); }
+.p-3 { padding: var(--spacing-md); }
+.p-4 { padding: var(--spacing-lg); }
+.p-5 { padding: var(--spacing-xl); }

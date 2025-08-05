@@ -1,0 +1,61 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 申请失败插画 -->
+  <defs>
+    <style>
+      .failure-bg { fill: #FFEBEE; }
+      .failure-main { fill: #F44336; }
+      .failure-accent { fill: #C62828; }
+      .paper-bg { fill: #FFFFFF; stroke: #E0E0E0; stroke-width: 2; }
+      .cross-mark { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .reject-stamp { fill: #F44336; }
+      .billiard-sad { fill: #BDBDBD; }
+      .tear-drop { fill: #81D4FA; }
+      .text-primary { fill: #C62828; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; }
+    </style>
+  </defs>
+  
+  <!-- 背景圆圈 -->
+  <circle cx="100" cy="100" r="90" class="failure-bg"/>
+  
+  <!-- 失败标志主体 -->
+  <circle cx="100" cy="80" r="35" class="failure-main"/>
+  
+  <!-- 叉号 -->
+  <path d="M85 65 L115 95 M115 65 L85 95" class="cross-mark"/>
+  
+  <!-- 申请表单 -->
+  <g transform="translate(60, 130)">
+    <rect x="0" y="0" width="80" height="50" rx="4" class="paper-bg"/>
+    <line x1="10" y1="12" x2="70" y2="12" stroke="#E0E0E0" stroke-width="2"/>
+    <line x1="10" y1="20" x2="50" y2="20" stroke="#E0E0E0" stroke-width="2"/>
+    <line x1="10" y1="28" x2="60" y2="28" stroke="#E0E0E0" stroke-width="2"/>
+    
+    <!-- 拒绝印章 -->
+    <rect x="45" y="25" width="20" height="15" rx="2" class="reject-stamp"/>
+    <text x="55" y="34" fill="#FFFFFF" font-size="6" text-anchor="middle">拒绝</text>
+  </g>
+  
+  <!-- 失望的台球 -->
+  <g transform="translate(140, 45)">
+    <circle cx="0" cy="0" r="8" class="billiard-sad"/>
+    <rect x="-8" y="-2" width="16" height="4" rx="2" fill="#FFFFFF"/>
+    <text x="0" y="2" fill="#FFFFFF" font-size="8" text-anchor="middle">8</text>
+    
+    <!-- 伤心表情 -->
+    <circle cx="-3" cy="-3" r="1" fill="#666"/>
+    <circle cx="3" cy="-3" r="1" fill="#666"/>
+    <path d="M-3 5 Q0 2 3 5" fill="none" stroke="#666" stroke-width="1"/>
+    
+    <!-- 眼泪 -->
+    <ellipse cx="-5" cy="8" rx="1" ry="2" class="tear-drop"/>
+  </g>
+  
+  <!-- 问号装饰 -->
+  <g transform="translate(40, 60)">
+    <circle cx="0" cy="0" r="6" fill="#FFB74D"/>
+    <text x="0" y="2" fill="#FFFFFF" font-size="8" text-anchor="middle">?</text>
+  </g>
+  
+  <!-- 提示文字 -->
+  <text x="100" y="190" class="text-primary">申请未通过审核</text>
+</svg>

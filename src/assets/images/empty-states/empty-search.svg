@@ -1,0 +1,63 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- 无搜索结果状态插画 -->
+  <defs>
+    <style>
+      .magnifier-lens { fill: #FAFAFA; stroke: #E0E0E0; stroke-width: 2.5; }
+      .magnifier-handle { stroke: #E0E0E0; stroke-width: 2.5; stroke-linecap: round; }
+      .search-line { stroke: #E0E0E0; stroke-width: 1.5; stroke-dasharray: 4 2; opacity: 0.5; }
+      .billiard-outline { fill: none; stroke: #E0E0E0; stroke-width: 1.5; stroke-dasharray: 3 2; opacity: 0.5; }
+      .question-mark { fill: #BDBDBD; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 20px; text-anchor: middle; font-weight: bold; }
+      .empty-text { fill: #9E9E9E; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; text-anchor: middle; }
+      .search-path { fill: none; stroke: #E0E0E0; stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.4; }
+    </style>
+  </defs>
+  
+  <!-- 放大镜 -->
+  <g transform="translate(80, 50)">
+    <!-- 镜片 -->
+    <circle cx="0" cy="0" r="25" class="magnifier-lens"/>
+    
+    <!-- 把手 -->
+    <line x1="18" y1="18" x2="35" y2="35" class="magnifier-handle"/>
+    
+    <!-- 问号 -->
+    <text x="0" y="6" class="question-mark">?</text>
+  </g>
+  
+  <!-- 搜索路径 -->
+  <g transform="translate(40, 20)">
+    <path d="M 0 0 Q 20 10 40 0 Q 60 -10 80 0" class="search-path"/>
+    <path d="M 0 80 Q 20 70 40 80 Q 60 90 80 80" class="search-path"/>
+  </g>
+  
+  <!-- 台球元素装饰 -->
+  <g transform="translate(30, 45)">
+    <circle cx="0" cy="0" r="8" class="billiard-outline"/>
+    <text x="0" y="2" font-size="8" fill="#E0E0E0" text-anchor="middle">1</text>
+  </g>
+  
+  <g transform="translate(120, 55)">
+    <circle cx="0" cy="0" r="8" class="billiard-outline"/>
+    <text x="0" y="2" font-size="8" fill="#E0E0E0" text-anchor="middle">3</text>
+  </g>
+  
+  <g transform="translate(45, 85)">
+    <circle cx="0" cy="0" r="8" class="billiard-outline"/>
+    <text x="0" y="2" font-size="8" fill="#E0E0E0" text-anchor="middle">5</text>
+  </g>
+  
+  <g transform="translate(110, 90)">
+    <circle cx="0" cy="0" r="8" class="billiard-outline"/>
+    <text x="0" y="2" font-size="8" fill="#E0E0E0" text-anchor="middle">7</text>
+  </g>
+  
+  <!-- 空状态指示点 -->
+  <g transform="translate(80, 110)">
+    <circle cx="-10" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+    <circle cx="0" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+    <circle cx="10" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+  </g>
+  
+  <!-- 提示文字 -->
+  <text x="80" y="140" class="empty-text">无搜索结果</text>
+</svg>

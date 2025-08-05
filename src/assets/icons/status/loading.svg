@@ -1,0 +1,30 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 加载状态图标：旋转的圆环 -->
+  <defs>
+    <style>
+      .loading-ring { 
+        stroke: #1B5E20; 
+        fill: none; 
+        stroke-width: 2; 
+        stroke-linecap: round;
+        transform-origin: center;
+        animation: rotate 1.5s linear infinite;
+      }
+      .loading-bg {
+        stroke: #E0E0E0;
+        fill: none;
+        stroke-width: 2;
+      }
+      @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </defs>
+  
+  <!-- 背景圆环 -->
+  <circle cx="12" cy="12" r="9" class="loading-bg"/>
+  
+  <!-- 旋转圆环 -->
+  <path d="M12 3 A9 9 0 0 1 21 12" class="loading-ring"/>
+</svg>

@@ -1,0 +1,40 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 杆柜装饰图标 -->
+  <defs>
+    <style>
+      .locker-frame { fill: #F5F5F5; stroke: #1B5E20; stroke-width: 1.5; }
+      .locker-door { fill: #FFFFFF; stroke: #4CAF50; stroke-width: 1; }
+      .locker-handle { fill: none; stroke: #1B5E20; stroke-width: 2; stroke-linecap: round; }
+      .locker-vent { fill: #E0E0E0; }
+      .locker-number { fill: #1B5E20; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 8px; font-weight: bold; text-anchor: middle; }
+      .locker-lock { fill: #FFA000; }
+    </style>
+  </defs>
+  
+  <!-- 柜体外框 -->
+  <rect x="4" y="2" width="16" height="20" rx="2" class="locker-frame"/>
+  
+  <!-- 上层柜门 -->
+  <rect x="6" y="4" width="12" height="8" rx="1" class="locker-door"/>
+  
+  <!-- 下层柜门 -->
+  <rect x="6" y="14" width="12" height="6" rx="1" class="locker-door"/>
+  
+  <!-- 上层通风孔 -->
+  <rect x="8" y="6" width="8" height="1" rx="0.5" class="locker-vent"/>
+  <rect x="8" y="8" width="8" height="1" rx="0.5" class="locker-vent"/>
+  
+  <!-- 上层把手 -->
+  <line x1="16" y1="7" x2="16" y2="9" class="locker-handle"/>
+  
+  <!-- 下层把手 -->
+  <line x1="16" y1="16" x2="16" y2="18" class="locker-handle"/>
+  
+  <!-- 柜号标签 -->
+  <rect x="10" y="9.5" width="4" height="2" rx="0.5" fill="#E8F5E9"/>
+  <text x="12" y="11" class="locker-number">08</text>
+  
+  <!-- 锁具指示 -->
+  <circle cx="8" cy="17" r="1.5" class="locker-lock"/>
+  <rect x="7.5" y="16.5" width="1" height="1" fill="#FFFFFF"/>
+</svg>

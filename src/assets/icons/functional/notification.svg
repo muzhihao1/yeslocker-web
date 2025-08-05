@@ -1,0 +1,30 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 通知图标：铃铛+消息 -->
+  <defs>
+    <style>
+      .primary { stroke: #1B5E20; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .accent { fill: #FFA000; }
+      .secondary { stroke: #757575; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+    </style>
+  </defs>
+  
+  <!-- 铃铛主体 -->
+  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" class="primary"/>
+  
+  <!-- 铃铛底部 -->
+  <path d="M13.73 21a2 2 0 0 1-3.46 0" class="primary"/>
+  
+  <!-- 铃铛顶部 -->
+  <line x1="12" y1="2" x2="12" y2="6" class="primary"/>
+  
+  <!-- 通知红点 -->
+  <circle cx="17" cy="5" r="3" fill="#F44336"/>
+  <text x="17" y="7" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#FFFFFF" text-anchor="middle">1</text>
+  
+  <!-- 台球装饰元素 -->
+  <circle cx="8" cy="10" r="1" class="accent"/>
+  
+  <!-- 声波线条（表示声音/通知） -->
+  <path d="M19 8 C20 7 20 9 19 10" class="secondary"/>
+  <path d="M20 6 C22 5 22 11 20 12" class="secondary"/>
+</svg>

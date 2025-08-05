@@ -1,0 +1,300 @@
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 30rpx;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.section-badge {
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  
+}
+
+.section-badge.active {
+    background-color: #e8f5e9;
+    color: #4caf50;
+  }
+  
+}
+
+.section-badge.inactive {
+    background-color: #f5f5f5;
+    color: #999;
+  }
+}
+
+.settings-form {
+  padding: 30rpx;
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+  
+}
+
+.form-item:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.form-label {
+  font-size: 30rpx;
+  color: #333;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 30rpx;
+  background-color: #f8f8f8;
+  
+}
+
+.form-input:focus {
+    border-color: #1B5E20;
+    background-color: #fff;
+  }
+}
+
+.picker-display {
+  height: 88rpx;
+  padding: 0 24rpx;
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  background-color: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  .arrow {
+    color: #999;
+    font-size: 32rpx;
+  }
+}
+
+.switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  .form-label {
+    margin-bottom: 0;
+  }
+}
+
+.section-actions {
+  padding: 30rpx;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 20rpx;
+  
+  button {
+    flex: 1;
+    height: 88rpx;
+    border-radius: 8rpx;
+    font-size: 30rpx;
+    border: none;
+    
+  }
+}
+
+.section-actions button.test-btn {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    
+}
+
+.section-actions button.backup-btn {
+      background-color: #ff9800;
+      color: #fff;
+    }
+    
+}
+
+.section-actions button.save-btn.primary {
+      background-color: #1B5E20;
+      color: #fff;
+    }
+    
+}
+
+.section-actions button:disabled {
+      opacity: 0.6;
+    }
+
+.add-btn {
+  padding: 12rpx 24rpx;
+  background-color: #1B5E20;
+  color: #fff;
+  border-radius: 6rpx;
+  font-size: 26rpx;
+  border: none;
+}
+
+.template-list {
+  padding: 0 30rpx;
+}
+
+.template-item {
+  padding: 24rpx 0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+}
+
+.template-item:last-child {
+    border-bottom: none;
+  }
+}
+
+.template-info {
+  flex: 1;
+}
+
+.template-name {
+  font-size: 30rpx;
+  color: #333;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.template-type {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.edit-icon {
+  color: #1B5E20;
+  font-size: 28rpx;
+}
+
+.empty-placeholder {
+  padding: 60rpx;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.backup-info,
+.system-info {
+  padding: 20rpx 30rpx;
+  background-color: #f8f8f8;
+  border-radius: 8rpx;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  
+}
+
+.info-item:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 16rpx;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+// 模板编辑弹窗
+.template-editor {
+  width: 600rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.editor-header {
+  padding: 30rpx;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editor-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+}
+
+.editor-form {
+  padding: 30rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  height: 200rpx;
+  padding: 20rpx;
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background-color: #f8f8f8;
+}
+
+.editor-actions {
+  padding: 30rpx;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  gap: 20rpx;
+  
+  button {
+    flex: 1;
+    height: 80rpx;
+    border-radius: 8rpx;
+    font-size: 30rpx;
+    border: none;
+    
+  }
+}
+
+.template-editor button.cancel-btn {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    
+}
+
+.template-editor button.save-btn.primary {
+      background-color: #1B5E20;
+      color: #fff;
+    }
+</style>

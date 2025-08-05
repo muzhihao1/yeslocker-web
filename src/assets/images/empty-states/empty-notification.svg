@@ -1,0 +1,64 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- 无通知消息状态插画 -->
+  <defs>
+    <style>
+      .bell-body { fill: #FAFAFA; stroke: #E0E0E0; stroke-width: 2; }
+      .bell-clapper { fill: #E0E0E0; }
+      .bell-top { fill: #F5F5F5; stroke: #E0E0E0; stroke-width: 2; }
+      .sound-wave { fill: none; stroke: #E0E0E0; stroke-width: 1.5; stroke-dasharray: 3 2; opacity: 0.3; }
+      .billiard-number { fill: #BDBDBD; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; text-anchor: middle; }
+      .notification-bubble { fill: #FAFAFA; stroke: #E0E0E0; stroke-width: 1.5; stroke-dasharray: 4 2; }
+      .empty-text { fill: #9E9E9E; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; text-anchor: middle; }
+      .zzz { fill: #BDBDBD; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: bold; opacity: 0.6; }
+    </style>
+  </defs>
+  
+  <!-- 铃铛主体 -->
+  <g transform="translate(80, 35)">
+    <!-- 铃铛顶部 -->
+    <ellipse cx="0" cy="0" rx="8" ry="4" class="bell-top"/>
+    
+    <!-- 铃铛身体 -->
+    <path d="M -20 5 Q -20 25 -15 35 L 15 35 Q 20 25 20 5 Z" class="bell-body"/>
+    
+    <!-- 铃铛底部 -->
+    <ellipse cx="0" cy="35" rx="15" ry="4" class="bell-body"/>
+    
+    <!-- 铃铛舌 -->
+    <circle cx="0" cy="38" r="4" class="bell-clapper"/>
+    
+    <!-- 静音的声波（虚线） -->
+    <path d="M 30 15 Q 35 20 30 25" class="sound-wave"/>
+    <path d="M 35 10 Q 42 20 35 30" class="sound-wave"/>
+    <path d="M -30 15 Q -35 20 -30 25" class="sound-wave"/>
+    <path d="M -35 10 Q -42 20 -35 30" class="sound-wave"/>
+  </g>
+  
+  <!-- 睡眠符号 ZZZ -->
+  <g transform="translate(110, 30)">
+    <text x="0" y="0" class="zzz" font-size="12">Z</text>
+    <text x="5" y="-8" class="zzz" font-size="10">Z</text>
+    <text x="10" y="-15" class="zzz" font-size="8">Z</text>
+  </g>
+  
+  <!-- 消息气泡（虚线） -->
+  <g transform="translate(40, 85)">
+    <path d="M 0 0 L 70 0 Q 80 0 80 10 L 80 30 Q 80 40 70 40 L 20 40 L 10 50 L 10 40 L 10 40 Q 0 40 0 30 L 0 10 Q 0 0 10 0 Z" class="notification-bubble"/>
+    
+    <!-- 台球装饰 -->
+    <g transform="translate(40, 20)">
+      <circle cx="0" cy="0" r="6" fill="#F5F5F5" stroke="#E0E0E0"/>
+      <text x="0" y="2" class="billiard-number">9</text>
+    </g>
+  </g>
+  
+  <!-- 空状态指示点 -->
+  <g transform="translate(80, 110)">
+    <circle cx="-10" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+    <circle cx="0" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+    <circle cx="10" cy="0" r="2" fill="#BDBDBD" opacity="0.6"/>
+  </g>
+  
+  <!-- 提示文字 -->
+  <text x="80" y="140" class="empty-text">暂无通知消息</text>
+</svg>

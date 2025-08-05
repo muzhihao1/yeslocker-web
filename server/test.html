@@ -1,0 +1,218 @@
+<\!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YesLocker 功能测试</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1200px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+        }
+        .section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #1B5E20;
+        }
+        input, select, button {
+            margin: 5px;
+            padding: 8px;
+            width: 200px;
+        }
+        button {
+            background: #1B5E20;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #2E7D32;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <h1>YesLocker 功能测试面板</h1>
+    
+    <div class="container">
+        <div class="column">
+            <div class="section">
+                <h2>1. 用户注册（无需短信验证）</h2>
+                <div>
+                    <input id="reg-phone" placeholder="手机号" value="13800138000"><br>
+                    <input id="reg-name" placeholder="姓名" value="测试用户"><br>
+                    <select id="reg-store">
+                        <option value="">选择门店</option>
+                    </select><br>
+                    <button onclick="loadStores()">加载门店列表</button>
+                    <button onclick="register()">注册</button>
+                </div>
+                <div id="reg-result" class="result"></div>
+            </div>
+
+            <div class="section">
+                <h2>2. 用户登录（仅需手机号）</h2>
+                <div>
+                    <input id="login-phone" placeholder="手机号" value="13800138000"><br>
+                    <button onclick="login()">登录</button>
+                </div>
+                <div id="login-result" class="result"></div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="section">
+                <h2>5. 管理员登录</h2>
+                <div>
+                    <input id="admin-phone" placeholder="管理员手机号" value="13800000001"><br>
+                    <input id="admin-password" type="password" placeholder="密码" value="admin123"><br>
+                    <button onclick="adminLogin()">管理员登录</button>
+                </div>
+                <div id="admin-login-result" class="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+        let authToken = '';
+        let userId = '';
+        let adminToken = '';
+
+        async function loadStores() {
+            try {
+                const response = await axios.get(`${API_URL}/stores`);
+                const select = document.getElementById('reg-store');
+                select.innerHTML = '<option value="">选择门店</option>';
+                response.data.forEach(store => {
+                    const option = document.createElement('option');
+                    option.value = store.id;
+                    option.textContent = store.name;
+                    select.appendChild(option);
+                });
+                document.getElementById('reg-result').className = 'result info';
+                document.getElementById('reg-result').textContent = '成功加载 ' + response.data.length + ' 个门店';
+            } catch (error) {
+                document.getElementById('reg-result').className = 'result error';
+                document.getElementById('reg-result').textContent = '错误: ' + (error.response?.data?.error || error.message);
+            }
+        }
+
+        async function register() {
+            const phone = document.getElementById('reg-phone').value;
+            const name = document.getElementById('reg-name').value;
+            const storeId = document.getElementById('reg-store').value;
+            
+            if (\!phone || \!name || \!storeId) {
+                document.getElementById('reg-result').className = 'result error';
+                document.getElementById('reg-result').textContent = '请填写所有必填字段';
+                return;
+            }
+            
+            try {
+                const response = await axios.post(`${API_URL}/auth-register`, {
+                    phone,
+                    name,
+                    storeId
+                });
+                
+                authToken = response.data.token;
+                userId = response.data.user.id;
+                
+                document.getElementById('reg-result').className = 'result success';
+                document.getElementById('reg-result').textContent = `注册成功！
+用户ID: ${userId}
+手机号: ${phone}
+姓名: ${name}
+Token已保存，可以进行后续操作`;
+            } catch (error) {
+                document.getElementById('reg-result').className = 'result error';
+                document.getElementById('reg-result').textContent = '错误: ' + (error.response?.data?.error || error.message);
+            }
+        }
+
+        async function login() {
+            const phone = document.getElementById('login-phone').value;
+            
+            try {
+                const response = await axios.post(`${API_URL}/auth-login`, {
+                    phone
+                });
+                
+                authToken = response.data.token;
+                userId = response.data.user.id;
+                
+                document.getElementById('login-result').className = 'result success';
+                document.getElementById('login-result').textContent = `登录成功！
+用户ID: ${userId}
+用户名: ${response.data.user.name}
+门店: ${response.data.user.storeId}`;
+            } catch (error) {
+                document.getElementById('login-result').className = 'result error';
+                document.getElementById('login-result').textContent = '错误: ' + (error.response?.data?.error || error.message);
+            }
+        }
+
+        async function adminLogin() {
+            const phone = document.getElementById('admin-phone').value;
+            const password = document.getElementById('admin-password').value;
+            
+            try {
+                const response = await axios.post(`${API_URL}/admin-login`, {
+                    phone,
+                    password
+                });
+                
+                adminToken = response.data.token;
+                
+                document.getElementById('admin-login-result').className = 'result success';
+                document.getElementById('admin-login-result').textContent = `管理员登录成功！
+管理员ID: ${response.data.admin.id}
+姓名: ${response.data.admin.name}
+角色: ${response.data.admin.role}`;
+            } catch (error) {
+                document.getElementById('admin-login-result').className = 'result error';
+                document.getElementById('admin-login-result').textContent = '错误: ' + (error.response?.data?.error || error.message);
+            }
+        }
+
+        // 页面加载时自动加载门店列表
+        window.onload = loadStores;
+    </script>
+</body>
+</html>
+EOF < /dev/null
