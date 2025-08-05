@@ -178,9 +178,9 @@ serve(async (req) => {
     // 处理每个用户的提醒
     for (const locker of inactiveLockers) {
       try {
-        const user = locker.users
-        const lockerInfo = locker.lockers
-        const store = lockerInfo?.stores
+        const user = locker.users[0]
+        const lockerInfo = locker.lockers[0]
+        const store = lockerInfo?.stores[0]
         
         if (!user || !lockerInfo || !store) {
           console.log('Skipping incomplete record:', locker.id)
@@ -193,7 +193,7 @@ serve(async (req) => {
           new Date(locker.approved_at)
         const daysInactive = Math.floor((Date.now() - lastOperationDate.getTime()) / (1000 * 60 * 60 * 24))
 
-        console.log(`Processing user ${user.phone}: ${daysInactive} days inactive`)
+        console.log(`Processing user ${user?.phone}: ${daysInactive} days inactive`)
 
         // 只处理超过90天的用户
         if (daysInactive < 90) {
@@ -204,53 +204,53 @@ serve(async (req) => {
 
         // 准备提醒内容
         const reminderTitle = '杆柜使用提醒'
-        const reminderContent = `您好${user.name || ''}，您在${store.name}的${lockerInfo.number}号杆柜已经${daysInactive}天未使用，请及时使用或释放杆柜。`
+        const reminderContent = `您好${user?.name || ''}，您在${store?.name}的${lockerInfo?.number}号杆柜已经${daysInactive}天未使用，请及时使用或释放杆柜。`
 
         let smsSuccess = false
         let notificationSuccess = false
 
         // 发送短信提醒 (如果一周内未发送过)
-        const smsKey = `${user.id}_sms`
+        const smsKey = `${user?.id}_sms`
         if (!recentReminderMap.has(smsKey)) {
-          console.log(`Sending SMS reminder to ${user.phone}`)
+          console.log(`Sending SMS reminder to ${user?.phone}`)
           smsSuccess = await sendReminderSMS(
-            user.phone, 
-            user.name || '用户', 
-            lockerInfo.number
+            user?.phone, 
+            user?.name || '用户', 
+            lockerInfo?.number
           )
           
-          await updateReminderRecord(supabaseClient, user.id, 'sms', smsSuccess)
+          await updateReminderRecord(supabaseClient, user?.id, 'sms', smsSuccess)
           
           if (smsSuccess) {
-            console.log(`SMS reminder sent successfully to ${user.phone}`)
+            console.log(`SMS reminder sent successfully to ${user?.phone}`)
           } else {
-            console.log(`Failed to send SMS reminder to ${user.phone}`)
+            console.log(`Failed to send SMS reminder to ${user?.phone}`)
           }
         } else {
-          console.log(`Skipping SMS for ${user.phone} (sent recently)`)
+          console.log(`Skipping SMS for ${user?.phone} (sent recently)`)
           smsSuccess = true // 标记为成功，因为最近已发送
         }
 
         // 创建应用内通知 (如果一周内未发送过)
-        const notificationKey = `${user.id}_notification`
+        const notificationKey = `${user?.id}_notification`
         if (!recentReminderMap.has(notificationKey)) {
-          console.log(`Creating in-app notification for user ${user.id}`)
+          console.log(`Creating in-app notification for user ${user?.id}`)
           notificationSuccess = await createInAppNotification(
             supabaseClient,
-            user.id,
+            user?.id,
             reminderTitle,
             reminderContent
           )
           
-          await updateReminderRecord(supabaseClient, user.id, 'notification', notificationSuccess)
+          await updateReminderRecord(supabaseClient, user?.id, 'notification', notificationSuccess)
           
           if (notificationSuccess) {
-            console.log(`Notification created successfully for user ${user.id}`)
+            console.log(`Notification created successfully for user ${user?.id}`)
           } else {
-            console.log(`Failed to create notification for user ${user.id}`)
+            console.log(`Failed to create notification for user ${user?.id}`)
           }
         } else {
-          console.log(`Skipping notification for user ${user.id} (sent recently)`)
+          console.log(`Skipping notification for user ${user?.id} (sent recently)`)
           notificationSuccess = true // 标记为成功，因为最近已发送
         }
 
