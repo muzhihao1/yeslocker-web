@@ -113,7 +113,7 @@ async function generateTencentSignature(
 }
 
 // 发送腾讯云短信
-async function sendTencentSMS(phone: string, templateParams: string[], type: string): Promise<boolean> {
+async function sendTencentSMS(phone: string, templateParams: string[], type: 'register' | 'login' | 'reminder'): Promise<boolean> {
   try {
     // 开发环境模拟发送成功
     if (Deno.env.get('ENVIRONMENT') === 'development') {
