@@ -11,14 +11,24 @@ interface AdminLoginRequest {
   password: string;
 }
 
-// 简单的密码哈希验证函数 (生产环境应使用bcrypt等安全库)
-function verifyPassword(password: string, hash: string): boolean {
-  // TODO: 实现实际的密码验证
-  // 开发阶段简单比较，生产环境需要使用bcrypt
-  if (Deno.env.get('ENVIRONMENT') === 'development') {
-    return password === 'admin123' || hash === '$2b$10$dummy.hash.for.dev.only'
-  }
-  return password === hash // 临时实现
+// Password hashing utilities
+async function hashPassword(password: string, salt: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password + salt)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function verifyPassword(password: string, hash: string, salt: string): Promise<boolean> {
+  const computedHash = await hashPassword(password, salt)
+  return computedHash === hash
+}
+
+function generateSalt(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
 serve(async (req) => {
@@ -68,7 +78,7 @@ serve(async (req) => {
     const { data: admin, error: adminError } = await supabaseClient
       .from('admins')
       .select(`
-        id, phone, name, role, password_hash, status,
+        id, phone, name, role, password_hash, password_salt, status,
         stores:store_id (
           id, name, address
         )
@@ -91,7 +101,36 @@ serve(async (req) => {
     }
 
     // 验证密码
-    if (!verifyPassword(password, admin.password_hash)) {
+    let isPasswordValid = false
+    
+    if (admin.password_salt) {
+      // New secure password system
+      isPasswordValid = await verifyPassword(password, admin.password_hash, admin.password_salt)
+    } else {
+      // Legacy system - migrate to new system
+      const environment = Deno.env.get('ENVIRONMENT') || 'production'
+      if (environment === 'development') {
+        // For development only - use default dev password from environment
+        const devPassword = Deno.env.get('DEV_ADMIN_PASSWORD')
+        isPasswordValid = devPassword && password === devPassword
+        
+        if (isPasswordValid) {
+          // Migrate to secure password system
+          const newSalt = generateSalt()
+          const newHash = await hashPassword(password, newSalt)
+          
+          await supabaseClient
+            .from('admins')
+            .update({ 
+              password_hash: newHash, 
+              password_salt: newSalt
+            })
+            .eq('id', admin.id)
+        }
+      }
+    }
+    
+    if (!isPasswordValid) {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid password', 

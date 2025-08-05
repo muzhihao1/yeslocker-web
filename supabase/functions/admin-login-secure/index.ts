@@ -152,7 +152,8 @@ serve(async (req) => {
     } else {
       // Legacy system check (for backward compatibility during migration)
       const environment = Deno.env.get('ENVIRONMENT') || 'development'
-      if (environment === 'development' && password === 'admin123') {
+      const devPassword = Deno.env.get('DEV_ADMIN_PASSWORD')
+      if (environment === 'development' && devPassword && password === devPassword) {
         isPasswordValid = true
         
         // Migrate to secure password system
