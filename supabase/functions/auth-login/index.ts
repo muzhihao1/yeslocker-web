@@ -109,8 +109,8 @@ serve(async (req) => {
       .from('locker_records')
       .insert({
         user_id: user.id,
-        locker_id: user.lockers?.id || null,
-        store_id: user.stores.id,
+        locker_id: user.lockers[0]?.id || null,
+        store_id: user.stores[0]?.id,
         action_type: 'login',
         notes: 'User login via mobile app'
       })

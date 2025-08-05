@@ -240,7 +240,7 @@ serve(async (req) => {
         message: '申请提交成功，请等待管理员审核',
         data: {
           application_id: application.id,
-          store_name: application.stores.name,
+          store_name: application.stores[0]?.name,
           status: application.status,
           created_at: application.created_at
         }

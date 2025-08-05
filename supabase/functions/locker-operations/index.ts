@@ -113,7 +113,7 @@ serve(async (req) => {
       }
 
       // 检查杆柜状态
-      if (userData.lockers.status !== 'occupied') {
+      if (userData.lockers[0]?.status !== 'occupied') {
         return new Response(
           JSON.stringify({ 
             error: 'Locker not available', 
@@ -171,8 +171,8 @@ serve(async (req) => {
           data: {
             record_id: record.id,
             action_type,
-            locker_number: userData.lockers.number,
-            store_name: userData.stores.name,
+            locker_number: userData.lockers[0]?.number,
+            store_name: userData.stores[0]?.name,
             timestamp: record.created_at
           }
         }),
