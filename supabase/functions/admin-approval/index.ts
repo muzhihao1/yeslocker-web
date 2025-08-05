@@ -342,20 +342,20 @@ serve(async (req) => {
 
         // 发送审核通过通知
         const notificationTitle = '杆柜申请已通过'
-        const notificationContent = `您好${application.users.name || ''}，您的杆柜申请已通过审核，分配的杆柜号为: ${locker.number}`
+        const notificationContent = `您好${application.users[0]?.name || ''}，您的杆柜申请已通过审核，分配的杆柜号为: ${locker.number}`
         
         // 发送短信通知
         const smsSuccess = await sendApprovalSMS(
-          application.users.phone,
-          application.users.name || '用户',
+          application.users[0]?.phone,
+          application.users[0]?.name || '用户',
           true,
           `杆柜号: ${locker.number}`
         )
         
         if (smsSuccess) {
-          console.log(`Approval SMS sent successfully to ${application.users.phone}`)
+          console.log(`Approval SMS sent successfully to ${application.users[0]?.phone}`)
         } else {
-          console.log(`Failed to send approval SMS to ${application.users.phone}`)
+          console.log(`Failed to send approval SMS to ${application.users[0]?.phone}`)
         }
         
         // 创建应用内通知
@@ -380,7 +380,7 @@ serve(async (req) => {
             data: {
               application_id,
               locker_number: locker.number,
-              user_name: application.users.name
+              user_name: application.users[0]?.name
             }
           }),
           { 
@@ -427,20 +427,20 @@ serve(async (req) => {
 
         // 发送审核拒绝通知
         const notificationTitle = '杆柜申请未通过'
-        const notificationContent = `您好${application.users.name || ''}，您的杆柜申请未通过审核。原因: ${rejection_reason}`
+        const notificationContent = `您好${application.users[0]?.name || ''}，您的杆柜申请未通过审核。原因: ${rejection_reason}`
         
         // 发送短信通知
         const smsSuccess = await sendApprovalSMS(
-          application.users.phone,
-          application.users.name || '用户',
+          application.users[0]?.phone,
+          application.users[0]?.name || '用户',
           false,
           `原因: ${rejection_reason}`
         )
         
         if (smsSuccess) {
-          console.log(`Rejection SMS sent successfully to ${application.users.phone}`)
+          console.log(`Rejection SMS sent successfully to ${application.users[0]?.phone}`)
         } else {
-          console.log(`Failed to send rejection SMS to ${application.users.phone}`)
+          console.log(`Failed to send rejection SMS to ${application.users[0]?.phone}`)
         }
         
         // 创建应用内通知
@@ -465,7 +465,7 @@ serve(async (req) => {
             data: {
               application_id,
               rejection_reason,
-              user_name: application.users.name
+              user_name: application.users[0]?.name
             }
           }),
           { 
