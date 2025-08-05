@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface AdminLoginRequest {
   phone: string;
-  password: string;
+  userPassword: string;
 }
 
 // Password hashing utilities
@@ -43,10 +43,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // 使用service role key获取管理员权限
     )
 
-    const { phone, password }: AdminLoginRequest = await req.json()
+    const { phone, userPassword }: AdminLoginRequest = await req.json()
 
     // 验证必填字段
-    if (!phone || !password) {
+    if (!phone || !userPassword) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
@@ -105,19 +105,19 @@ serve(async (req) => {
     
     if (admin.password_salt) {
       // New secure password system
-      isPasswordValid = await verifyPassword(password, admin.password_hash, admin.password_salt)
+      isPasswordValid = await verifyPassword(userPassword, admin.password_hash, admin.password_salt)
     } else {
       // Legacy system - migrate to new system
       const environment = Deno.env.get('ENVIRONMENT') || 'production'
       if (environment === 'development') {
         // For development only - use default dev password from environment
         const devPassword = Deno.env.get('DEV_ADMIN_PASSWORD')
-        isPasswordValid = !!devPassword && password === devPassword
+        isPasswordValid = !!devPassword && userPassword === devPassword
         
         if (isPasswordValid) {
           // Migrate to secure password system
           const newSalt = generateSalt()
-          const newHash = await hashPassword(password, newSalt)
+          const newHash = await hashPassword(userPassword, newSalt)
           
           await supabaseClient
             .from('admins')

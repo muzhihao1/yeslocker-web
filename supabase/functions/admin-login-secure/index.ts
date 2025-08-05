@@ -15,7 +15,7 @@ import {
 
 interface AdminLoginRequest {
   phone: string;
-  password: string;
+  userPassword: string;
 }
 
 // Password hashing utilities
@@ -60,7 +60,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { phone, password }: AdminLoginRequest = await req.json()
+    const { phone, userPassword }: AdminLoginRequest = await req.json()
 
     // Validate inputs
     const phoneValidation = validatePhoneNumber(phone)
@@ -72,7 +72,7 @@ serve(async (req) => {
       )
     }
 
-    if (!password || password.length < 6) {
+    if (!userPassword || userPassword.length < 6) {
       return createErrorResponse(
         'Invalid password',
         '密码不能为空且长度至少6位',
@@ -148,17 +148,17 @@ serve(async (req) => {
     
     if (admin.password_salt) {
       // New secure password system
-      isPasswordValid = await verifyPassword(password, admin.password_hash, admin.password_salt)
+      isPasswordValid = await verifyPassword(userPassword, admin.password_hash, admin.password_salt)
     } else {
       // Legacy system check (for backward compatibility during migration)
       const environment = Deno.env.get('ENVIRONMENT') || 'development'
       const devPassword = Deno.env.get('DEV_ADMIN_PASSWORD')
-      if (environment === 'development' && devPassword && password === devPassword) {
+      if (environment === 'development' && devPassword && userPassword === devPassword) {
         isPasswordValid = true
         
         // Migrate to secure password system
         const newSalt = generateSalt()
-        const newHash = await hashPassword(password, newSalt)
+        const newHash = await hashPassword(userPassword, newSalt)
         
         await supabaseClient
           .from('admins')
