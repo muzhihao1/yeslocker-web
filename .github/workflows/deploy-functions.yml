@@ -126,7 +126,7 @@ jobs:
 
       - name: Run database migrations
         run: |
-          supabase db push --project-ref $PROJECT_REF
+          supabase db push
         working-directory: supabase
 
       - name: Set function secrets
