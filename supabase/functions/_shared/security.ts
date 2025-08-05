@@ -1,5 +1,4 @@
 // Shared Security Utilities for YesLocker Edge Functions
-import { createHash, randomBytes } from 'https://deno.land/std@0.168.0/crypto/mod.ts'
 
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { requests: number[], windowStart: number }>()

@@ -239,7 +239,7 @@ serve(async (req) => {
       phone: admin.phone,
       name: admin.name,
       role: admin.role,
-      store_id: admin.stores?.id,
+      store_id: admin.stores[0]?.id,
       user_type: 'admin'
     }
 
