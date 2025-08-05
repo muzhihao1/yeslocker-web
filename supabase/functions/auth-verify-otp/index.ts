@@ -232,7 +232,7 @@ serve(async (req) => {
       user_id: userData.id,
       phone: userData.phone,
       name: userData.name,
-      store_id: userData.stores?.id,
+      store_id: userData.stores[0]?.id,
       user_type: 'customer'
     }
 

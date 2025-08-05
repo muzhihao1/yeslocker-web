@@ -107,11 +107,11 @@ serve(async (req) => {
     // 创建管理员会话token
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       phone,
-      phone_confirmed_at: new Date().toISOString(),
+      phone_confirm: true,
       user_metadata: {
         name: admin.name,
         role: admin.role,
-        store_id: admin.stores?.id,
+        store_id: admin.stores[0]?.id,
         user_type: 'admin'
       }
     })
@@ -125,7 +125,7 @@ serve(async (req) => {
       admin_id: admin.id,
       phone: admin.phone,
       role: admin.role,
-      store_id: admin.stores?.id,
+      store_id: admin.stores[0]?.id,
       exp: Math.floor(Date.now() / 1000) + (8 * 60 * 60) // 8小时过期
     }
 

@@ -130,7 +130,7 @@ serve(async (req) => {
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       phone,
       password: phone, // 使用手机号作为默认密码
-      phone_confirmed_at: new Date().toISOString(),
+      phone_confirm: true,
       user_metadata: {
         name,
         store_id,
