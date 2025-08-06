@@ -1,4 +1,5 @@
 name: Deploy Edge Functions
+# Workflow updated to test corrected PRODUCTION_PROJECT_REF secret
 
 on:
   push:
