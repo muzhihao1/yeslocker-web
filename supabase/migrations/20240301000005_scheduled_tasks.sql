@@ -67,6 +67,14 @@ LEFT JOIN (
   GROUP BY user_id
 ) a ON u.id = a.user_id;
 
+-- 添加必需的 application_id 列（如果不存在）
+ALTER TABLE locker_records 
+ADD COLUMN IF NOT EXISTS application_id UUID REFERENCES applications(id);
+
+-- 添加索引以提高性能（如果不存在）
+CREATE INDEX IF NOT EXISTS idx_locker_records_application_created 
+ON locker_records(application_id, created_at);
+
 -- 创建长期未使用杆柜的视图
 CREATE OR REPLACE VIEW inactive_lockers_view AS
 SELECT 
