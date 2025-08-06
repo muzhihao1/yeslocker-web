@@ -155,6 +155,15 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user_reminder_type ON reminders(user_id
 CREATE INDEX IF NOT EXISTS idx_applications_status_approved_at ON applications(status, approved_at) WHERE status = 'approved';
 CREATE INDEX IF NOT EXISTS idx_locker_records_application_created ON locker_records(application_id, created_at);
 
+-- 创建系统配置表（如果不存在）
+CREATE TABLE IF NOT EXISTS system_config (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 插入系统配置
 INSERT INTO system_config (key, value, description) VALUES 
   ('reminder_frequency_days', '7', '提醒发送频率（天）'),
