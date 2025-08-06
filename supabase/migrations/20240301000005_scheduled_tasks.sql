@@ -89,7 +89,7 @@ SELECT
   )) as days_inactive
 FROM applications a
 JOIN users u ON a.user_id = u.id
-JOIN lockers l ON a.locker_id = l.id  
+JOIN lockers l ON a.store_id = l.store_id AND a.requested_locker_number = l.number  
 JOIN stores s ON l.store_id = s.id
 WHERE a.status = 'approved'
   AND EXTRACT(days FROM (
