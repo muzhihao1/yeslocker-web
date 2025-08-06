@@ -1,5 +1,5 @@
 name: Deploy Edge Functions
-# Workflow updated to test corrected PRODUCTION_PROJECT_REF secret
+# Fixed SUPABASE_ACCESS_TOKEN format issue - ready for deployment
 
 on:
   push:
