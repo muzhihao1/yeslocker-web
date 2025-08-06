@@ -160,7 +160,7 @@ UNION ALL
 SELECT 
     'reminders' as table_name,
     COUNT(*) as record_count,
-    MAX(created_at) as last_updated
+    MAX(sent_at) as last_updated
 FROM reminders;
 
 -- 创建用于Express服务器API兼容的函数
