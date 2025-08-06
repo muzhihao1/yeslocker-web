@@ -63,3 +63,5 @@ supabase/.branches/
 
 # Test reports
 locker-assignment-flow-test-report-*.json
+yeslocker-e2e-test-report-*.json
+*-test-report-*.json
