@@ -20,7 +20,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // 使用service role key
     )
 
     // 获取用户认证信息
@@ -38,10 +38,19 @@ serve(async (req) => {
       )
     }
 
+    // 解析简化的access token
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
-
-    if (authError || !user) {
+    let user_id: string;
+    
+    try {
+      const tokenData = JSON.parse(atob(token))
+      user_id = tokenData.user_id
+      
+      // 检查token是否过期
+      if (tokenData.exp && tokenData.exp < Math.floor(Date.now() / 1000)) {
+        throw new Error('Token expired')
+      }
+    } catch (error) {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid token', 
@@ -73,8 +82,8 @@ serve(async (req) => {
     // 检查用户是否已有杆柜
     const { data: currentUser, error: userError } = await supabaseClient
       .from('users')
-      .select('id, locker_id, store_id')
-      .eq('id', user.id)
+      .select('id, name, phone, locker_id, store_id')
+      .eq('id', user_id)
       .single()
 
     if (userError) {
@@ -107,7 +116,7 @@ serve(async (req) => {
     const { data: pendingApplication, error: pendingError } = await supabaseClient
       .from('applications')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', user_id)
       .eq('status', 'pending')
       .single()
 
@@ -185,7 +194,7 @@ serve(async (req) => {
     const { data: application, error: createError } = await supabaseClient
       .from('applications')
       .insert({
-        user_id: user.id,
+        user_id: user_id,
         store_id,
         requested_locker_number: requested_locker_number || null,
         status: 'pending'
@@ -216,7 +225,7 @@ serve(async (req) => {
     await supabaseClient
       .from('locker_records')
       .insert({
-        user_id: user.id,
+        user_id: user_id,
         locker_id: null,
         store_id,
         action_type: 'apply',
@@ -227,10 +236,10 @@ serve(async (req) => {
     await supabaseClient
       .from('reminders')
       .insert({
-        user_id: user.id,
+        user_id: user_id,
         locker_id: null,
         reminder_type: 'approval_needed',
-        message: `新的杆柜申请需要审核 - 用户: ${user.user_metadata?.name || user.phone}`,
+        message: `新的杆柜申请需要审核 - 用户: ${currentUser.name || currentUser.phone}`,
         status: 'sent'
       })
 
