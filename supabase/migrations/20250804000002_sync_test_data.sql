@@ -7,6 +7,10 @@ ALTER TABLE lockers ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'medium'
     CHECK (type IN ('small', 'medium', 'large'));
 
 -- 清理现有测试数据（仅开发环境）
+-- 先清空外键引用避免约束违反
+UPDATE stores SET admin_id = NULL;
+
+-- 按依赖顺序删除数据
 DELETE FROM reminders;
 DELETE FROM locker_records;
 DELETE FROM applications;
