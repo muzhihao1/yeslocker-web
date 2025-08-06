@@ -18,20 +18,20 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 -- );
 
 -- 更新 reminders 表结构，添加更多字段
-ALTER TABLE reminders ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- 注意：sent_at 列已经在初始schema中存在，这里只添加新的字段
 ALTER TABLE reminders ADD COLUMN IF NOT EXISTS success BOOLEAN DEFAULT true;
 
 -- 创建提醒统计视图
 CREATE OR REPLACE VIEW reminder_stats AS
 SELECT 
   DATE_TRUNC('day', sent_at) as date,
-  type,
+  reminder_type,
   COUNT(*) as total_sent,
   COUNT(*) FILTER (WHERE success = true) as successful,
   COUNT(*) FILTER (WHERE success = false) as failed
 FROM reminders 
 WHERE sent_at >= NOW() - INTERVAL '30 days'
-GROUP BY DATE_TRUNC('day', sent_at), type
+GROUP BY DATE_TRUNC('day', sent_at), reminder_type
 ORDER BY date DESC;
 
 -- 创建用户活跃度统计视图
@@ -143,7 +143,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 创建索引以提高性能
 CREATE INDEX IF NOT EXISTS idx_reminders_sent_at ON reminders(sent_at);
-CREATE INDEX IF NOT EXISTS idx_reminders_user_type ON reminders(user_id, type);
+CREATE INDEX IF NOT EXISTS idx_reminders_user_reminder_type ON reminders(user_id, reminder_type);
 CREATE INDEX IF NOT EXISTS idx_applications_status_approved_at ON applications(status, approved_at) WHERE status = 'approved';
 CREATE INDEX IF NOT EXISTS idx_locker_records_application_created ON locker_records(application_id, created_at);
 
