@@ -42,20 +42,61 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
     let user_id: string;
     
+    // Enhanced debugging for token parsing
+    console.log('🔍 JWT Debug Info:')
+    console.log('- Token length:', token.length)
+    console.log('- Token preview:', token.substring(0, 50) + '...')
+    
     try {
-      const tokenData = JSON.parse(atob(token))
-      user_id = tokenData.user_id
+      // Step 1: Base64 decode
+      let decodedToken: string;
+      try {
+        decodedToken = atob(token);
+        console.log('✅ Base64 decode successful')
+        console.log('- Decoded length:', decodedToken.length)
+      } catch (base64Error) {
+        console.error('❌ Base64 decode failed:', base64Error)
+        throw new Error(`Base64 decode failed: ${base64Error.message}`)
+      }
       
-      // 检查token是否过期
+      // Step 2: JSON parse  
+      let tokenData: any;
+      try {
+        tokenData = JSON.parse(decodedToken)
+        console.log('✅ JSON parse successful')
+        console.log('- Token data keys:', Object.keys(tokenData))
+        console.log('- user_id present:', !!tokenData.user_id)
+        console.log('- exp present:', !!tokenData.exp)
+      } catch (jsonError) {
+        console.error('❌ JSON parse failed:', jsonError)
+        throw new Error(`JSON parse failed: ${jsonError.message}`)
+      }
+      
+      // Step 3: Extract user_id
+      user_id = tokenData.user_id
+      if (!user_id) {
+        throw new Error('Missing user_id in token')
+      }
+      console.log('✅ user_id extracted:', user_id)
+      
+      // Step 4: Check token expiry
       if (tokenData.exp && tokenData.exp < Math.floor(Date.now() / 1000)) {
+        const expDate = new Date(tokenData.exp * 1000)
+        const nowDate = new Date()
+        console.log('❌ Token expired - exp:', expDate.toISOString(), 'now:', nowDate.toISOString())
         throw new Error('Token expired')
       }
+      console.log('✅ Token expiry check passed')
+      
     } catch (error) {
+      console.error('❌ Token parsing failed:', error.message)
       return new Response(
         JSON.stringify({ 
           error: 'Invalid token', 
           message: '登录已过期，请重新登录',
-          debug_info: 'lockers-apply-v2-deployed' // Clear deployment indicator
+          debug_info: 'lockers-apply-v3-enhanced-debugging',
+          debug_error: error.message,
+          debug_token_length: token.length
         }),
         { 
           status: 401, 
