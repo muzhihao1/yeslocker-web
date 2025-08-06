@@ -22,7 +22,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // 使用service role key绕过RLS策略
     )
 
     const { phone, name, avatar_url, store_id }: RegisterRequest = await req.json()

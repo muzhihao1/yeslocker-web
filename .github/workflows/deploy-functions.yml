@@ -51,6 +51,7 @@ jobs:
           fi
 
   validate-functions:
+    needs: [detect-environment]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

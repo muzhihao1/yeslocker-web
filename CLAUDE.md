@@ -24,10 +24,10 @@ YesLocker is a billiard cue locker management system built with uni-app (H5), Su
 # Start user app dev server (port 3000)
 npm run dev
 
-# Start admin panel dev server  
+# Start admin panel dev server (port 5173)
 npm run dev:admin
 
-# Start Supabase local environment
+# Start Supabase local environment (API: port 54321, Studio: port 54323)
 supabase start
 
 # Start Edge Functions locally
@@ -45,6 +45,11 @@ npm run build:admin
 # Deploy Edge Functions to Supabase
 npm run functions:deploy
 
+# Deploy to specific environments using helper scripts
+npm run functions:deploy:dev
+npm run functions:deploy:staging
+npm run functions:deploy:prod
+
 # Run database migrations
 npm run db:migrate
 
@@ -59,6 +64,12 @@ npm run type-check
 
 # Linting (ESLint with auto-fix)
 npm run lint
+
+# Edge Functions testing (Deno tests)
+npm run functions:test
+
+# View function logs
+npm run functions:logs
 ```
 
 ## Architecture Overview
@@ -72,8 +83,9 @@ npm run lint
 
 2. **API Layer** (Supabase Edge Functions)
    - Located in `supabase/functions/`
-   - Key endpoints: auth-register, auth-login, admin-login, lockers-apply, locker-operations, admin-approval
+   - Key endpoints: auth-register, auth-login, admin-login, lockers-apply, locker-operations, admin-approval, sms-send, reminder-check, auth-request-otp, auth-verify-otp, stores-lockers, admin-login-secure
    - Uses Deno runtime with TypeScript
+   - Shared utilities in `_shared/` directory for security and common functions
 
 3. **Data Layer** (Supabase/PostgreSQL)
    - Core tables: users, stores, lockers, locker_records, applications, admins, reminders
@@ -102,6 +114,33 @@ npm run lint
   - `TENCENT_SMS_APP_ID`
   - `TENCENT_SMS_SIGN_NAME`
 
+## CI/CD and Deployment
+
+### Automated Deployment (GitHub Actions)
+The project uses GitHub Actions for automated deployment of Edge Functions:
+
+- **Triggers**: Push to main, staging, or develop branches (when functions/ or migrations/ change)
+- **Environment Detection**: Automatically maps branches to environments
+  - `main` → production
+  - `staging` → staging  
+  - `develop` → development
+- **Manual Deployment**: Use `workflow_dispatch` to deploy specific functions to chosen environments
+- **Security Checks**: Validates TypeScript, checks for hardcoded secrets, prevents TODO markers in production
+- **Health Checks**: Tests function endpoints after deployment
+
+### Manual Deployment Scripts
+For direct control, use the deployment script:
+```bash
+# Deploy all functions to development
+./supabase/deploy-functions.sh development
+
+# Deploy specific function to production  
+./supabase/deploy-functions.sh production auth-login
+
+# Deploy all functions to staging
+./supabase/deploy-functions.sh staging all
+```
+
 ## Development Workflow
 
 1. **Feature Development**:
@@ -117,9 +156,11 @@ npm run lint
 
 3. **API Development**:
    - Edge Functions are in `supabase/functions/[function-name]/index.ts`
-   - Test locally before deploying
+   - Test locally with `npm run functions:serve` before deploying
    - Deploy individual function: `supabase functions deploy [function-name]`
+   - Use deployment script for environment-specific deployments: `./supabase/deploy-functions.sh [environment] [function_name]`
    - All Edge Functions use Deno runtime and TypeScript
+   - GitHub Actions automatically deploys functions on push to main/staging/develop branches
 
 ## Code Conventions
 
@@ -150,6 +191,37 @@ yeslocker/
 │   └── migrations/       # Database migrations
 └── docs/                 # Documentation
 ```
+
+## Important Development Notes
+
+### Port Configuration
+- **User app**: 3000 (configured in vite.config.ts)
+- **Admin panel**: 5173 (configured in admin/vite.config.ts)  
+- **Supabase API**: 54321 (local development)
+- **Supabase Studio**: 54323 (database interface)
+- **Edge Functions**: Check console output when running `npm run functions:serve`
+
+### Debugging and Logs
+```bash
+# View Edge Function logs
+npm run functions:logs
+
+# Check Supabase local services status
+supabase status
+
+# View specific function logs (when deployed)
+supabase functions logs --function-name [function-name]
+
+# Reset local database completely
+supabase db reset
+```
+
+### Key Files to Check When Troubleshooting
+- **Environment variables**: `.env.local` (not committed to repo)
+- **Database schema**: `supabase/migrations/` directory
+- **Function configuration**: `supabase/config.toml`
+- **Deployment status**: `.github/workflows/deploy-functions.yml`
+- **Build issues**: Check `uni-app` specific configurations in both vite.config.ts files
 
 ## Testing Accounts (Development)
 
