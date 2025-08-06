@@ -14,10 +14,7 @@ UPDATE stores SET admin_id = NULL;
 DELETE FROM reminders;
 DELETE FROM locker_records;
 DELETE FROM applications;
-DELETE FROM lockers WHERE store_id IN (
-    'a1b2c3d4-e5f6-4789-a012-345678901234', 
-    'b2c3d4e5-f6a7-4890-b123-456789012345'
-);
+DELETE FROM lockers;
 DELETE FROM users;
 DELETE FROM admins;
 DELETE FROM stores;
