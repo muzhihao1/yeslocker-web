@@ -17,18 +17,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // IMMEDIATE DEPLOYMENT VERIFICATION - return success with version info
-  return new Response(
-    JSON.stringify({ 
-      success: true,
-      message: '🚀 lockers-apply v5 DEPLOYED SUCCESSFULLY!',
-      version: 'v5-immediate-test',
-      timestamp: new Date().toISOString()
-    }),
-    { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    }
-  )
+  // Deployment verification removed - function now fully operational
 
   try {
     const supabaseClient = createClient(

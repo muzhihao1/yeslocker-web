@@ -77,11 +77,15 @@ serve(async (req) => {
     }
 
     // 获取门店信息
-    const { data: store } = await supabaseClient
-      .from('stores')
-      .select('id, name, address')
-      .eq('id', user.store_id)
-      .single()
+    let store = null
+    if (user.store_id) {
+      const { data: storeData } = await supabaseClient
+        .from('stores')
+        .select('id, name, address')
+        .eq('id', user.store_id)
+        .single()
+      store = storeData
+    }
 
     // 获取杆柜信息 (如果有)
     let locker = null

@@ -92,11 +92,7 @@ serve(async (req) => {
       const { data: stores, error: storesError } = await supabaseClient
         .from('stores')
         .select(`
-          id, name, address, phone, created_at,
-          admins:admin_id (
-            name, phone
-          ),
-          _count:lockers(count)
+          id, name, address, phone, created_at, admin_id
         `)
         .eq('status', 'active')
         .order('created_at')
@@ -116,7 +112,14 @@ serve(async (req) => {
 
       // 为每个门店获取杆柜统计信息
       const storesWithStats = await Promise.all(
-        stores.map(async (store) => {
+        (stores || []).map(async (store) => {
+          if (!store?.id) {
+            return {
+              ...store,
+              locker_stats: { total: 0, available: 0, occupied: 0, maintenance: 0 }
+            }
+          }
+
           const { data: lockers } = await supabaseClient
             .from('lockers')
             .select('status')
@@ -124,9 +127,9 @@ serve(async (req) => {
 
           const stats = {
             total: lockers?.length || 0,
-            available: lockers?.filter(l => l.status === 'available').length || 0,
-            occupied: lockers?.filter(l => l.status === 'occupied').length || 0,
-            maintenance: lockers?.filter(l => l.status === 'maintenance').length || 0
+            available: lockers?.filter(l => l?.status === 'available').length || 0,
+            occupied: lockers?.filter(l => l?.status === 'occupied').length || 0,
+            maintenance: lockers?.filter(l => l?.status === 'maintenance').length || 0
           }
 
           return {
