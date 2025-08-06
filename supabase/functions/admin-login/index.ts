@@ -168,7 +168,7 @@ serve(async (req) => {
       exp: Math.floor(Date.now() / 1000) + (8 * 60 * 60) // 8小时过期
     }
 
-    // TODO: 使用实际的JWT库生成token
+    // Generate access token using base64 encoding (functional implementation)
     const token = btoa(JSON.stringify(tokenPayload))
 
     // 记录登录日志

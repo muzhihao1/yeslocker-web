@@ -165,7 +165,7 @@ serve(async (req) => {
         )
       }
 
-      // TODO: 验证管理员权限
+      // Admin permission validation pending - placeholder implementation
       const { name, address, phone } = await req.json()
 
       if (!name || !address) {
