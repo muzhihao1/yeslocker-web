@@ -54,7 +54,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid token', 
-          message: '登录已过期，请重新登录' 
+          message: '登录已过期，请重新登录',
+          debug_info: 'lockers-apply-v2-deployed' // Clear deployment indicator
         }),
         { 
           status: 401, 
