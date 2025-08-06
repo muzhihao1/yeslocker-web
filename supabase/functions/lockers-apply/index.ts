@@ -17,6 +17,9 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Simple deployment test - this should show up if deployment works
+  console.log('🚀 lockers-apply function called - v4 deployment test')
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
