@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:h5": "vite build",
-    "start": "node start-app.js",
+    "start": "node debug-server.js",
     "dev:admin": "cd admin && npm run dev",
     "build:admin": "cd admin && npm run build",
     "server": "cd server && npm start",
