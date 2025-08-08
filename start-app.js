@@ -1,72 +1,45 @@
-const express = require('express');
 const path = require('path');
+const express = require('express');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-// Startup validation - check if build files exist
-const distPath = path.join(__dirname, 'dist');
-const indexPath = path.join(distPath, 'index.html');
+/**
+ * uni-app H5 的默认输出通常在 dist/build/h5
+ * 某些配置也可能直接是 dist/ 或 dist/h5/
+ * 这里按优先级探测一个存在的目录
+ */
+const candidates = [
+  'dist/build/h5',
+  'dist/h5',
+  'dist'
+];
+const root = candidates
+  .map(p => path.resolve(__dirname, p))
+  .find(p => fs.existsSync(p));
 
-console.log('🔍 Validating build files...');
-console.log('Dist directory path:', distPath);
-console.log('Index file path:', indexPath);
-
-if (!fs.existsSync(distPath)) {
-  console.error('❌ ERROR: dist directory not found. Build may have failed.');
-  console.error('Expected path:', distPath);
+if (!root) {
+  console.error('❌ Static directory not found');
   process.exit(1);
 }
 
-if (!fs.existsSync(indexPath)) {
-  console.error('❌ ERROR: index.html not found in dist directory. Build incomplete.');
-  console.error('Expected path:', indexPath);
-  process.exit(1);
-}
+// Minimal static server
+app.use(express.static(root, {
+  maxAge: '1y',
+  etag: true,
+  index: 'index.html'
+}));
 
-console.log('✅ Build files validation passed');
+// Health checks (minimal response)
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
 
-// Health check endpoint for Railway
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    distExists: fs.existsSync(distPath),
-    indexExists: fs.existsSync(indexPath)
-  });
-});
-
-// Railway health check endpoint
-app.get('/healthz', (req, res) => {
-  res.status(200).send('OK');
-});
-
-// Simple ping endpoint for health monitoring
-app.get('/ping', (req, res) => {
-  res.status(200).send('pong');
-});
-
-// Serve static files from dist directory
-app.use(express.static(distPath));
-
-// Handle SPA routes - send index.html for all routes
+// SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(indexPath);
+  res.sendFile(path.join(root, 'index.html'));
 });
 
-// Start server with error handling
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 YesLocker User App running at http://0.0.0.0:${port}`);
-  console.log('📁 Serving files from:', distPath);
-  console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
-  console.log('🔧 Railway deployment with full build pipeline - v2');
-}).on('error', (err) => {
-  console.error('❌ Failed to start server:', err);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${port} is already in use`);
-  }
-  process.exit(1);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ YesLocker H5 serving ${root} on :${PORT}`);
 });

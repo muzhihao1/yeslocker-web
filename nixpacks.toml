@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "deno"]
+nixPkgs = ["nodejs-18_x"]
 
 [phases.build]
-cmds = ["npm install", "NODE_ENV=production npm run build:h5", "ls -la", "ls -la dist/"]
+cmds = ["npm ci --omit=dev", "NODE_ENV=production npm run build:h5"]
 
 [phases.start]
 cmd = "npm start"
