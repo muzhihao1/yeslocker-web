@@ -48,4 +48,5 @@ app.listen(PORT, '0.0.0.0', (err) => {
   console.log(`✅ YesLocker Admin serving ${root} on :${PORT}`);
   console.log(`🌐 Server listening on http://0.0.0.0:${PORT}`);
   console.log(`🔗 Health check: http://0.0.0.0:${PORT}/health`);
+  console.log(`📦 Railway redeploy trigger - ${new Date().toISOString()}`);
 });
