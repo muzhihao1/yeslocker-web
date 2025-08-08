@@ -65,3 +65,8 @@ supabase/.branches/
 locker-assignment-flow-test-report-*.json
 yeslocker-e2e-test-report-*.json
 *-test-report-*.json
+
+# Temporary files and deployment artifacts
+*.tmp
+*.temp
+deployment-report*.zip

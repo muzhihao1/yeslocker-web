@@ -1,0 +1,116 @@
+{
+  "version": 2,
+  "name": "yeslocker-production",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "admin/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "admin/dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "https://your-project-id.supabase.co/functions/v1/$1",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "TENCENT_SECRET_ID": "@tencent_secret_id",
+    "TENCENT_SECRET_KEY": "@tencent_secret_key",
+    "TENCENT_SMS_APP_ID": "@tencent_sms_app_id",
+    "TENCENT_SMS_SIGN_NAME": "@tencent_sms_sign_name",
+    "TENCENT_SMS_TEMPLATE_REGISTER": "@tencent_sms_template_register",
+    "TENCENT_SMS_TEMPLATE_LOGIN": "@tencent_sms_template_login",
+    "TENCENT_SMS_TEMPLATE_REMINDER": "@tencent_sms_template_reminder"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/admin/((?!\\.).*)",
+      "destination": "/admin/index.html"
+    }
+  ],
+  "functions": {
+    "dist/**": {
+      "includeFiles": "dist/**"
+    },
+    "admin/dist/**": {
+      "includeFiles": "admin/dist/**"
+    }
+  },
+  "github": {
+    "autoAlias": false
+  }
+}
