@@ -13,7 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true,
-    open: true
+    host: true
+    // Removed open: true to prevent browser opening in Railway's headless environment
   }
 })
