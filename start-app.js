@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // Startup validation - check if build files exist
 const distPath = path.join(__dirname, 'dist');
@@ -44,35 +44,10 @@ app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Keep-alive ping endpoint to prevent Railway from stopping idle containers
+// Simple ping endpoint for health monitoring
 app.get('/ping', (req, res) => {
   res.status(200).send('pong');
 });
-
-// Self-ping to keep container alive (every 4 minutes)
-const keepAlive = () => {
-  const http = require('http');
-  const options = {
-    hostname: '0.0.0.0',
-    port: port,
-    path: '/ping',
-    method: 'GET',
-    timeout: 5000
-  };
-  
-  const req = http.request(options, (res) => {
-    console.log(`🏓 Keep-alive ping successful: ${res.statusCode}`);
-  });
-  
-  req.on('error', (err) => {
-    console.log(`⚠️ Keep-alive ping failed: ${err.message}`);
-  });
-  
-  req.end();
-};
-
-// Start keep-alive pings every 4 minutes
-setInterval(keepAlive, 4 * 60 * 1000);
 
 // Serve static files from dist directory
 app.use(express.static(distPath));
