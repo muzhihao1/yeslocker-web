@@ -1,11 +1,10 @@
-# 管理面板（不需要在用户端部署）
-admin/
-
 # 后端服务器（独立部署）
 server/
 
-# Supabase配置（仅本地开发用）
-supabase/
+# Supabase Edge Functions（避免deno误判）
+supabase/functions/
+supabase/migrations/
+supabase/config.toml
 
 # 文档和测试（不需要部署）
 docs/
