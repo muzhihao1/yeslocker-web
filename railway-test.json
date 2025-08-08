@@ -1,0 +1,17 @@
+{
+  "name": "yeslocker-test",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install && npm run build:h5",
+    "startCommand": "npm start"
+  },
+  "deploy": {
+    "restartPolicy": "never",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "${{PORT}}"
+  }
+}

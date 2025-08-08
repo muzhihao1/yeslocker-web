@@ -1,0 +1,9 @@
+# 备用方案：如果当前配置失败，使用这个更简单的版本
+[providers]
+node = true
+
+[phases.build]
+cmds = ["npm ci", "npm run build:h5"]
+
+[phases.start]
+cmd = "npm start"
