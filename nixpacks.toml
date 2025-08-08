@@ -3,7 +3,7 @@ nixPkgs = ["nodejs-18_x"]
 
 [phases.build]
 cmds = [
-  "npm ci --omit=dev", 
+  "npm ci", 
   "NODE_ENV=production npm run build:h5"
 ]
 
