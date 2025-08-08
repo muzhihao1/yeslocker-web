@@ -1,26 +1,17 @@
-const handler = require('serve-handler');
-const http = require('http');
+const express = require('express');
+const path = require('path');
 
-const server = http.createServer((request, response) => {
-  // Serve the built files from dist directory
-  return handler(request, response, {
-    public: 'dist',
-    rewrites: [
-      { source: '**', destination: '/index.html' }
-    ],
-    headers: [
-      {
-        source: '**',
-        headers: [{
-          key: 'Cache-Control',
-          value: 'max-age=3600'
-        }]
-      }
-    ]
-  });
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Serve static files from dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle SPA routes - send index.html for all routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`🚀 YesLocker User App running at http://localhost:${port}`);
 });
