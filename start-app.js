@@ -62,6 +62,7 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 YesLocker User App running at http://0.0.0.0:${port}`);
   console.log('📁 Serving files from:', distPath);
   console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
+  console.log('🔧 Railway deployment with full build pipeline - v2');
 }).on('error', (err) => {
   console.error('❌ Failed to start server:', err);
   if (err.code === 'EADDRINUSE') {
