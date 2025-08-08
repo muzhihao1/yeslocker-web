@@ -58,6 +58,10 @@
     "vite": "^5.2.8",
     "vue-tsc": "^1.0.24"
   },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "keywords": ["uni-app", "vue3", "typescript", "台球", "管理系统"],
   "author": "Terminal 1 Developer",
   "license": "MIT"
