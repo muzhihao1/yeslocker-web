@@ -1,7 +1,3 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
-  "deploy": {
-    "buildCommand": "npm install && npm run build:h5",
-    "startCommand": "npm start"
-  }
+  "$schema": "https://railway.app/railway.schema.json"
 }
