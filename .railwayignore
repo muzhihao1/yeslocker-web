@@ -1,0 +1,38 @@
+# 管理面板（不需要在用户端部署）
+admin/
+
+# 后端服务器（独立部署）
+server/
+
+# Supabase配置（仅本地开发用）
+supabase/
+
+# 文档和测试（不需要部署）
+docs/
+tests/
+specs/
+
+# 开发工具
+tools/
+
+# 配置文件
+configs/
+
+# 临时文件和备份
+*.backup
+*-backup.*
+*.bak
+*.tmp
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 其他不需要的文件
+README.md
+*.md
+FILE_STRUCTURE_REORGANIZATION.md
+SECURITY_NOTICE.md
+deployment-report-*.zip
