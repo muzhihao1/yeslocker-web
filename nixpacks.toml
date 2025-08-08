@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs-18_x", "deno"]
 
 [phases.build]
-cmds = ["npm install", "npm run build:h5"]
+cmds = ["npm install", "NODE_ENV=production npm run build:h5", "ls -la", "ls -la dist/"]
 
 [phases.start]
 cmd = "npm start"
