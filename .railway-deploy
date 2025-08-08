@@ -1,0 +1,14 @@
+DEPLOY_TRIGGER=true
+TIMESTAMP=$(date)
+BUILD_VERSION=2.0
+CONFIGURATION_FIXED=true
+
+# Railway deployment trigger file
+# This file forces Railway to redeploy with corrected configuration:
+# - railway.json: Added buildCommand for full Node.js deployment
+# - nixpacks.toml: Configured for npm install -> npm run build:h5 -> npm start  
+# - Based on user insight: Railway should handle complete deployment process
+
+echo "Railway deployment triggered at $TIMESTAMP"
+echo "Build version: $BUILD_VERSION"
+echo "Configuration: railway.json with complete build pipeline"
