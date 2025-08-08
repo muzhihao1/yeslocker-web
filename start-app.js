@@ -4,7 +4,7 @@ const http = require('http');
 const server = http.createServer((request, response) => {
   // Serve the built files from dist directory
   return handler(request, response, {
-    public: 'dist/build/h5',
+    public: 'dist',
     rewrites: [
       { source: '**', destination: '/index.html' }
     ],
