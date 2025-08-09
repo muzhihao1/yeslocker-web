@@ -1,7 +1,11 @@
 import axios, { AxiosResponse } from 'axios'
 
 // API基础配置
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
+const isDevelopment = import.meta.env.DEV || 
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ||
+  import.meta.env.MODE === 'development'
+
+const API_BASE_URL = isDevelopment
   ? 'http://localhost:3001/api'
   : 'https://your-project.supabase.co/functions/v1'
 

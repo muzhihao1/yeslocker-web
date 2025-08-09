@@ -267,6 +267,23 @@ class DataStore {
     });
   }
 
+  createLockerRecord(record) {
+    // Alias for addLockerRecord to maintain consistency
+    return this.addLockerRecord(record);
+  }
+
+  // 用户查询方法
+  getUserById(userId) {
+    // Search through users by id field
+    const users = Array.from(this.data.users.values());
+    return users.find(user => user.id === userId);
+  }
+
+  // 杆柜查询方法  
+  getLockerById(lockerId) {
+    return this.data.lockers.get(lockerId);
+  }
+
   // 获取统计数据
   getStatistics() {
     const applications = Array.from(this.data.applications.values());

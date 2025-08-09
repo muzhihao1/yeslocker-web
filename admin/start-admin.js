@@ -1,52 +1,22 @@
-const path = require('path');
 const express = require('express');
-const fs = require('fs');
+const path = require('path');
+const history = require('connect-history-api-fallback');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+// ⚠ 根据实际输出目录；uni-app H5 确认为 dist/build/h5
+const root = path.join(__dirname, 'dist', 'build', 'h5');
 
-const candidates = [
-  'dist/build/h5',
-  'dist/h5', 
-  'dist'
-];
+// Health check endpoint (before history middleware)
+app.get('/_health', (_, res) => res.status(200).send('OK'));
 
-const root = candidates
-  .map(p => path.resolve(__dirname, p))
-  .find(p => fs.existsSync(p));
+// History API fallback for SPA routing  
+app.use(history());
 
-if (!root) {
-  console.error('❌ Admin static directory not found');
-  process.exit(1);
-}
+// Static file serving
+app.use(express.static(root));
 
-// Add request logging to diagnose issues
-app.use((req, res, next) => {
-  console.log(`📥 ${new Date().toISOString()} ${req.method} ${req.url} from ${req.ip}`);
-  next();
-});
-
-app.use(express.static(root, {
-  maxAge: '1y',
-  etag: true,
-  index: 'index.html'
-}));
-
-app.get('/health', (req, res) => res.status(200).send('OK'));
-app.get('/healthz', (req, res) => res.status(200).send('OK'));
-
-// SPA routing - serve index.html for all non-static requests
-app.get('*', (req, res) => {
-  res.sendFile(path.join(root, 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', (err) => {
-  if (err) {
-    console.error(`❌ Failed to bind to port ${PORT}:`, err);
-    process.exit(1);
-  }
-  console.log(`✅ YesLocker Admin serving ${root} on :${PORT}`);
-  console.log(`🌐 Server listening on http://0.0.0.0:${PORT}`);
-  console.log(`🔗 Health check: http://0.0.0.0:${PORT}/health`);
-  console.log(`📦 Railway redeploy trigger - ${new Date().toISOString()}`);
+const port = process.env.PORT || 3000; // Railway 会注入 PORT
+app.listen(port, () => {
+  console.log('[server] listening on', port);
+  console.log('[server] static root =', root);
 });

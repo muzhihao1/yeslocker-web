@@ -154,7 +154,7 @@ app.post('/auth-login', async (req, res) => {
 });
 
 // Admin Login
-app.post('/admin-login', async (req, res) => {
+app.post('/api/admin-login', async (req, res) => {
   try {
     const { phone, password } = req.body;
 
@@ -641,6 +641,151 @@ app.post('/api/test/reset', async (req, res) => {
     return res.status(500).json({
       error: 'Internal server error',
       message: '重置失败'
+    });
+  }
+});
+
+// Locker Operations (Deposit/Withdrawal) - 使用统一数据存储
+app.post('/locker-operations', async (req, res) => {
+  try {
+    const { user_id, locker_id, action_type, locker_number, store_name } = req.body;
+
+    // 验证必填字段
+    if (!user_id || !locker_id || !action_type) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: '用户ID、杆柜ID和操作类型为必填项'
+      });
+    }
+
+    // 验证操作类型
+    if (!['store', 'retrieve'].includes(action_type)) {
+      return res.status(400).json({
+        error: 'Invalid action type',
+        message: '操作类型必须为 store 或 retrieve'
+      });
+    }
+
+    // 验证用户是否存在
+    const user = dataStore.getUserById(user_id);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: '用户不存在'
+      });
+    }
+
+    // 验证杆柜是否存在且属于该用户
+    const locker = dataStore.getLockerById(locker_id);
+    if (!locker) {
+      return res.status(404).json({
+        error: 'Locker not found',
+        message: '杆柜不存在'
+      });
+    }
+
+    // 检查杆柜是否分配给该用户
+    if (locker.user_id !== user_id) {
+      return res.status(403).json({
+        error: 'Unauthorized',
+        message: '您没有权限操作此杆柜'
+      });
+    }
+
+    // 创建操作记录
+    const recordId = 'record_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const operationRecord = {
+      id: recordId,
+      user_id: user_id,
+      locker_id: locker_id,
+      action_type: action_type, // 'store' or 'retrieve'
+      locker_number: locker_number || locker.number,
+      store_name: store_name || '旗舰店',
+      created_at: new Date().toISOString(),
+      note: action_type === 'store' ? '存放台球杆' : '取出台球杆'
+    };
+
+    // 保存操作记录到数据存储
+    dataStore.createLockerRecord(operationRecord);
+
+    // 更新杆柜最后使用时间
+    dataStore.updateLocker(locker_id, {
+      last_use_time: new Date().toISOString()
+    });
+
+    console.log(`✅ 杆柜操作记录: ${user.name} ${action_type === 'store' ? '存杆' : '取杆'} - 杆柜${locker_number || locker.number}`);
+
+    return res.json({
+      success: true,
+      message: action_type === 'store' ? '存杆操作记录成功' : '取杆操作记录成功',
+      data: {
+        record_id: recordId,
+        action_type: action_type,
+        locker_number: locker_number || locker.number,
+        created_at: operationRecord.created_at,
+        certificate: action_type === 'store' ? {
+          id: recordId,
+          user_name: user.name,
+          phone: user.phone,
+          locker_number: locker_number || locker.number,
+          store_name: store_name || '旗舰店',
+          timestamp: operationRecord.created_at,
+          qr_code: `locker_${locker_id}_${recordId}`
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Locker operation error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: '操作失败，请稍后重试'
+    });
+  }
+});
+
+// Get User's Locker Records - 使用统一数据存储
+app.get('/users/:userId/locker-records', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // 验证用户是否存在
+    const user = dataStore.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: '用户不存在'
+      });
+    }
+
+    // 获取用户的操作记录
+    const allRecords = dataStore.data.lockerRecords || [];
+    const userRecords = allRecords
+      .filter(record => record.user_id === userId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, limit);
+
+    console.log(`📋 返回用户 ${user.name} 的操作记录: ${userRecords.length}条`);
+
+    return res.json({
+      success: true,
+      message: '获取操作记录成功',
+      data: userRecords.map(record => ({
+        id: record.id,
+        action_type: record.action_type,
+        locker_number: record.locker_number,
+        store_name: record.store_name,
+        created_at: record.created_at,
+        note: record.note
+      }))
+    });
+
+  } catch (error) {
+    console.error('Get locker records error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: '获取操作记录失败'
     });
   }
 });
