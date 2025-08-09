@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:h5": "vite build",
+    "build:h5": "uni build --platform h5",
     "start": "node start-app.js",
     "dev:admin": "cd admin && npm run dev",
     "build:admin": "cd admin && npm run build",
