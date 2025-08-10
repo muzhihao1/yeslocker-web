@@ -23,7 +23,6 @@
       "@/*": ["./src/*"]
     },
     "types": [
-      "@dcloudio/types",
       "@types/node"
     ]
   },

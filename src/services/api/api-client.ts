@@ -1,6 +1,6 @@
 // API client configuration for both local dev and production
 const isDev = import.meta.env.DEV
-const RAILWAY_API_URL = import.meta.env.VITE_RAILWAY_API_URL || 'https://heartfelt-healing-production.railway.app'
+const RAILWAY_API_URL = import.meta.env.VITE_RAILWAY_API_URL || 'https://yeslocker-web-production-314a.up.railway.app'
 const BASE_URL = isDev ? 'http://localhost:3001' : RAILWAY_API_URL
 
 interface RequestOptions {
