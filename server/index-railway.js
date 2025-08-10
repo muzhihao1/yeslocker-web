@@ -15,12 +15,24 @@ class RailwayServer {
     this.app = express();
     this.port = process.env.PORT || 3000;
     
-    // PostgreSQL connection
+    // PostgreSQL connection configuration
+    const databaseUrl = process.env.DATABASE_URL || 
+                       process.env.POSTGRES_URL || 
+                       process.env.PGURL ||
+                       'postgresql://postgres:password@localhost:5432/postgres';
+    
+    console.log('🗄️  Database connection setup:');
+    console.log('- Using URL:', databaseUrl.replace(/:[^:@]*@/, ':***@'));
+    
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: databaseUrl,
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false
-      } : false
+      } : false,
+      // Add connection pool settings
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
     
     this.setupMiddleware();
@@ -355,27 +367,36 @@ class RailwayServer {
   }
 
   async start() {
-    try {
-      // Test database connection
-      console.log('🔍 Testing database connection...');
-      const client = await this.pool.connect();
-      const result = await client.query('SELECT version()');
-      console.log('✅ Database connected:', result.rows[0].version.substring(0, 50) + '...');
-      client.release();
-
-      // Start server
-      this.app.listen(this.port, '0.0.0.0', () => {
-        console.log('\n🚀 YesLocker Railway Server Started');
-        console.log('==========================================');
-        console.log(`📍 Server: http://localhost:${this.port}`);
-        console.log(`🗄️  Database: PostgreSQL`);
-        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log('==========================================\n');
-      });
-    } catch (error) {
-      console.error('❌ Failed to start server:', error);
-      process.exit(1);
-    }
+    // Start server first, then test database
+    this.app.listen(this.port, '0.0.0.0', async () => {
+      console.log('\n🚀 YesLocker Railway Server Started');
+      console.log('==========================================');
+      console.log(`📍 Server: http://localhost:${this.port}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      
+      // Debug database configuration
+      console.log('\n🔍 Database Configuration Debug:');
+      console.log('- DATABASE_URL exists:', !!process.env.DATABASE_URL);
+      console.log('- DATABASE_URL starts with:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'undefined');
+      console.log('- NODE_ENV:', process.env.NODE_ENV);
+      console.log('- Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('POSTGRES')));
+      
+      // Test database connection (non-blocking)
+      console.log('\n🔍 Testing database connection...');
+      try {
+        const client = await this.pool.connect();
+        const result = await client.query('SELECT version()');
+        console.log('✅ Database connected:', result.rows[0].version.substring(0, 50) + '...');
+        client.release();
+        console.log(`🗄️  Database: PostgreSQL Connected`);
+      } catch (error) {
+        console.error('⚠️  Database connection failed:', error.message);
+        console.error('Server will continue running but database features will not work');
+        console.error('Please check DATABASE_URL environment variable');
+      }
+      
+      console.log('==========================================\n');
+    });
   }
 
   async stop() {
