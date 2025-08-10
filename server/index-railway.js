@@ -25,31 +25,13 @@ class RailwayServer {
     console.log('- Using URL:', databaseUrl.replace(/:[^:@]*@/, ':***@'));
     console.log('- All env vars:', Object.keys(process.env).join(', '));
     
-    // Initialize pool with error handling
+    // Initialize pool with error handling - skip for now to ensure startup
     this.pool = null;
     this.dbConnected = false;
     
-    try {
-      this.pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: process.env.NODE_ENV === 'production' ? {
-          rejectUnauthorized: false
-        } : false,
-        // Add connection pool settings
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-      });
-      
-      this.pool.on('error', (err) => {
-        console.error('🚨 PostgreSQL pool error:', err.message);
-        this.dbConnected = false;
-      });
-      
-    } catch (error) {
-      console.error('🚨 Failed to initialize database pool:', error.message);
-      this.pool = null;
-    }
+    // Skip database initialization for now to ensure service starts
+    console.log('⚠️  Database initialization temporarily disabled for debugging');
+    console.log('🚀 Service will start without database connection');
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -428,26 +410,9 @@ class RailwayServer {
       console.log('- NODE_ENV:', process.env.NODE_ENV);
       console.log('- Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('POSTGRES')));
       
-      // Test database connection (non-blocking)
-      console.log('\n🔍 Testing database connection...');
-      if (!this.pool) {
-        console.error('⚠️  Database pool not initialized');
-        console.error('Server will continue running but database features will not work');
-      } else {
-        try {
-          const client = await this.pool.connect();
-          const result = await client.query('SELECT version()');
-          console.log('✅ Database connected:', result.rows[0].version.substring(0, 50) + '...');
-          client.release();
-          console.log(`🗄️  Database: PostgreSQL Connected`);
-          this.dbConnected = true;
-        } catch (error) {
-          console.error('⚠️  Database connection failed:', error.message);
-          console.error('Server will continue running but database features will not work');
-          console.error('Please check DATABASE_URL environment variable');
-          this.dbConnected = false;
-        }
-      }
+      // Skip database testing for debugging
+      console.log('\n⚠️  Database testing skipped for debugging');
+      console.log('Server started without database connection');
       
       console.log('==========================================\n');
     });
