@@ -242,114 +242,98 @@ The project supports both SQLite (development) and PostgreSQL (production):
 
 ## Code Conventions
 
-- **Component Files**: Use PascalCase for component files (e.g., `LoginForm.vue`)
-- **Service Files**: Use kebab-case for service files (e.g., `api-service.ts`)
-- **Type Definitions**: Keep types in `shared/types/` for cross-app usage
-- **API Calls**: Use service layer pattern in both frontend apps
-- **State Management**: Use Pinia stores with clear naming (e.g., `useAuthStore`, `useLockerStore`)
-- **Vue Composition API**: Use `<script setup>` syntax consistently
-- **Error Handling**: Implement try-catch with user-friendly error messages
-- **API Endpoints**: RESTful naming - `/api/resource` pattern
+### Frontend Conventions (Vue 3 + TypeScript)
+- **Component Files**: PascalCase for Vue components (`LoginForm.vue`, `UserDashboard.vue`)
+- **Composables**: Use prefix `use` for composables (`useAuth.ts`, `useLockers.ts`)
+- **Services**: kebab-case for API service files (`api-service.ts`, `auth-service.ts`)
+- **Pinia Stores**: Clear descriptive names (`useAuthStore`, `useLockerStore`, `useAdminStore`)
+- **Vue Composition API**: Prefer `<script setup>` syntax with TypeScript
+- **Props/Emits**: Define with TypeScript interfaces for type safety
 
-## Project Structure (Simplified)
+### Backend Conventions (Express.js + Node.js)
+- **Route Files**: Feature-based organization (`auth.js`, `lockers.js`, `admin.js`)
+- **Middleware**: Descriptive names (`authenticateToken`, `validateAdmin`, `logRequests`)
+- **Database**: Use abstracted database layer for SQLite/PostgreSQL compatibility
+- **Error Handling**: Consistent error response format across all endpoints
+- **API Endpoints**: RESTful naming with `/api/` prefix
+
+### Database Conventions
+- **Table Names**: Lowercase with underscores (`users`, `locker_records`, `applications`)
+- **Column Names**: snake_case naming (`created_at`, `user_id`, `locker_number`)
+- **Relationships**: Clear foreign key naming (`user_id`, `store_id`, `admin_id`)
+
+## Project Structure
 
 ```
 yeslocker/
-├── src/                    # Client web app (users)
-│   ├── views/             # Page components
-│   ├── components/        # Reusable components
-│   ├── stores/           # Pinia stores
-│   ├── services/         # API communication
-│   ├── router/           # Vue Router config
-│   └── assets/           # Static assets
-├── admin/                 # Admin web panel
-│   ├── views/            # Admin page components
+├── src/                    # User frontend application
+│   ├── components/        # Reusable Vue components
+│   ├── views/            # Page-level Vue components  
+│   ├── stores/           # Pinia state management
+│   ├── services/         # API integration services
+│   ├── router/           # Vue Router configuration
+│   ├── utils/            # Frontend utility functions
+│   └── assets/           # Static assets (images, styles)
+│
+├── admin/                 # Admin management panel
 │   ├── components/       # Admin-specific components
-│   ├── stores/           # Admin state management
-│   └── services/         # Admin API services
-├── server/                # Express.js backend
-│   ├── routes/           # API route handlers
-│   ├── middleware/       # Custom middleware
-│   ├── database/         # Database schema and operations
-│   ├── models/           # Data models
-│   └── utils/            # Helper functions
-├── shared/                # Shared code between apps
-│   ├── types/            # TypeScript definitions
-│   ├── constants/        # Shared constants
-│   └── utils/            # Shared utilities
-└── docs/                  # Documentation
+│   ├── views/           # Admin page components
+│   ├── stores/          # Admin state management  
+│   ├── services/        # Admin API services
+│   └── styles/          # Admin-specific styles
+│
+├── server/                # Express.js backend API
+│   ├── routes/          # API route handlers by feature
+│   ├── middleware/      # Custom Express middleware
+│   ├── database/        # Database initialization and queries
+│   ├── utils/           # Backend utility functions
+│   └── config/          # Server configuration files
+│
+├── public/               # Static assets served directly
+├── dist/                # Built application files
+└── docs/                # Project documentation
 ```
 
-## Important Development Notes
+## Development Configuration
 
-### Port Configuration (Local Development)
-- **Client app**: 3000 (Vite dev server)
-- **Admin panel**: 5173 (Vite dev server)
+### Port Configuration
+- **User App**: 3000 (Vite dev server)
+- **Admin Panel**: 5173 (Vite dev server)  
 - **Backend API**: 3001 (Express.js server)
-- **Database**: SQLite file-based (no separate port)
+- **Database**: SQLite file-based or PostgreSQL
 
-### Local Development Setup
-```bash
-# First time setup
-npm install                 # Install client dependencies
-cd admin && npm install     # Install admin dependencies  
-cd ../server && npm install # Install server dependencies
-npm run db:init            # Initialize SQLite database
+### Key Configuration Files
+- **Root package.json**: Main build scripts and user app dependencies
+- **admin/package.json**: Admin panel specific dependencies and scripts
+- **server/package.json**: Backend dependencies and database scripts
+- **vite.config.ts**: Frontend build configuration
+- **tsconfig.json**: TypeScript compiler configuration
 
-# Daily development
-npm run dev                # Start all services
-# OR start individually:
-npm run dev:client         # Just client app
-npm run dev:admin          # Just admin panel  
-npm run dev:server         # Just backend API
-```
+### Environment Files
+- **Root .env.local**: User app environment variables
+- **server/.env**: Backend API configuration
+- **Railway deployment**: Uses environment variables for production
 
-### Debugging and Logs
-```bash
-# Check server logs
-npm run dev:server         # Shows API logs in terminal
+## Core Business Features
 
-# Database inspection  
-npm run db:inspect         # View current database state
-npm run db:reset           # Reset database to clean state
-npm run db:seed            # Add sample data
+### User Application Flow
+1. **Registration**: Phone number + SMS verification 
+2. **Locker Application**: Submit application with store selection
+3. **Approval Process**: Admin review and approval/rejection
+4. **Locker Operations**: Check-in/check-out billiard cues
+5. **Record Keeping**: Track usage history and payments
 
-# Build verification
-npm run build:all          # Test production builds locally
-```
+### Admin Management Features  
+1. **Dashboard**: Overview statistics and recent activities
+2. **User Management**: View and manage user accounts
+3. **Locker Management**: Configure and monitor locker availability
+4. **Application Review**: Approve/reject user applications
+5. **Operations Monitoring**: Track usage patterns and revenue
 
-### Key Files to Check When Troubleshooting
-- **Environment variables**: `.env.local` (simple local config)
-- **Database schema**: `server/database/schema.sql`
-- **API routes**: `server/routes/` directory  
-- **Client configuration**: `src/main.ts` and `vite.config.ts`
-- **Admin configuration**: `admin/main.ts` and `admin/vite.config.ts`
-
-## Testing Accounts (Development)
-
-- Admin: `admin@test.com` / `admin123`
-- Store Admin: `store@test.com` / `admin123`  
-- Regular User: `user@test.com` / `user123`
-- Phone verification: Use any format, no SMS required locally
-
-## Development Focus Areas
-
-### Current Priority: Core Features
-1. **User Authentication**: Login/register with email + password
-2. **Locker Management**: Apply, approve, view status
-3. **Admin Dashboard**: User management, locker oversight
-4. **Data Flow**: Ensure all CRUD operations work between frontend and backend
-
-### What to Ignore for Now
-- SMS integration (use mock for local development)
-- Complex deployment configurations  
-- Multi-environment setups
-- Advanced security features (implement basic JWT first)
-- File uploads (focus on core business logic)
-
-### Success Criteria for Phase 1
-- Users can register, login, and apply for lockers
-- Admins can login and approve/reject applications
-- Both apps communicate successfully with local API
-- Database operations work reliably
-- Hot reload works for rapid development iteration
+### Technical Implementation
+- **Authentication**: JWT-based with phone verification
+- **Database Design**: Normalized schema with proper relationships
+- **API Architecture**: RESTful endpoints with consistent error handling
+- **Frontend State**: Pinia stores for reactive state management
+- **Development Database**: SQLite for rapid local development
+- **Production Database**: PostgreSQL with Railway hosting

@@ -1,28 +1,28 @@
 <template>
-  <view class="login-container">
-    <view class="login-header">
-      <view class="logo">
-        <image src="/static/logo.png" class="logo-image" mode="aspectFit" />
-      </view>
-      <view class="title">YesLocker 管理后台</view>
-      <view class="subtitle">台球杆柜数字化管理系统</view>
-    </view>
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo">
+        <!-- 临时移除logo，避免构建错误 -->
+      </div>
+      <div class="title">YesLocker 管理后台</div>
+      <div class="subtitle">台球杆柜数字化管理系统</div>
+    </div>
 
-    <view class="login-form">
-      <view class="form-item">
-        <view class="form-label">管理员手机号</view>
+    <div class="login-form">
+      <div class="form-item">
+        <div class="form-label">管理员手机号</div>
         <input
           v-model="formData.phone"
           class="form-input"
-          type="number"
+          type="tel"
           placeholder="请输入管理员手机号"
           maxlength="11"
           :disabled="isLoading"
         />
-      </view>
+      </div>
 
-      <view class="form-item">
-        <view class="form-label">登录密码</view>
+      <div class="form-item">
+        <div class="form-label">登录密码</div>
         <input
           v-model="formData.password"
           class="form-input"
@@ -30,42 +30,44 @@
           placeholder="请输入登录密码"
           :disabled="isLoading"
         />
-      </view>
+      </div>
 
-      <view class="form-actions">
+      <div class="form-actions">
         <button
           class="login-btn"
           :class="{ 'loading': isLoading }"
           :disabled="!canSubmit || isLoading"
-          @tap="handleLogin"
+          @click="handleLogin"
         >
-          <view v-if="isLoading" class="loading-spinner"></view>
-          <text>{{ isLoading ? '登录中...' : '管理员登录' }}</text>
+          <div v-if="isLoading" class="loading-spinner"></div>
+          <span>{{ isLoading ? '登录中...' : '管理员登录' }}</span>
         </button>
-      </view>
+      </div>
 
-      <view class="form-footer">
-        <text class="footer-text">请使用管理员账号登录系统</text>
-      </view>
-    </view>
+      <div class="form-footer">
+        <span class="footer-text">请使用管理员账号登录系统</span>
+      </div>
+    </div>
 
     <!-- 开发环境提示 -->
-    <view v-if="isDev" class="dev-tips">
-      <view class="dev-title">开发环境测试账号：</view>
-      <view class="dev-account" @tap="fillTestAccount('super')">
-        <text>超级管理员：13800000001 / admin123</text>
-      </view>
-      <view class="dev-account" @tap="fillTestAccount('store')">
-        <text>门店管理员：13800000002 / admin123</text>
-      </view>
-    </view>
-  </view>
+    <div v-if="isDev" class="dev-tips">
+      <div class="dev-title">开发环境测试账号：</div>
+      <div class="dev-account" @click="fillTestAccount('super')">
+        <span>超级管理员：13800000001 / admin123</span>
+      </div>
+      <div class="dev-account" @click="fillTestAccount('store')">
+        <span>门店管理员：13800000002 / admin123</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAdminStore } from '../../stores/admin'
 
+const router = useRouter()
 const adminStore = useAdminStore()
 
 // 表单数据
@@ -83,6 +85,11 @@ const canSubmit = computed(() => {
          formData.value.password.length >= 6
 })
 
+// 简单的提示函数
+const showMessage = (message: string, type: 'success' | 'error' = 'error') => {
+  alert(message) // 临时使用alert，后续可以替换为更好的UI组件
+}
+
 // 方法
 const handleLogin = async () => {
   if (!canSubmit.value || isLoading.value) return
@@ -90,10 +97,7 @@ const handleLogin = async () => {
   // 验证手机号格式
   const phoneRegex = /^1[3-9]\d{9}$/
   if (!phoneRegex.test(formData.value.phone)) {
-    uni.showToast({
-      title: '请输入正确的手机号',
-      icon: 'error'
-    })
+    showMessage('请输入正确的手机号')
     return
   }
 
@@ -102,25 +106,17 @@ const handleLogin = async () => {
   try {
     await adminStore.login(formData.value.phone, formData.value.password)
     
-    uni.showToast({
-      title: '登录成功',
-      icon: 'success'
-    })
+    showMessage('登录成功', 'success')
 
     // 跳转到管理后台首页
     setTimeout(() => {
-      uni.reLaunch({
-        url: '/pages/dashboard/index'
-      })
+      router.push('/dashboard')
     }, 1500)
 
   } catch (error: any) {
     console.error('Login error:', error)
     
-    uni.showToast({
-      title: error.message || '登录失败，请重试',
-      icon: 'error'
-    })
+    showMessage(error.message || '登录失败，请重试')
   } finally {
     isLoading.value = false
   }
@@ -139,9 +135,7 @@ const fillTestAccount = (type: 'super' | 'store') => {
 onMounted(() => {
   // 检查是否已经登录
   if (adminStore.isAuthenticated) {
-    uni.reLaunch({
-      url: '/pages/dashboard/index'
-    })
+    router.push('/dashboard')
   }
 })
 </script>
@@ -163,8 +157,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 200rpx;
-
+  padding-top: 100px;
 }
 
 .login-header .logo {
@@ -172,8 +165,8 @@ onMounted(() => {
 }
 
 .login-header .logo-image {
-  width: 120rpx;
-  height: 120rpx;
+  width: 60px;
+  height: 60px;
 }
 
 .login-header .title {
@@ -218,7 +211,7 @@ onMounted(() => {
   font-size: var(--font-size-md);
   background-color: var(--bg-color-white);
   transition: border-color var(--animation-duration-normal);
-  height: 88rpx;
+  height: 44px;
 }
 
 .login-form .form-input:focus {
@@ -245,7 +238,7 @@ onMounted(() => {
   font-weight: bold;
   transition: all var(--animation-duration-normal);
   width: 100%;
-  height: 88rpx;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,10 +262,10 @@ onMounted(() => {
 }
 
 .login-form .loading-spinner {
-  width: 32rpx;
-  height: 32rpx;
-  border: 4rpx solid rgba(255, 255, 255, 0.3);
-  border-top: 4rpx solid #ffffff;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #ffffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: var(--spacing-sm);
@@ -290,7 +283,7 @@ onMounted(() => {
 
 .dev-tips {
   position: fixed;
-  bottom: 40rpx;
+  bottom: 20px;
   left: var(--spacing-md);
   right: var(--spacing-md);
   background-color: rgba(0, 0, 0, 0.8);

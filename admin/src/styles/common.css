@@ -33,31 +33,31 @@
   --bg-color-grey: #F5F5F5;
   
   /* 间距系统 */
-  --spacing-xs: 8rpx;
-  --spacing-sm: 16rpx;
-  --spacing-md: 24rpx;
-  --spacing-lg: 32rpx;
-  --spacing-xl: 48rpx;
-  --spacing-xxl: 64rpx;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
   
   /* 字体大小 */
-  --font-size-xs: 20rpx;
-  --font-size-sm: 24rpx;
-  --font-size-md: 28rpx;
-  --font-size-lg: 32rpx;
-  --font-size-xl: 36rpx;
-  --font-size-xxl: 48rpx;
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-xxl: 24px;
   
   /* 边框和圆角 */
-  --border-radius: 8rpx;
-  --border-radius-sm: 4rpx;
-  --border-radius-lg: 16rpx;
-  --border-width: 2rpx;
+  --border-radius: 4px;
+  --border-radius-sm: 2px;
+  --border-radius-lg: 8px;
+  --border-width: 1px;
   
   /* 阴影 */
-  --box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-  --box-shadow-light: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-  --box-shadow-heavy: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  --box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --box-shadow-light: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --box-shadow-heavy: 0 4px 12px rgba(0, 0, 0, 0.15);
   
   /* 动画时长 */
   --animation-duration-fast: 200ms;
@@ -133,8 +133,8 @@
 /* 状态标签样式 */
 .status-badge {
   display: inline-block;
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  padding: 4px 8px;
+  border-radius: 10px;
   font-size: var(--font-size-sm);
   font-weight: 500;
 }
@@ -188,10 +188,10 @@ body {
 }
 
 .loading-spinner {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid #e0e0e0;
-  border-top: 4rpx solid var(--primary-color);
+  width: 30px;
+  height: 30px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
