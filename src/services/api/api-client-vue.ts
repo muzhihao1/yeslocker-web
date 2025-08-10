@@ -1,6 +1,7 @@
 // Vue应用的API客户端 - 连接Express后端
 const isDev = import.meta.env.DEV
-const API_BASE_URL = isDev ? 'http://localhost:3001' : import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+// 生产环境使用相同域名，开发环境使用localhost:3001
+const API_BASE_URL = isDev ? 'http://localhost:3001' : window.location.origin
 
 interface ApiResponse<T = any> {
   success: boolean

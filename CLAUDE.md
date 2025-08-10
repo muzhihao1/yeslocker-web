@@ -4,55 +4,79 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-YesLocker is a billiard cue locker management system focused on **local development first**. The system consists of:
-- Client-side web app (src/) for user operations like locker applications
-- Admin web panel (admin/) for management and approval workflows
-- Local backend API server for business logic and data management
+YesLocker (台球杆柜管理小程序) is a comprehensive billiard cue locker digital management system supporting:
+- User-side applications for locker rentals and operations
+- Admin panel for approval workflows and management
+- Complete business flow from application to storage operations
 
-**Development Philosophy**: Build and perfect all features locally before considering deployment. Priority is on functionality and user experience rather than deployment complexity.
+The project uses a three-layer architecture with Vue 3 frontend applications, Express.js backend API, and PostgreSQL/SQLite database.
 
 ## Tech Stack
 
-- **Frontend**: Vue 3 + Vite + TypeScript + Pinia
-- **Client App**: Standard Vue 3 web application (migrating away from uni-app)
-- **Admin Panel**: Vue 3 + Vite + TypeScript + Pinia
-- **Backend**: Express.js + JWT authentication
-  - Development: SQLite database
-  - Production: PostgreSQL database (Railway)
-- **Development**: Local-first approach with hot reload and rapid iteration
+### Frontend Stack
+- **User App (src/)**: Vue 3 + Vite + TypeScript + Pinia
+- **Admin Panel (admin/)**: Vue 3 + Vite + TypeScript + Pinia  
+- **UI Components**: Custom components with Vue 3 Composition API
+- **State Management**: Pinia stores for both applications
+- **Build Tool**: Vite with TypeScript support
+
+### Backend Stack  
+- **API Server (server/)**: Express.js with middleware architecture
+- **Authentication**: JWT with bcrypt password hashing
+- **Database**: SQLite (development) / PostgreSQL (production)
+- **Development**: Local-first with hot reload via nodemon
+- **Deployment**: Railway platform with PostgreSQL
 
 ## Essential Commands
 
-### Development (Local Focus)
+### Development Setup
 ```bash
-# Start client app dev server (port 3000)
-npm run dev:client
+# Install dependencies for all parts
+npm install                    # Root client dependencies
+cd admin && npm install        # Admin panel dependencies  
+cd ../server && npm install    # Backend server dependencies
 
-# Start admin panel dev server (port 5173) 
-npm run dev:admin
-
-# Start local backend API server (port 3001)
-npm run dev:server
-
-# Start all services at once (client + admin + server)
-npm run dev
-
-# Database operations (local SQLite)
-npm run db:init      # Initialize database
-npm run db:seed      # Populate with sample data
-npm run db:reset     # Reset database
+# Database initialization
+npm run db:init               # Initialize SQLite database
 ```
 
-### Build (Local Testing)
+### Development Servers
 ```bash
-# Build client app
+# Start user app dev server (port 3000)
+npm run dev
+
+# Start admin panel dev server (port 5173)
+npm run dev:admin
+
+# Start backend API server (port 3001) 
+npm run dev:server
+
+# Start all services together
+npm run dev:all
+```
+
+### Database Operations  
+```bash
+# SQLite operations (development)
+cd server
+npm run db:init              # Initialize database
+npm run db:reset             # Reset database to clean state
+npm run db:check             # Check database status
+
+# PostgreSQL operations (production)
+npm run db:init:pg           # Initialize PostgreSQL database
+```
+
+### Build Commands
+```bash
+# Build user application
 npm run build:client
 
-# Build admin panel
-npm run build:admin
+# Build admin panel  
+cd admin && npm run build
 
-# Build and test locally before deployment considerations
-npm run build:all
+# Build complete project
+npm run build
 ```
 
 ### Code Quality
@@ -60,144 +84,80 @@ npm run build:all
 # Type checking
 npm run type-check
 
-# Linting (ESLint with auto-fix)
+# Linting with auto-fix
 npm run lint
-
-# Run tests (when implemented)
-npm run test
 ```
 
 ## Architecture Overview
 
-### Simplified Three-Layer Architecture
+### Three-Layer Application Architecture
 
-1. **Frontend Layer** (Vue 3 + Vite + TypeScript)
-   - `src/` - Client web app for users (auth, locker operations, records)
-   - `admin/` - Admin web panel for management (dashboard, approvals, user/locker management)
-   - Both use Pinia for state management and share component libraries
-   - Standard Vue Router for navigation
+1. **User Frontend Layer** (`src/`)
+   - Vue 3 + Vite + TypeScript application for end users
+   - Features: User registration, locker applications, operation records
+   - Pinia for state management, Vue Router for navigation
+   - API integration through service layers
 
-2. **API Layer** (Express.js Backend)
-   - Located in `server/` directory
-   - REST API endpoints: `/api/auth/*`, `/api/lockers/*`, `/api/admin/*`
-   - JWT-based authentication with local session management
-   - Business logic and data validation
-   - Simple middleware for CORS, auth, and error handling
+2. **Admin Frontend Layer** (`admin/`) 
+   - Vue 3 + Vite + TypeScript admin management panel
+   - Features: Dashboard, user management, locker oversight, application approvals
+   - Separate build process and routing from user app
+   - Shared component patterns with user app
 
-3. **Data Layer** (SQLite + JSON)
-   - SQLite database for core data (users, lockers, records, applications)
-   - JSON files for configuration and seed data
-   - Simple schema with relationships
-   - No complex migrations - focus on functionality
+3. **Backend API Layer** (`server/`)
+   - Express.js REST API server with modular route structure
+   - Authentication: JWT-based with bcrypt password hashing
+   - Database abstraction supporting SQLite (dev) and PostgreSQL (prod)
+   - Middleware: CORS, auth verification, error handling, request logging
+
+### Database Architecture
+
+- **Development**: SQLite with file-based storage for rapid iteration
+- **Production**: PostgreSQL on Railway with connection pooling
+- **Core Tables**: users, stores, lockers, locker_records, applications, admins
+- **Migration System**: Separate initialization scripts for each database type
 
 ### Key Design Patterns
 
-- **API Service Pattern**: Both frontend apps use service layers for API communication
-- **Store Pattern**: Pinia stores for state management and caching
-- **Component Organization**: Shared component library between client and admin apps
-- **Local-First Authentication**: Simple JWT with localStorage, phone verification optional
-- **Path Aliases**: Use `@/` for imports in both frontend apps
+- **Service Layer Pattern**: API communication abstracted through service files
+- **Store Pattern**: Pinia stores for state management with caching strategies  
+- **Modular Routes**: Express routes organized by feature domain
+- **Database Abstraction**: Same codebase works with SQLite/PostgreSQL
+- **Environment-Based Configuration**: Different configs for dev/production
 
 ### Environment Configuration
 
-- Single `.env.local` file for all local configuration
-- Simple configuration - no cloud services required initially
-- Required environment variables:
-  - `API_URL` (default: http://localhost:3001)
-  - `JWT_SECRET` (for token signing)
-  - `DB_PATH` (SQLite database file path)
+Development requires multiple environment files:
+- Root `.env.local` - User app configuration
+- `server/.env` - Backend API and database settings
+- `admin/.env` - Admin panel specific settings
+
+Key environment variables:
+- `DATABASE_URL` - Database connection (SQLite file or PostgreSQL URL)
+- `JWT_SECRET` - Token signing secret
+- `PORT` - Server port (default 3001)
+- `NODE_ENV` - Environment mode
 
 ## Deployment Strategy
 
-### Platform Selection: Railway + PostgreSQL
+### Railway Platform Deployment
 
-**Rationale**: Railway provides the optimal balance of simplicity, cost, and scalability for YesLocker.
+The project is configured for deployment on Railway with PostgreSQL database.
 
-#### Why Railway?
-- ✅ **Full-stack support**: Deploy both frontend and backend in one platform
-- ✅ **Database included**: Built-in PostgreSQL with automatic backups
-- ✅ **Zero-config CI/CD**: Git push triggers automatic deployment
-- ✅ **Cost-effective**: Starting at $10/month, scales with usage
-- ✅ **Developer-friendly**: Simple configuration, excellent documentation
+#### Production Configuration
+- **Frontend Serving**: Express.js serves built static assets
+- **Backend API**: Node.js Express server
+- **Database**: Railway PostgreSQL with automatic backups
+- **Build Process**: Multi-stage build combining user app, admin panel, and server
 
-#### Deployment Architecture
-```
-Production Stack:
-- Frontend: Vue 3 apps (client + admin)
-- Backend: Express.js API server
-- Database: Railway PostgreSQL
-- Hosting: Railway (container-based deployment)
-```
-
-### Migration Path: SQLite → PostgreSQL
-
-**Database Migration Process**:
-1. **Schema conversion**: Adapt SQLite schema to PostgreSQL
-2. **Connection updates**: Replace sqlite3 with pg client
-3. **Query adjustments**: Handle PostgreSQL-specific syntax
-4. **Data migration**: Export/import data from development to production
-
-**Code changes required**:
-```javascript
-// Development (SQLite)
-const sqlite3 = require('sqlite3')
-const db = new sqlite3.Database(dbPath)
-
-// Production (PostgreSQL)  
-const { Pool } = require('pg')
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-})
-```
-
-### Deployment Phases
-
-#### Phase 1: MVP Deployment ($10/month)
-**Target**: 100-1000 users
-- Railway Application: $5/month
-- Railway PostgreSQL: $5/month
-- Features: Core functionality, single region
-
-**Timeline**: 1 week after local testing completion
-- Day 1: Create PostgreSQL migration scripts
-- Day 2: Set up Railway project and database
-- Day 3-4: Deploy staging environment and test
-- Day 5: Production deployment and monitoring setup
-
-#### Phase 2: Scale & Optimize ($25/month)
-**Target**: 1000-10000 users
-- Upgraded Railway plan: $15/month
-- Database scaling: $10/month
-- CDN/Storage: $5/month
-- Features: Custom domain, performance optimization
-
-#### Phase 3: Enterprise Ready ($50+/month)
-**Target**: 10000+ users
-- Consider migration to Alibaba Cloud/Tencent Cloud for China market
-- Multi-region deployment
-- Advanced monitoring and analytics
-
-### Production Environment Variables
-
-**Required for Railway deployment**:
-```bash
-DATABASE_URL=postgresql://user:pass@host:port/db  # Auto-provided by Railway
-JWT_SECRET=your-production-secret-key
-NODE_ENV=production
-PORT=3001  # Railway will override this
-API_URL=https://your-app.railway.app
-```
-
-### Deployment Configuration
-
-**Railway Configuration** (`railway.json`):
+#### Railway Configuration (`railway.json`)
 ```json
 {
   "build": {
-    "command": "npm run build:all"
+    "command": "npm run build && cd admin && npm run build && cd ../server && npm install"
   },
   "start": {
-    "command": "npm start"
+    "command": "cd server && npm run start:railway"
   },
   "environment": {
     "NODE_ENV": "production"
@@ -205,75 +165,80 @@ API_URL=https://your-app.railway.app
 }
 ```
 
-**Package.json scripts** (updated):
-```json
-{
-  "scripts": {
-    "build:all": "npm run build:client && npm run build:admin",
-    "start": "node server/index.js",
-    "deploy:staging": "railway up --environment staging",
-    "deploy:production": "railway up --environment production"
-  }
-}
+#### Environment Variables for Production
+```bash
+# Database
+DATABASE_URL=postgresql://...     # Auto-provided by Railway
+DATABASE_PUBLIC_URL=postgresql://...  # Alternative connection string
+
+# Authentication  
+JWT_SECRET=your-production-secret
+
+# Server Configuration
+NODE_ENV=production
+PORT=3001                        # Railway will override
+
+# Application URLs
+FRONTEND_URL=https://your-app.railway.app
 ```
 
-### Monitoring & Maintenance
+### Database Migration Strategy
 
-**Health Checks**:
-- API endpoint monitoring
-- Database connection monitoring
-- Error rate tracking
-- Performance metrics
+The project supports both SQLite (development) and PostgreSQL (production):
 
-**Backup Strategy**:
-- Railway automatic database backups
-- Weekly full database exports
-- Configuration backup to Git
+- **Development**: File-based SQLite for rapid local development
+- **Production**: PostgreSQL with connection pooling and Railway management
+- **Migration Scripts**: Separate initialization for each database type
+- **Schema Compatibility**: Abstracted queries work with both database systems
 
-## Development Workflow (Local First)
+## Development Workflow
 
-### Primary Development Flow
+### Local Development Setup
 
-1. **Setup and Start**:
-   - Install dependencies: `npm install && cd admin && npm install`
-   - Initialize database: `npm run db:init`
-   - Start all services: `npm run dev` (or individual services)
+1. **Initial Setup**:
+   ```bash
+   # Install all dependencies
+   npm install
+   cd admin && npm install
+   cd ../server && npm install
+   
+   # Initialize database
+   cd server && npm run db:init
+   ```
 
-2. **Feature Development**:
-   - Work on client app: Focus on `src/` directory 
-   - Work on admin panel: Focus on `admin/` directory
-   - Work on API: Focus on `server/` directory
-   - Real-time hot reload for all layers
+2. **Daily Development**:
+   ```bash
+   # Start all services (recommended)
+   npm run dev:all
+   
+   # OR start individually:
+   npm run dev           # User app (port 3000)
+   npm run dev:admin     # Admin panel (port 5173)  
+   npm run dev:server    # API server (port 3001)
+   ```
 
-3. **Database Changes**:
-   - Modify schema in `server/database/schema.sql`
-   - Reset database: `npm run db:reset` 
-   - Re-seed data: `npm run db:seed`
+3. **Database Operations**:
+   ```bash
+   cd server
+   npm run db:check      # Check current state
+   npm run db:reset      # Reset to clean state
+   npm run db:init       # Reinitialize
+   ```
 
-4. **API Development**:
-   - Add endpoints in `server/routes/`
-   - Test with local frontend immediately
-   - Use Thunder Client/Postman for API testing
-   - All changes reflected instantly with nodemon
+### Development Features
 
-### Development Priorities
+- **Hot Reload**: All three applications support live reloading
+- **TypeScript**: Full TypeScript support with type checking
+- **API Testing**: Backend server logs all requests for debugging
+- **Database Flexibility**: Switch between SQLite/PostgreSQL easily
+- **Error Handling**: Comprehensive error logging and user feedback
 
-**Phase 1: Core Functionality (Focus Here)**
-- ✅ Get basic client and admin apps running
-- ✅ Implement user authentication (simple JWT)
-- ✅ Build locker application flow
-- ✅ Build admin approval workflow
-- ✅ Ensure data flows between all layers
+### Code Organization Principles
 
-**Phase 2: Enhancement**  
-- Polish UI/UX for both applications
-- Add form validations and error handling
-- Implement search and filtering features
-- Add file upload capabilities (if needed)
-
-**Phase 3: Future Deployment**
-- Only consider deployment after local functionality is perfect
-- Choose deployment strategy based on final architecture
+- **Modular Structure**: Each layer (user app, admin, server) is self-contained
+- **Shared Patterns**: Common patterns between frontend applications
+- **API Consistency**: RESTful endpoints with consistent response formats
+- **Database Abstraction**: Same codebase works with multiple database types
 
 ## Code Conventions
 
