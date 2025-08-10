@@ -5,14 +5,16 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
-    "build": "vite build",
+    "build": "npm run build:client && npm run build:admin && npm run build:server",
+    "build:client": "vite build",
+    "build:admin": "cd admin && npm install && npm run build",
+    "build:server": "cd server && npm install",
     "preview": "vite preview",
-    "start": "node start-app.js",
+    "start": "cd server && npm run start:railway",
     "dev:admin": "cd admin && npm run dev",
-    "build:admin": "cd admin && npm run build",
-    "server": "cd server && node express-server.js",
-    "server:dev": "cd server && nodemon express-server.js",
-    "dev:all": "npm run server & npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "dev:all": "npm run dev:server & npm run dev",
+    "db:init": "cd server && npm run db:init",
     "db:migrate": "cd server && node database/migrate-data.js",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore"
@@ -26,7 +28,13 @@
     "pinia": "^2.0.30",
     "qrcode": "^1.5.3",
     "vue": "^3.2.45",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "pg": "^8.11.3",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "path": "^0.12.7"
   },
   "devDependencies": {
     "@types/node": "^18.14.0",
