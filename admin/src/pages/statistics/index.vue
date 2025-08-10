@@ -513,8 +513,7 @@ const exportReport = async () => {
     // 获取导出数据
     const exportData = await generateExportData()
     
-    // 在H5环境下使用浏览器下载
-    // #ifdef H5
+    // 使用浏览器下载
     const csvContent = convertToCSV(exportData)
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
@@ -523,35 +522,7 @@ const exportReport = async () => {
     link.download = `数据统计报表_${formatDate(new Date(), 'datetime')}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-    // #endif
-    
-    // 在小程序环境下使用文件系统
-    // #ifndef H5
-    const csvContent = convertToCSV(exportData)
-    const filePath = `${uni.env.USER_DATA_PATH}/数据统计报表_${formatDate(new Date(), 'datetime')}.csv`
-    
-    uni.getFileSystemManager().writeFile({
-      filePath: filePath,
-      data: csvContent,
-      encoding: 'utf8',
-      success: () => {
-        uni.openDocument({
-          filePath: filePath,
-          showMenu: true,
-          success: () => {
-            showToast('导出成功')
-          },
-          fail: () => {
-            showToast('打开文件失败')
-          }
-        })
-      },
-      fail: (err) => {
-        console.error('写入文件失败:', err)
-        showToast('导出失败')
-      }
-    })
-    // #endif
+    showToast('导出成功')
     
     hideLoading()
   } catch (error) {

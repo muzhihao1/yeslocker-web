@@ -1,21 +1,36 @@
 <template>
-  <view class="app">
+  <div id="app">
     <!-- 全局加载指示器 -->
-    <view v-if="globalLoading" class="global-loading">
-      <view class="loading-content">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
-    </view>
-  </view>
+    <div v-if="globalLoading" class="global-loading">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">加载中...</span>
+      </div>
+    </div>
+    
+    <!-- 路由视图 -->
+    <router-view v-else />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAdminStore } from './stores/admin'
 
 const globalLoading = ref(false)
 const adminStore = useAdminStore()
+const router = useRouter()
+
+// 简单的Toast函数
+const showToast = (title: string, type: 'success' | 'error' = 'error') => {
+  // 这里可以集成更完善的Toast组件，暂时用alert代替
+  if (type === 'error') {
+    console.error(title)
+  } else {
+    console.log(title)
+  }
+}
 
 onMounted(async () => {
   // 初始化应用
@@ -31,37 +46,29 @@ const initApp = async () => {
     
     // 如果未登录，跳转到登录页
     if (!adminStore.isAuthenticated) {
-      uni.reLaunch({
-        url: '/pages/login/index'
-      })
+      router.replace('/login')
     }
   } catch (error) {
     console.error('App initialization error:', error)
-    uni.showToast({
-      title: '初始化失败',
-      icon: 'error'
-    })
+    showToast('初始化失败', 'error')
   } finally {
     globalLoading.value = false
   }
 }
 
 // 全局错误处理
-uni.onError((error: any) => {
+window.addEventListener('error', (error) => {
   console.error('Global error:', error)
-  uni.showToast({
-    title: '系统错误',
-    icon: 'error'
-  })
+  showToast('系统错误', 'error')
 })
 </script>
 
 <style lang="css">
 @import "@/styles/common.css";
 
-.app {
+#app {
   height: 100vh;
-  background-color: var(--bg-color)-light;
+  background-color: #f5f5f5;
 }
 
 .global-loading {
@@ -75,27 +82,27 @@ uni.onError((error: any) => {
   align-items: center;
   justify-content: center;
   z-index: 9999;
+}
 
-  .loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16rpx;
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
 
-    .loading-spinner {
-      width: 60rpx;
-      height: 60rpx;
-      border: 4rpx solid #e0e0e0;
-      border-top: 4rpx solid var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
-    .loading-text {
-      color: var(--text-secondary);
-      font-size: 28rpx;
-    }
-  }
+.loading-text {
+  color: #666666;
+  font-size: 14px;
 }
 
 @keyframes spin {
@@ -104,9 +111,11 @@ uni.onError((error: any) => {
 }
 
 /* 全局样式重置 */
-page {
-  background-color: var(--bg-color)-light;
+body {
+  background-color: #f5f5f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 /* 通用工具类 */
