@@ -41,7 +41,7 @@
       </div>
       
       <div v-else-if="applications.length === 0" class="empty-container">
-        <img src="/static/images/empty-applications.png" class="empty-image" alt="无数据" />
+        <div class="empty-icon">📋</div>
         <span class="empty-text">暂无申请记录</span>
       </div>
 
@@ -56,7 +56,7 @@
           <!-- 申请信息 -->
           <div class="card-header">
             <div class="user-info">
-              <img :src="app.user.avatar || '/static/images/default-avatar.png'" class="user-avatar" alt="用户头像" />
+              <div class="user-avatar-placeholder">👤</div>
               <div class="user-detail">
                 <span class="user-name">{{ app.user.name }}</span>
                 <span class="user-phone">{{ app.user.phone }}</span>
@@ -365,7 +365,7 @@ const batchApprove = async () => {
   })
   
   if (result.confirm) {
-    uni.showLoading({ title: '处理中...' })
+    loading.value = true
     let successCount = 0
     let failCount = 0
     
@@ -391,7 +391,7 @@ const batchApprove = async () => {
       
       await Promise.all(promises)
       
-      uni.hideLoading()
+      loading.value = false
       
       if (failCount === 0) {
         showToast(`成功通过 ${successCount} 个申请`)
@@ -403,7 +403,7 @@ const batchApprove = async () => {
       refreshList()
       
     } catch (error) {
-      uni.hideLoading()
+      loading.value = false
       console.error('批量审核失败:', error)
       showToast('批量审核失败')
     }
@@ -426,7 +426,7 @@ const batchReject = async () => {
   if (result.confirm) {
     const reason = '不符合申请条件'
     
-    uni.showLoading({ title: '处理中...' })
+    loading.value = true
     let successCount = 0
     let failCount = 0
     
@@ -446,14 +446,14 @@ const batchReject = async () => {
           }
           successCount++
         } catch (error) {
-          console.error(`拒绝申请 ${id} 失败:`, error)
+          console.error(`拒绝申请 ${id} 失赅:`, error)
           failCount++
         }
       })
       
       await Promise.all(promises)
       
-      uni.hideLoading()
+      loading.value = false
       
       if (failCount === 0) {
         showToast(`成功拒绝 ${successCount} 个申请`)
@@ -465,7 +465,7 @@ const batchReject = async () => {
       refreshList()
       
     } catch (error) {
-      uni.hideLoading()
+      loading.value = false
       console.error('批量拒绝失败:', error)
       showToast('批量拒绝失败')
     }
@@ -491,38 +491,38 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30rpx;
+  padding: 30px;
   background-color: #fff;
   border-bottom: 1px solid var(--border-color);
 }
 
 .page-header .title {
-  font-size: 36rpx;
+  font-size: 36px;
   font-weight: bold;
   color: var(--text-primary);
-  margin-right: 20rpx;
+  margin-right: 20px;
 }
 
 .page-header .subtitle {
-  font-size: 28rpx;
+  font-size: 28px;
   color: var(--text-secondary);
 }
 
 .page-header .btn-refresh {
-  padding: 16rpx 32rpx;
+  padding: 16px 32px;
   background-color: var(--primary-color);
   color: #fff;
-  border-radius: 8rpx;
-  font-size: 28rpx;
+  border-radius: 8px;
+  font-size: 28px;
 }
 
 .page-header .btn-refresh .iconfont {
-  margin-right: 8rpx;
+  margin-right: 8px;
 }
 
 .filter-bar {
   display: flex;
-  padding: 20rpx 30rpx;
+  padding: 20px 30px;
   background-color: #fff;
   border-bottom: 1px solid var(--border-color);
 }
@@ -532,11 +532,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 24rpx;
-  margin-right: 20rpx;
+  padding: 16px 24px;
+  margin-right: 20px;
   background-color: var(--bg-color);
-  border-radius: 8rpx;
-  font-size: 28rpx;
+  border-radius: 8px;
+  font-size: 28px;
   color: var(--text-primary);
 }
 
@@ -545,42 +545,42 @@ onMounted(() => {
 }
 
 .filter-bar .filter-item .iconfont {
-  font-size: 24rpx;
+  font-size: 24px;
   color: var(--text-secondary);
 }
 
 .applications-list {
-  height: calc(100vh - 280rpx);
-  padding: 20rpx;
+  height: calc(100vh - 280px);
+  padding: 20px;
 }
 
 .application-card {
   position: relative;
   background-color: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
 
 .application-card.selected {
   background-color: #f0f9ff;
-  border: 2rpx solid var(--primary-color);
+  border: 2px solid var(--primary-color);
 }
 
 .select-checkbox {
   position: absolute;
-  top: 30rpx;
-  left: 30rpx;
-  padding: 10rpx;
+  top: 30px;
+  left: 30px;
+  padding: 10px;
 }
 
 .select-checkbox .checkbox {
-  width: 40rpx;
-  height: 40rpx;
-  border: 2rpx solid #dcdfe6;
-  border-radius: 8rpx;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #dcdfe6;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,15 +595,15 @@ onMounted(() => {
 
 .select-checkbox .checkbox.checked .iconfont {
   color: #fff;
-  font-size: 24rpx;
+  font-size: 24px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24rpx;
-  margin-left: 60rpx;
+  margin-bottom: 24px;
+  margin-left: 60px;
 }
 
 .user-info {
@@ -611,11 +611,16 @@ onMounted(() => {
   align-items: center;
 }
 
-.user-avatar {
-  width: 80rpx;
-  height: 80rpx;
+.user-avatar-placeholder {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  margin-right: 20rpx;
+  margin-right: 10px;
+  background-color: var(--bg-color-grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
 }
 
 .user-detail {
@@ -624,21 +629,21 @@ onMounted(() => {
 }
 
 .user-name {
-  font-size: 32rpx;
+  font-size: 32px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8rpx;
+  margin-bottom: 8px;
 }
 
 .user-phone {
-  font-size: 26rpx;
+  font-size: 26px;
   color: var(--text-secondary);
 }
 
 .status-badge {
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 24px;
 }
 
 .status-badge.status-pending {
@@ -658,34 +663,34 @@ onMounted(() => {
 
 .info-row {
   display: flex;
-  margin-bottom: 16rpx;
+  margin-bottom: 16px;
 }
 
 .info-label {
-  width: 160rpx;
-  font-size: 28rpx;
+  width: 160px;
+  font-size: 28px;
   color: var(--text-secondary);
 }
 
 .info-value {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 28px;
   color: var(--text-primary);
 }
 
 .card-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 24rpx;
-  padding-top: 24rpx;
+  margin-top: 24px;
+  padding-top: 24px;
   border-top: 1px solid var(--border-color);
 }
 
 .card-actions button {
-  padding: 16rpx 40rpx;
-  border-radius: 8rpx;
-  font-size: 28rpx;
-  margin-left: 20rpx;
+  padding: 16px 40px;
+  border-radius: 8px;
+  font-size: 28px;
+  margin-left: 20px;
 }
 
 .btn-reject {
@@ -704,17 +709,17 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100rpx 0;
+  padding: 100px 0;
 }
 
-.empty-image {
-  width: 300rpx;
-  height: 300rpx;
-  margin-bottom: 40rpx;
+.empty-icon {
+  font-size: 60px;
+  margin-bottom: 20px;
+  opacity: 0.5;
 }
 
 .empty-text {
-  font-size: 32rpx;
+  font-size: 32px;
   color: var(--text-secondary);
 }
 
@@ -723,21 +728,21 @@ onMounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 100rpx 0;
+  padding: 100px 0;
 }
 
 .loading-spinner {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid #e0e0e0;
-  border-top: 4rpx solid var(--primary-color);
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20rpx;
+  margin-bottom: 20px;
 }
 
 .loading-text {
-  font-size: 28rpx;
+  font-size: 28px;
   color: var(--text-secondary);
 }
 
@@ -748,8 +753,8 @@ onMounted(() => {
 
 .load-more {
   text-align: center;
-  padding: 30rpx;
-  font-size: 28rpx;
+  padding: 30px;
+  font-size: 28px;
   color: var(--text-secondary);
 }
 
@@ -761,14 +766,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx 30rpx;
+  padding: 20px 30px;
   background-color: #fff;
   border-top: 1px solid var(--border-color);
-  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .batch-info {
-  font-size: 28rpx;
+  font-size: 28px;
   color: var(--text-primary);
 }
 
@@ -777,10 +782,10 @@ onMounted(() => {
 }
 
 .batch-buttons button {
-  padding: 16rpx 32rpx;
-  border-radius: 8rpx;
-  font-size: 28rpx;
-  margin-left: 20rpx;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 28px;
+  margin-left: 20px;
 }
 
 .btn-batch-reject {
