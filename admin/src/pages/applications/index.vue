@@ -1,126 +1,129 @@
 <template>
-  <view class="applications-page">
+  <div class="applications-page">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-title">
-        <text class="title">申请审核</text>
-        <text class="subtitle">{{ pendingCount }} 个待审核</text>
-      </view>
-      <view class="header-actions">
+    <div class="page-header">
+      <div class="header-title">
+        <span class="title">申请审核</span>
+        <span class="subtitle">{{ pendingCount }} 个待审核</span>
+      </div>
+      <div class="header-actions">
         <button class="btn-refresh" @click="refreshList">
-          <text class="iconfont icon-refresh"></text>
+          <span class="iconfont icon-refresh"></span>
           刷新
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 筛选栏 -->
-    <view class="filter-bar">
-      <picker mode="selector" :range="statusOptions" :value="filterStatus" @change="handleStatusChange">
-        <view class="filter-item">
-          <text>状态：{{ statusOptions[filterStatus] }}</text>
-          <text class="iconfont icon-arrow-down"></text>
-        </view>
-      </picker>
-      <picker mode="selector" :range="storeOptions" range-key="name" :value="filterStore" @change="handleStoreChange">
-        <view class="filter-item">
-          <text>门店：{{ filterStore === -1 ? '全部门店' : storeOptions[filterStore].name }}</text>
-          <text class="iconfont icon-arrow-down"></text>
-        </view>
-      </picker>
-    </view>
+    <div class="filter-bar">
+      <div class="filter-item">
+        <select class="filter-select" v-model="filterStatus" @change="refreshList">
+          <option v-for="(option, index) in statusOptions" :key="index" :value="index">
+            状态：{{ option }}
+          </option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <select class="filter-select" v-model="filterStore" @change="refreshList">
+          <option value="-1">门店：全部门店</option>
+          <option v-for="(store, index) in storeOptions" :key="store.id" :value="index">
+            门店：{{ store.name }}
+          </option>
+        </select>
+      </div>
+    </div>
 
     <!-- 申请列表 -->
-    <scroll-view class="applications-list" scroll-y :refresher-enabled="true" 
-                 :refresher-triggered="refreshing" @refresherrefresh="onPullDownRefresh">
-      <view v-if="loading" class="loading-container">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
+    <div class="applications-list">
+      <div v-if="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">加载中...</span>
+      </div>
       
-      <view v-else-if="applications.length === 0" class="empty-container">
-        <image src="/static/images/empty-applications.png" class="empty-image" />
-        <text class="empty-text">暂无申请记录</text>
-      </view>
+      <div v-else-if="applications.length === 0" class="empty-container">
+        <img src="/static/images/empty-applications.png" class="empty-image" alt="无数据" />
+        <span class="empty-text">暂无申请记录</span>
+      </div>
 
-      <view v-else>
-        <view v-for="app in applications" :key="app.id" class="application-card" :class="{ 'selected': selectedIds.has(app.id) }" @click="goToDetail(app.id)">
+      <div v-else>
+        <div v-for="app in applications" :key="app.id" class="application-card" :class="{ 'selected': selectedIds.has(app.id) }" @click="goToDetail(app.id)">
           <!-- 选择框 -->
-          <view v-if="app.status === 'pending'" class="select-checkbox" @click.stop="toggleSelect(app.id)">
-            <view class="checkbox" :class="{ 'checked': selectedIds.has(app.id) }">
-              <text v-if="selectedIds.has(app.id)" class="iconfont icon-check"></text>
-            </view>
-          </view>
+          <div v-if="app.status === 'pending'" class="select-checkbox" @click.stop="toggleSelect(app.id)">
+            <div class="checkbox" :class="{ 'checked': selectedIds.has(app.id) }">
+              <span v-if="selectedIds.has(app.id)" class="iconfont icon-check"></span>
+            </div>
+          </div>
           <!-- 申请信息 -->
-          <view class="card-header">
-            <view class="user-info">
-              <image :src="app.user.avatar || '/static/images/default-avatar.png'" class="user-avatar" />
-              <view class="user-detail">
-                <text class="user-name">{{ app.user.name }}</text>
-                <text class="user-phone">{{ app.user.phone }}</text>
-              </view>
-            </view>
-            <view class="status-badge" :class="`status-${app.status}`">
+          <div class="card-header">
+            <div class="user-info">
+              <img :src="app.user.avatar || '/static/images/default-avatar.png'" class="user-avatar" alt="用户头像" />
+              <div class="user-detail">
+                <span class="user-name">{{ app.user.name }}</span>
+                <span class="user-phone">{{ app.user.phone }}</span>
+              </div>
+            </div>
+            <div class="status-badge" :class="`status-${app.status}`">
               {{ getStatusText(app.status) }}
-            </view>
-          </view>
+            </div>
+          </div>
 
           <!-- 杆柜信息 -->
-          <view class="card-body">
-            <view class="info-row">
-              <text class="info-label">申请门店：</text>
-              <text class="info-value">{{ app.store.name }}</text>
-            </view>
-            <view class="info-row">
-              <text class="info-label">杆柜编号：</text>
-              <text class="info-value">{{ app.locker.number }}</text>
-            </view>
-            <view class="info-row">
-              <text class="info-label">申请时间：</text>
-              <text class="info-value">{{ formatDate(app.created_at) }}</text>
-            </view>
-            <view v-if="app.remark" class="info-row">
-              <text class="info-label">备注信息：</text>
-              <text class="info-value">{{ app.remark }}</text>
-            </view>
-          </view>
+          <div class="card-body">
+            <div class="info-row">
+              <span class="info-label">申请门店：</span>
+              <span class="info-value">{{ app.store.name }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">杆柜编号：</span>
+              <span class="info-value">{{ app.locker.number }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">申请时间：</span>
+              <span class="info-value">{{ formatDate(app.created_at) }}</span>
+            </div>
+            <div v-if="app.remark" class="info-row">
+              <span class="info-label">备注信息：</span>
+              <span class="info-value">{{ app.remark }}</span>
+            </div>
+          </div>
 
           <!-- 操作按钮 -->
-          <view v-if="app.status === 'pending'" class="card-actions">
+          <div v-if="app.status === 'pending'" class="card-actions">
             <button class="btn-reject" @click.stop="handleReject(app)">
               拒绝
             </button>
             <button class="btn-approve" @click.stop="handleApprove(app)">
               通过
             </button>
-          </view>
-        </view>
-      </view>
+          </div>
+        </div>
+      </div>
 
       <!-- 加载更多 -->
-      <view v-if="hasMore && !loading" class="load-more" @click="loadMore">
-        <text>加载更多</text>
-      </view>
-    </scroll-view>
+      <div v-if="hasMore && !loading" class="load-more" @click="loadMore">
+        <span>加载更多</span>
+      </div>
+    </div>
 
     <!-- 批量操作栏 -->
-    <view v-if="selectedCount > 0" class="batch-actions">
-      <view class="batch-info">
-        <text>已选择 {{ selectedCount }} 项</text>
-      </view>
-      <view class="batch-buttons">
+    <div v-if="selectedCount > 0" class="batch-actions">
+      <div class="batch-info">
+        <span>已选择 {{ selectedCount }} 项</span>
+      </div>
+      <div class="batch-buttons">
         <button class="btn-batch-reject" @click="batchReject">批量拒绝</button>
         <button class="btn-batch-approve" @click="batchApprove">批量通过</button>
-      </view>
-    </view>
-  </view>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAdminStore } from '../../stores/admin'
 import { adminApi } from '../../services/api'
-import { formatDate, showToast, showModal } from '../../utils'
+import { formatDate } from '../../utils'
 
 interface Application {
   id: string
@@ -146,6 +149,18 @@ interface Application {
 }
 
 const adminStore = useAdminStore()
+const router = useRouter()
+
+// 简单的提示函数
+const showToast = (message: string) => {
+  alert(message)
+}
+
+const showModal = (options: { title: string; content: string; showCancel?: boolean }) => {
+  return Promise.resolve({ 
+    confirm: confirm(`${options.title}\n${options.content}`) 
+  })
+}
 
 // 状态变量
 const applications = ref<Application[]>([])
@@ -240,16 +255,8 @@ const getStores = async () => {
   }
 }
 
-// 处理状态筛选
-const handleStatusChange = (e: any) => {
-  filterStatus.value = e.detail.value
-  selectedIds.value.clear()
-  refreshList()
-}
-
-// 处理门店筛选
-const handleStoreChange = (e: any) => {
-  filterStore.value = e.detail.value
+// 清除选择并刷新列表
+const clearSelectionAndRefresh = () => {
   selectedIds.value.clear()
   refreshList()
 }
@@ -278,9 +285,7 @@ const goToDetail = (id: string) => {
     return
   }
   
-  uni.navigateTo({
-    url: `/pages/applications/detail?id=${id}`
-  })
+  router.push(`/applications/detail?id=${id}`)
 }
 
 // 切换选中状态

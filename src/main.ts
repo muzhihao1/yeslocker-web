@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import routes from './router/routes'
+import { useAuthStore } from '@/stores/auth-vue'
 
 // 创建路由实例
 const router = createRouter({
@@ -24,8 +25,7 @@ app.use(pinia)
 router.beforeEach(async (to, from, next) => {
   console.log('Navigate from', from.path, 'to', to.path)
   
-  // 导入认证store（动态导入避免循环依赖）
-  const { useAuthStore } = await import('@/stores/auth-vue')
+  // 使用认证store
   const authStore = useAuthStore()
   
   // 检查是否需要认证
