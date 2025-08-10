@@ -15,7 +15,7 @@ class RailwayServer {
     this.app = express();
     this.port = process.env.PORT || 3000;
     
-    // PostgreSQL connection configuration
+    // PostgreSQL connection configuration with robust error handling
     const databaseUrl = process.env.DATABASE_URL || 
                        process.env.POSTGRES_URL || 
                        process.env.PGURL ||
@@ -23,17 +23,33 @@ class RailwayServer {
     
     console.log('🗄️  Database connection setup:');
     console.log('- Using URL:', databaseUrl.replace(/:[^:@]*@/, ':***@'));
+    console.log('- All env vars:', Object.keys(process.env).join(', '));
     
-    this.pool = new Pool({
-      connectionString: databaseUrl,
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : false,
-      // Add connection pool settings
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
+    // Initialize pool with error handling
+    this.pool = null;
+    this.dbConnected = false;
+    
+    try {
+      this.pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: process.env.NODE_ENV === 'production' ? {
+          rejectUnauthorized: false
+        } : false,
+        // Add connection pool settings
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
+      
+      this.pool.on('error', (err) => {
+        console.error('🚨 PostgreSQL pool error:', err.message);
+        this.dbConnected = false;
+      });
+      
+    } catch (error) {
+      console.error('🚨 Failed to initialize database pool:', error.message);
+      this.pool = null;
+    }
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -78,12 +94,43 @@ class RailwayServer {
         status: 'ok',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
-        port: this.port
+        port: this.port,
+        database: {
+          pool_initialized: !!this.pool,
+          connected: this.dbConnected || false
+        }
       });
     });
 
-    // Database test
+    // Debug endpoint to check environment variables
+    this.app.get('/debug', (req, res) => {
+      const envVars = Object.keys(process.env).filter(key => 
+        key.includes('DATABASE') || 
+        key.includes('POSTGRES') || 
+        key.includes('NODE_ENV') ||
+        key.includes('PORT')
+      );
+      
+      res.json({
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        port: process.env.PORT || 'not set',
+        database_vars: envVars,
+        database_url_exists: !!process.env.DATABASE_URL,
+        database_url_prefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'not set'
+      });
+    });
+
+    // Database test with null safety
     this.app.get('/api/db-test', async (req, res) => {
+      if (!this.pool) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database pool not initialized',
+          message: 'PostgreSQL connection pool was not created'
+        });
+      }
+      
       try {
         const client = await this.pool.connect();
         const result = await client.query('SELECT version()');
@@ -383,16 +430,23 @@ class RailwayServer {
       
       // Test database connection (non-blocking)
       console.log('\n🔍 Testing database connection...');
-      try {
-        const client = await this.pool.connect();
-        const result = await client.query('SELECT version()');
-        console.log('✅ Database connected:', result.rows[0].version.substring(0, 50) + '...');
-        client.release();
-        console.log(`🗄️  Database: PostgreSQL Connected`);
-      } catch (error) {
-        console.error('⚠️  Database connection failed:', error.message);
+      if (!this.pool) {
+        console.error('⚠️  Database pool not initialized');
         console.error('Server will continue running but database features will not work');
-        console.error('Please check DATABASE_URL environment variable');
+      } else {
+        try {
+          const client = await this.pool.connect();
+          const result = await client.query('SELECT version()');
+          console.log('✅ Database connected:', result.rows[0].version.substring(0, 50) + '...');
+          client.release();
+          console.log(`🗄️  Database: PostgreSQL Connected`);
+          this.dbConnected = true;
+        } catch (error) {
+          console.error('⚠️  Database connection failed:', error.message);
+          console.error('Server will continue running but database features will not work');
+          console.error('Please check DATABASE_URL environment variable');
+          this.dbConnected = false;
+        }
       }
       
       console.log('==========================================\n');
