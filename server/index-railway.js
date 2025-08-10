@@ -410,14 +410,16 @@ class RailwayServer {
     this.app.listen(this.port, '0.0.0.0', async () => {
       console.log('\n🚀 YesLocker Railway Server Started');
       console.log('==========================================');
-      console.log(`📍 Server: http://localhost:${this.port}`);
+      console.log(`📍 Server listening on: 0.0.0.0:${this.port}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       
-      // Debug database configuration
-      console.log('\n🔍 Database Configuration Debug:');
+      // Debug Railway configuration
+      console.log('\n🔍 Railway Configuration Debug:');
       console.log('- DATABASE_URL exists:', !!process.env.DATABASE_URL);
       console.log('- DATABASE_URL starts with:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'undefined');
       console.log('- NODE_ENV:', process.env.NODE_ENV);
+      console.log('- PORT from Railway:', this.port);
+      console.log('- 🚨 IMPORTANT: Railway domain target port MUST be set to:', this.port);
       console.log('- Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('POSTGRES')));
       
       // Test database connection if pool exists
