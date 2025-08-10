@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index-railway.js",
     "start:unified": "node index-unified.js",
-    "start:railway": "node test-server.js",
+    "start:railway": "node index-railway.js",
     "start:pg": "node index-pg.js",
     "dev": "nodemon index.js",
     "dev:unified": "nodemon index-unified.js",

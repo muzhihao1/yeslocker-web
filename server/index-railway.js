@@ -420,7 +420,9 @@ class RailwayServer {
 
   async stop() {
     console.log('\n📁 Closing database connections...');
-    await this.pool.end();
+    if (this.pool) {
+      await this.pool.end();
+    }
     console.log('✅ Server stopped gracefully');
     process.exit(0);
   }
