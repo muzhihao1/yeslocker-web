@@ -1,139 +1,141 @@
 <template>
-  <view class="dashboard">
+  <div class="dashboard">
     <!-- 顶部欢迎区域 -->
-    <view class="welcome-header">
-      <view class="welcome-content">
-        <view class="welcome-text">
-          <text class="greeting">您好，{{ adminStore.adminInfo?.name }}</text>
-          <text class="role-badge" :class="adminStore.isSuperAdmin ? 'super' : 'store'">
+    <div class="welcome-header">
+      <div class="welcome-content">
+        <div class="welcome-text">
+          <span class="greeting">您好，{{ adminStore.adminInfo?.name }}</span>
+          <span class="role-badge" :class="adminStore.isSuperAdmin ? 'super' : 'store'">
             {{ adminStore.isSuperAdmin ? '超级管理员' : '门店管理员' }}
-          </text>
-        </view>
-        <view v-if="adminStore.adminInfo?.store" class="store-info">
-          <text>{{ adminStore.adminInfo.store.name }}</text>
-        </view>
-      </view>
-      <view class="logout-btn" @tap="handleLogout">
-        <text>退出登录</text>
-      </view>
-    </view>
+          </span>
+        </div>
+        <div v-if="adminStore.adminInfo?.store" class="store-info">
+          <span>{{ adminStore.adminInfo.store.name }}</span>
+        </div>
+      </div>
+      <div class="logout-btn" @click="handleLogout">
+        <span>退出登录</span>
+      </div>
+    </div>
 
     <!-- 统计卡片 -->
-    <view class="stats-grid">
-      <view class="stats-card" @tap="navigateTo('/pages/applications/index')">
-        <view class="stats-icon pending">📋</view>
-        <view class="stats-content">
-          <view class="stats-number">{{ dashboardData.pendingApplications }}</view>
-          <view class="stats-label">待审核申请</view>
-        </view>
-        <view class="stats-arrow">›</view>
-      </view>
+    <div class="stats-grid">
+      <div class="stats-card" @click="navigateTo('/applications')">
+        <div class="stats-icon pending">📋</div>
+        <div class="stats-content">
+          <div class="stats-number">{{ dashboardData.pendingApplications }}</div>
+          <div class="stats-label">待审核申请</div>
+        </div>
+        <div class="stats-arrow">›</div>
+      </div>
 
-      <view class="stats-card" @tap="navigateTo('/pages/lockers/index')">
-        <view class="stats-icon occupied">🔒</view>
-        <view class="stats-content">
-          <view class="stats-number">{{ dashboardData.occupiedLockers }}</view>
-          <view class="stats-label">已占用杆柜</view>
-        </view>
-        <view class="stats-arrow">›</view>
-      </view>
+      <div class="stats-card" @click="navigateTo('/lockers')">
+        <div class="stats-icon occupied">🔒</div>
+        <div class="stats-content">
+          <div class="stats-number">{{ dashboardData.occupiedLockers }}</div>
+          <div class="stats-label">已占用杆柜</div>
+        </div>
+        <div class="stats-arrow">›</div>
+      </div>
 
-      <view class="stats-card" @tap="navigateTo('/pages/users/index')">
-        <view class="stats-icon users">👥</view>
-        <view class="stats-content">
-          <view class="stats-number">{{ dashboardData.activeUsers }}</view>
-          <view class="stats-label">活跃用户</view>
-        </view>
-        <view class="stats-arrow">›</view>
-      </view>
+      <div class="stats-card" @click="navigateTo('/users')">
+        <div class="stats-icon users">👥</div>
+        <div class="stats-content">
+          <div class="stats-number">{{ dashboardData.activeUsers }}</div>
+          <div class="stats-label">活跃用户</div>
+        </div>
+        <div class="stats-arrow">›</div>
+      </div>
 
-      <view class="stats-card" @tap="navigateTo('/pages/records/index')">
-        <view class="stats-icon records">📈</view>
-        <view class="stats-content">
-          <view class="stats-number">{{ dashboardData.todayRecords }}</view>
-          <view class="stats-label">今日操作</view>
-        </view>
-        <view class="stats-arrow">›</view>
-      </view>
-    </view>
+      <div class="stats-card" @click="navigateTo('/records')">
+        <div class="stats-icon records">📈</div>
+        <div class="stats-content">
+          <div class="stats-number">{{ dashboardData.todayRecords }}</div>
+          <div class="stats-label">今日操作</div>
+        </div>
+        <div class="stats-arrow">›</div>
+      </div>
+    </div>
 
     <!-- 快捷操作 -->
-    <view class="quick-actions">
-      <view class="section-title">快捷操作</view>
-      <view class="actions-grid">
-        <view class="action-item" @tap="navigateTo('/pages/applications/index')">
-          <view class="action-icon">✅</view>
-          <text class="action-text">审核申请</text>
-        </view>
-        <view class="action-item" @tap="navigateTo('/pages/lockers/index')">
-          <view class="action-icon">🔧</view>
-          <text class="action-text">管理杆柜</text>
-        </view>
-        <view class="action-item" @tap="navigateTo('/pages/reminders/index')">
-          <view class="action-icon">📢</view>
-          <text class="action-text">发送提醒</text>
-        </view>
-        <view class="action-item" @tap="navigateTo('/pages/statistics/index')">
-          <view class="action-icon">📊</view>
-          <text class="action-text">查看统计</text>
-        </view>
-      </view>
-    </view>
+    <div class="quick-actions">
+      <div class="section-title">快捷操作</div>
+      <div class="actions-grid">
+        <div class="action-item" @click="navigateTo('/applications')">
+          <div class="action-icon">✅</div>
+          <span class="action-text">审核申请</span>
+        </div>
+        <div class="action-item" @click="navigateTo('/lockers')">
+          <div class="action-icon">🔧</div>
+          <span class="action-text">管理杆柜</span>
+        </div>
+        <div class="action-item" @click="navigateTo('/reminders')">
+          <div class="action-icon">📢</div>
+          <span class="action-text">发送提醒</span>
+        </div>
+        <div class="action-item" @click="navigateTo('/statistics')">
+          <div class="action-icon">📊</div>
+          <span class="action-text">查看统计</span>
+        </div>
+      </div>
+    </div>
 
     <!-- 最近活动 -->
-    <view class="recent-activities">
-      <view class="section-title">最近活动</view>
-      <view v-if="isLoading" class="loading-placeholder">
-        <text>加载中...</text>
-      </view>
-      <view v-else-if="recentActivities.length === 0" class="empty-placeholder">
-        <text>暂无最近活动</text>
-      </view>
-      <view v-else class="activity-list">
-        <view
+    <div class="recent-activities">
+      <div class="section-title">最近活动</div>
+      <div v-if="isLoading" class="loading-placeholder">
+        <span>加载中...</span>
+      </div>
+      <div v-else-if="recentActivities.length === 0" class="empty-placeholder">
+        <span>暂无最近活动</span>
+      </div>
+      <div v-else class="activity-list">
+        <div
           v-for="activity in recentActivities"
           :key="activity.id"
           class="activity-item"
         >
-          <view class="activity-icon" :class="activity.type">
+          <div class="activity-icon" :class="activity.type">
             {{ getActivityIcon(activity.type) }}
-          </view>
-          <view class="activity-content">
-            <view class="activity-text">{{ activity.description }}</view>
-            <view class="activity-time">{{ formatTime(activity.created_at) }}</view>
-          </view>
-        </view>
-      </view>
-    </view>
+          </div>
+          <div class="activity-content">
+            <div class="activity-text">{{ activity.description }}</div>
+            <div class="activity-time">{{ formatTime(activity.created_at) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 系统状态 -->
-    <view class="system-status">
-      <view class="section-title">系统状态</view>
-      <view class="status-list">
-        <view class="status-item">
-          <view class="status-dot online"></view>
-          <text class="status-text">数据库连接正常</text>
-        </view>
-        <view class="status-item">
-          <view class="status-dot online"></view>
-          <text class="status-text">短信服务正常</text>
-        </view>
-        <view class="status-item">
-          <view class="status-dot online"></view>
-          <text class="status-text">文件上传正常</text>
-        </view>
-      </view>
-    </view>
-  </view>
+    <div class="system-status">
+      <div class="section-title">系统状态</div>
+      <div class="status-list">
+        <div class="status-item">
+          <div class="status-dot online"></div>
+          <span class="status-text">数据库连接正常</span>
+        </div>
+        <div class="status-item">
+          <div class="status-dot online"></div>
+          <span class="status-text">短信服务正常</span>
+        </div>
+        <div class="status-item">
+          <div class="status-dot online"></div>
+          <span class="status-text">文件上传正常</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAdminStore } from '../../stores/admin'
 import { adminApi } from '../../services/api'
 import dayjs from 'dayjs'
 
 const adminStore = useAdminStore()
+const router = useRouter()
 
 // 数据状态
 const isLoading = ref(true)
@@ -177,29 +179,21 @@ const loadDashboardData = async () => {
 
   } catch (error) {
     console.error('Load dashboard data error:', error)
-    uni.showToast({
-      title: '数据加载失败',
-      icon: 'error'
-    })
+    alert('数据加载失败，请重试')
   } finally {
     isLoading.value = false
   }
 }
 
 const navigateTo = (url: string) => {
-  uni.navigateTo({ url })
+  router.push(url)
 }
 
 const handleLogout = () => {
-  uni.showModal({
-    title: '确认退出',
-    content: '确定要退出管理后台吗？',
-    success: (res) => {
-      if (res.confirm) {
-        adminStore.logout()
-      }
-    }
-  })
+  if (confirm('确定要退出管理后台吗？')) {
+    adminStore.logout()
+    router.push('/login')
+  }
 }
 
 const getActivityIcon = (type: string) => {
@@ -223,15 +217,8 @@ onMounted(() => {
   loadDashboardData()
 })
 
-// 下拉刷新
-const onPullDownRefresh = () => {
-  loadDashboardData().finally(() => {
-    uni.stopPullDownRefresh()
-  })
-}
-
-// 页面显示时刷新数据
-const onShow = () => {
+// 页面刷新
+const refreshPage = () => {
   loadDashboardData()
 }
 </script>
@@ -270,8 +257,8 @@ const onShow = () => {
 }
 
 .welcome-header .role-badge {
-  padding: 6rpx 12rpx;
-  border-radius: 20rpx;
+  padding: 3px 6px;
+  border-radius: 10px;
   font-size: var(--font-size-xs);
   font-weight: 500;
 }
@@ -314,17 +301,17 @@ const onShow = () => {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  min-height: 120rpx;
+  min-height: 60px;
 }
 
 .stats-icon {
-  width: 80rpx;
-  height: 80rpx;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 20px;
 }
 
 .stats-icon.pending {
@@ -357,7 +344,7 @@ const onShow = () => {
 .stats-label {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-top: 4rpx;
+  margin-top: 2px;
 }
 
 .stats-arrow {
@@ -392,11 +379,11 @@ const onShow = () => {
   justify-content: center;
   flex-direction: column;
   gap: var(--spacing-sm);
-  min-height: 120rpx;
+  min-height: 60px;
 }
 
 .action-icon {
-  font-size: 48rpx;
+  font-size: 24px;
 }
 
 .action-text {
@@ -417,7 +404,7 @@ const onShow = () => {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  border-bottom: 2rpx solid var(--divider-color);
+  border-bottom: 1px solid var(--divider-color);
 }
 
 .activity-item:last-child {
@@ -425,13 +412,13 @@ const onShow = () => {
 }
 
 .activity-icon {
-  width: 60rpx;
-  height: 60rpx;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
+  font-size: 14px;
   background-color: var(--bg-color-grey);
 }
 
@@ -448,7 +435,7 @@ const onShow = () => {
 .activity-time {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-top: 4rpx;
+  margin-top: 2px;
 }
 
 .status-list {
@@ -470,8 +457,8 @@ const onShow = () => {
 }
 
 .status-dot {
-  width: 16rpx;
-  height: 16rpx;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
@@ -496,7 +483,7 @@ const onShow = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200rpx;
+  min-height: 100px;
   color: var(--text-secondary);
   font-size: var(--font-size-md);
 }
