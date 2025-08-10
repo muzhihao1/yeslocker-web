@@ -50,8 +50,8 @@ export const useAdminStore = defineStore('admin', () => {
         }
         
         // 存储到本地
-        uni.setStorageSync('admin_token', token.value)
-        uni.setStorageSync('admin_info', adminInfo.value)
+        localStorage.setItem('admin_token', token.value)
+        localStorage.setItem('admin_info', JSON.stringify(adminInfo.value))
         
         return response
       } else {
@@ -72,13 +72,11 @@ export const useAdminStore = defineStore('admin', () => {
       adminInfo.value = null
       
       // 清除本地存储
-      uni.removeStorageSync('admin_token')
-      uni.removeStorageSync('admin_info')
+      localStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_info')
       
       // 跳转到登录页
-      uni.reLaunch({
-        url: '/pages/login/index'
-      })
+      window.location.href = '/pages/login/index'
     } catch (error) {
       console.error('Logout error:', error)
     }
@@ -87,12 +85,12 @@ export const useAdminStore = defineStore('admin', () => {
   const checkAuthStatus = async () => {
     try {
       // 从本地存储读取
-      const storedToken = uni.getStorageSync('admin_token')
-      const storedAdminInfo = uni.getStorageSync('admin_info')
+      const storedToken = localStorage.getItem('admin_token')
+      const storedAdminInfoStr = localStorage.getItem('admin_info')
       
-      if (storedToken && storedAdminInfo) {
+      if (storedToken && storedAdminInfoStr) {
         token.value = storedToken
-        adminInfo.value = storedAdminInfo
+        adminInfo.value = JSON.parse(storedAdminInfoStr)
         
         // TODO: 验证token是否仍然有效
         // const isValid = await adminApi.validateToken(storedToken)
@@ -114,7 +112,7 @@ export const useAdminStore = defineStore('admin', () => {
   const updateAdminInfo = (newInfo: Partial<AdminInfo>) => {
     if (adminInfo.value) {
       adminInfo.value = { ...adminInfo.value, ...newInfo }
-      uni.setStorageSync('admin_info', adminInfo.value)
+      localStorage.setItem('admin_info', JSON.stringify(adminInfo.value))
     }
   }
 

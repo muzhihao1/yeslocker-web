@@ -34,45 +34,143 @@ export const formatDateTime = (date: string | Date): string => {
  * @param duration 持续时间
  */
 export const showToast = (title: string, icon: 'success' | 'loading' | 'none' | 'error' = 'none', duration: number = 2000) => {
-  uni.showToast({
-    title,
-    icon: icon as any,
-    duration,
-    mask: true
+  // 创建toast元素
+  const toast = document.createElement('div')
+  toast.textContent = title
+  
+  // 根据图标类型设置样式
+  let backgroundColor = '#333'
+  if (icon === 'success') backgroundColor = '#4CAF50'
+  if (icon === 'error') backgroundColor = '#f44336'
+  if (icon === 'loading') backgroundColor = '#2196F3'
+  
+  toast.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    background-color: ${backgroundColor};
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    min-width: 120px;
+    text-align: center;
+  `
+  
+  document.body.appendChild(toast)
+  
+  // 显示动画
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1'
   })
+  
+  // 持续时间后移除
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      if (toast.parentNode) {
+        document.body.removeChild(toast)
+      }
+    }, 300)
+  }, duration)
 }
 
 /**
  * 显示模态对话框
  * @param options 对话框选项
- * @returns Promise<UniApp.ShowModalRes>
+ * @returns Promise<{confirm: boolean, cancel: boolean}>
  */
-export const showModal = (options: UniApp.ShowModalOptions): Promise<UniApp.ShowModalRes> => {
+export const showModal = (options: {title?: string, content: string, confirmText?: string, cancelText?: string}): Promise<{confirm: boolean, cancel: boolean}> => {
   return new Promise((resolve) => {
-    uni.showModal({
-      ...options,
-      success: (res) => resolve(res),
-      fail: () => resolve({ confirm: false, cancel: true })
-    })
+    // 使用浏览器原生confirm对话框或者自定义模态框
+    if (options.title) {
+      const result = window.confirm(`${options.title}\n\n${options.content}`)
+      resolve({ confirm: result, cancel: !result })
+    } else {
+      const result = window.confirm(options.content)
+      resolve({ confirm: result, cancel: !result })
+    }
   })
 }
+
+let loadingElement: HTMLElement | null = null
 
 /**
  * 显示Loading
  * @param title 加载提示文字
  */
 export const showLoading = (title: string = '加载中...') => {
-  uni.showLoading({
-    title,
-    mask: true
-  })
+  // 移除已存在的loading
+  if (loadingElement) {
+    hideLoading()
+  }
+  
+  // 创建loading元素
+  loadingElement = document.createElement('div')
+  loadingElement.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 120px;
+      ">
+        <div style="
+          width: 24px;
+          height: 24px;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+          border-top: 3px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 12px auto;
+        "></div>
+        <div style="font-size: 14px;">${title}</div>
+      </div>
+    </div>
+  `
+  
+  // 添加旋转动画样式
+  if (!document.getElementById('loading-styles')) {
+    const style = document.createElement('style')
+    style.id = 'loading-styles'
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `
+    document.head.appendChild(style)
+  }
+  
+  document.body.appendChild(loadingElement)
 }
 
 /**
  * 隐藏Loading
  */
 export const hideLoading = () => {
-  uni.hideLoading()
+  if (loadingElement && loadingElement.parentNode) {
+    document.body.removeChild(loadingElement)
+    loadingElement = null
+  }
 }
 
 /**

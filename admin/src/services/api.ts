@@ -31,7 +31,7 @@ const generateCacheKey = (config: any) => {
 apiClient.interceptors.request.use(
   (config) => {
     // 添加认证token
-    const token = uni.getStorageSync('admin_token')
+    const token = localStorage.getItem('admin_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -114,17 +114,12 @@ apiClient.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           errorResponse.code = 'UNAUTHORIZED'
-          uni.showToast({
-            title: '登录已过期',
-            icon: 'error'
-          })
+          showToast('登录已过期', 'error')
           
           // 清除token并跳转到登录页
-          uni.removeStorageSync('admin_token')
-          uni.removeStorageSync('admin_info')
-          uni.reLaunch({
-            url: '/pages/login/index'
-          })
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_info')
+          window.location.href = '/pages/login/index'
           break
         case 403:
           errorResponse.code = 'FORBIDDEN'
@@ -250,20 +245,64 @@ export const adminApi = {
   }
 }
 
+// 自定义Toast函数
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  // 创建toast元素
+  const toast = document.createElement('div')
+  toast.textContent = message
+  toast.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    background-color: ${type === 'success' ? '#4CAF50' : '#f44336'};
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `
+  
+  document.body.appendChild(toast)
+  
+  // 显示动画
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1'
+  })
+  
+  // 3秒后移除
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      document.body.removeChild(toast)
+    }, 300)
+  }, 3000)
+}
+
 // 文件上传API
 export const uploadApi = {
-  uploadImage: async (filePath: string) => {
+  uploadImage: async (file: File) => {
     try {
-      const uploadResult = await uni.uploadFile({
-        url: `${API_BASE_URL}/upload-image`,
-        filePath,
-        name: 'file',
-        header: {
-          'Authorization': `Bearer ${uni.getStorageSync('admin_token')}`
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const token = localStorage.getItem('admin_token')
+      const response = await fetch(`${API_BASE_URL}/upload-image`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       })
       
-      return JSON.parse(uploadResult.data)
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`)
+      }
+      
+      return await response.json()
     } catch (error) {
       console.error('Upload error:', error)
       throw error

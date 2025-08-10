@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
-import App from './App.vue'
+import App from './App-vue.vue'
 import routes from './router/routes'
 
 // 创建路由实例

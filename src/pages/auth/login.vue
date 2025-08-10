@@ -1,7 +1,7 @@
 <template>
   <view class="login-container">
     <view class="login-header">
-      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <image class="logo" src="/logo.svg" mode="aspectFit" />
       <text class="title">欢迎回来</text>
       <text class="subtitle">登录YesLocker继续使用</text>
     </view>

@@ -10,6 +10,9 @@
     "dev": "nodemon index.js",
     "dev:unified": "nodemon index-unified.js",
     "dev:pg": "nodemon index-pg.js",
+    "db:init": "node database/init-sqlite.js",
+    "db:reset": "node database/init-sqlite.js reset",
+    "db:check": "node database/init-sqlite.js check",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:restart": "pm2 restart ecosystem.config.js",
@@ -22,7 +25,9 @@
     "@supabase/supabase-js": "^2.38.0",
     "dotenv": "^16.0.3",
     "pg": "^8.11.3",
-    "bcrypt": "^5.1.1"
+    "bcrypt": "^5.1.1",
+    "sqlite3": "^5.1.6",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

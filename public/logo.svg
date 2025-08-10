@@ -1,0 +1,49 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- 定义渐变 -->
+  <defs>
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1B5E20;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="yellowAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFA000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo图标部分 -->
+  <g id="icon">
+    <!-- 杆柜主体 - 圆角矩形 -->
+    <rect x="8" y="12" width="36" height="36" rx="8" ry="8" fill="url(#greenGradient)" stroke="#1B5E20" stroke-width="2"/>
+    
+    <!-- 杆柜网格 - 表示存储格子 -->
+    <line x1="20" y1="12" x2="20" y2="48" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="32" y1="12" x2="32" y2="48" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="8" y1="24" x2="44" y2="24" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    <line x1="8" y1="36" x2="44" y2="36" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8"/>
+    
+    <!-- 台球元素 - 小圆点装饰 -->
+    <circle cx="14" cy="18" r="2" fill="url(#yellowAccent)"/>
+    <circle cx="26" cy="30" r="2" fill="url(#yellowAccent)"/>
+    <circle cx="38" cy="42" r="2" fill="url(#yellowAccent)"/>
+    
+    <!-- 锁定图标 - 表示安全 -->
+    <rect x="22" y="28" width="8" height="6" rx="1" fill="#FFFFFF"/>
+    <path d="M24 28 V26 C24 24.9 24.9 24 26 24 C27.1 24 28 24.9 28 26 V28" stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <!-- 品牌文字 -->
+  <g id="text">
+    <!-- Yes部分 - 较大字体 -->
+    <text x="56" y="28" font-family="SF Pro Text, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#1B5E20">Yes</text>
+    
+    <!-- Locker部分 - 较小字体 -->
+    <text x="56" y="44" font-family="SF Pro Text, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#757575">Locker</text>
+    
+    <!-- 小标语 -->
+    <text x="120" y="32" font-family="PingFang SC, sans-serif" font-size="10" font-weight="400" fill="#999999">台球杆柜管理</text>
+  </g>
+  
+  <!-- 装饰元素 - 台球杆轮廓 -->
+  <line x1="52" y1="30" x2="54" y2="30" stroke="url(#yellowAccent)" stroke-width="2" stroke-linecap="round"/>
+</svg>

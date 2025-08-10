@@ -1,7 +1,7 @@
 <template>
   <view class="container">
     <view class="header">
-      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <image class="logo" src="/logo.svg" mode="aspectFit" />
       <text class="title">YesLocker</text>
       <text class="subtitle">台球杆柜智能管理系统</text>
     </view>

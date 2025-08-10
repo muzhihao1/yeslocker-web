@@ -9,12 +9,12 @@
     :disabled="disabled || loading"
     @click="handleClick"
   >
-    <view v-if="loading" class="loading-wrapper">
-      <view class="loading-spinner"></view>
-    </view>
-    <text v-else class="button-text">
+    <div v-if="loading" class="loading-wrapper">
+      <div class="loading-spinner"></div>
+    </div>
+    <span v-else class="button-text">
       <slot>{{ text }}</slot>
-    </text>
+    </span>
   </button>
 </template>
 
@@ -55,9 +55,9 @@ const handleClick = (event: Event) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 32rpx;
+  padding: 0 16px;
   border: none;
-  border-radius: 8rpx;
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.3s ease;
   position: relative;
@@ -68,27 +68,27 @@ const handleClick = (event: Event) => {
 
 /* Size variations */
 .custom-button--large {
-  height: 96rpx;
-  font-size: 36rpx;
-  padding: 0 48rpx;
+  height: 48px;
+  font-size: 18px;
+  padding: 0 24px;
 }
 
 .custom-button--medium {
-  height: 80rpx;
-  font-size: 32rpx;
-  padding: 0 32rpx;
+  height: 40px;
+  font-size: 16px;
+  padding: 0 16px;
 }
 
 .custom-button--small {
-  height: 64rpx;
-  font-size: 28rpx;
-  padding: 0 24rpx;
+  height: 32px;
+  font-size: 14px;
+  padding: 0 12px;
 }
 
 .custom-button--mini {
-  height: 48rpx;
-  font-size: 24rpx;
-  padding: 0 16rpx;
+  height: 24px;
+  font-size: 12px;
+  padding: 0 8px;
 }
 
 /* Type variations */
@@ -131,7 +131,7 @@ const handleClick = (event: Event) => {
 .custom-button--default {
   background-color: white;
   color: var(--text-color);
-  border: 2rpx solid var(--border-color);
+  border: 1px solid var(--border-color);
 }
 
 .custom-button--default:active {
@@ -146,7 +146,7 @@ const handleClick = (event: Event) => {
 
 /* Round style */
 .custom-button--round {
-  border-radius: 999rpx;
+  border-radius: 999px;
 }
 
 /* Disabled state */
@@ -168,9 +168,9 @@ const handleClick = (event: Event) => {
 }
 
 .loading-spinner {
-  width: 32rpx;
-  height: 32rpx;
-  border: 4rpx solid rgba(255, 255, 255, 0.3);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
