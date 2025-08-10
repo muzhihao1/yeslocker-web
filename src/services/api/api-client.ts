@@ -1,7 +1,7 @@
 // API client configuration for both local dev and production
 const isDev = import.meta.env.DEV
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-const BASE_URL = isDev ? 'http://localhost:3001' : `${SUPABASE_URL}/functions/v1`
+const RAILWAY_API_URL = import.meta.env.VITE_RAILWAY_API_URL || 'https://heartfelt-healing-production.railway.app'
+const BASE_URL = isDev ? 'http://localhost:3001' : RAILWAY_API_URL
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'

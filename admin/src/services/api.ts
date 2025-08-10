@@ -7,7 +7,7 @@ const isDevelopment = import.meta.env.DEV ||
 
 const API_BASE_URL = isDevelopment
   ? 'http://localhost:3001/api'
-  : 'https://your-project.supabase.co/functions/v1'
+  : 'https://heartfelt-healing-production.railway.app/api'
 
 // 创建axios实例
 const apiClient = axios.create({
