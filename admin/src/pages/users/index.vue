@@ -1,131 +1,129 @@
 <template>
-  <view class="users-page">
+  <div class="users-page">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-title">
-        <text class="title">用户管理</text>
-        <text class="subtitle">共 {{ totalCount }} 位用户</text>
-      </view>
-      <view class="header-actions">
+    <div class="page-header">
+      <div class="header-title">
+        <span class="title">用户管理</span>
+        <span class="subtitle">共 {{ totalCount }} 位用户</span>
+      </div>
+      <div class="header-actions">
         <button class="btn-export" @click="exportUsers">
-          <text class="iconfont icon-export"></text>
+          <span class="iconfont icon-export"></span>
           导出
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 搜索栏 -->
-    <view class="search-bar">
-      <view class="search-input-wrapper">
-        <text class="iconfont icon-search"></text>
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <span class="iconfont icon-search"></span>
         <input 
           v-model="searchKey"
           class="search-input"
           placeholder="搜索用户名、手机号"
           @confirm="handleSearch"
         />
-        <text v-if="searchKey" class="iconfont icon-close" @click="clearSearch"></text>
-      </view>
+        <span v-if="searchKey" class="iconfont icon-close" @click="clearSearch"></span>
+      </div>
       <button class="btn-search" @click="handleSearch">搜索</button>
-    </view>
+    </div>
 
     <!-- 筛选栏 -->
-    <view class="filter-bar">
-      <scroll-view scroll-x class="filter-scroll">
-        <view class="filter-item" :class="{ active: filterType === 'all' }" @click="setFilter('all')">
+    <div class="filter-bar">
+      <div class="filter-scroll">
+        <div class="filter-item" :class="{ active: filterType === 'all' }" @click="setFilter('all')">
           全部用户
-        </view>
-        <view class="filter-item" :class="{ active: filterType === 'active' }" @click="setFilter('active')">
+        </div>
+        <div class="filter-item" :class="{ active: filterType === 'active' }" @click="setFilter('active')">
           活跃用户
-        </view>
-        <view class="filter-item" :class="{ active: filterType === 'hasLocker' }" @click="setFilter('hasLocker')">
+        </div>
+        <div class="filter-item" :class="{ active: filterType === 'hasLocker' }" @click="setFilter('hasLocker')">
           有杆柜
-        </view>
-        <view class="filter-item" :class="{ active: filterType === 'noLocker' }" @click="setFilter('noLocker')">
+        </div>
+        <div class="filter-item" :class="{ active: filterType === 'noLocker' }" @click="setFilter('noLocker')">
           无杆柜
-        </view>
-      </scroll-view>
-    </view>
+        </div>
+      </div>
+    </div>
 
     <!-- 用户列表 -->
-    <scroll-view class="users-list" scroll-y :refresher-enabled="true" 
-                 :refresher-triggered="refreshing" @refresherrefresh="onPullDownRefresh"
-                 @scrolltolower="loadMore">
-      <view v-if="loading && users.length === 0" class="loading-container">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
+    <div class="users-list">
+      <div v-if="loading && users.length === 0" class="loading-container">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">加载中...</span>
+      </div>
       
-      <view v-else-if="users.length === 0" class="empty-container">
+      <div v-else-if="users.length === 0" class="empty-container">
         <div class="empty-icon">👥</div>
-        <text class="empty-text">暂无用户数据</text>
-      </view>
+        <span class="empty-text">暂无用户数据</span>
+      </div>
 
-      <view v-else>
-        <view v-for="user in users" :key="user.id" class="user-card" @click="goToDetail(user.id)">
+      <div v-else>
+        <div v-for="user in users" :key="user.id" class="user-card" @click="goToDetail(user.id)">
           <!-- 用户基本信息 -->
-          <view class="user-header">
+          <div class="user-header">
             <div class="user-avatar">👤</div>
-            <view class="user-info">
-              <view class="user-name-line">
-                <text class="user-name">{{ user.name || '未设置' }}</text>
-                <view v-if="user.lockerCount > 0" class="locker-badge">
-                  <text class="iconfont icon-locker"></text>
-                  <text class="locker-count">{{ user.lockerCount }}</text>
-                </view>
-              </view>
-              <text class="user-phone">{{ user.phone }}</text>
-              <text class="user-meta">注册于 {{ formatDate(user.created_at, 'date') }}</text>
-            </view>
-            <view class="user-status" :class="user.isActive ? 'active' : 'inactive'">
+            <div class="user-info">
+              <div class="user-name-line">
+                <span class="user-name">{{ user.name || '未设置' }}</span>
+                <div v-if="user.lockerCount > 0" class="locker-badge">
+                  <span class="iconfont icon-locker"></span>
+                  <span class="locker-count">{{ user.lockerCount }}</span>
+                </div>
+              </div>
+              <span class="user-phone">{{ user.phone }}</span>
+              <span class="user-meta">注册于 {{ formatDate(user.created_at, 'date') }}</span>
+            </div>
+            <div class="user-status" :class="user.isActive ? 'active' : 'inactive'">
               {{ user.isActive ? '活跃' : '不活跃' }}
-            </view>
-          </view>
+            </div>
+          </div>
 
           <!-- 用户统计信息 -->
-          <view class="user-stats">
-            <view class="stat-item">
-              <text class="stat-value">{{ user.totalOperations || 0 }}</text>
-              <text class="stat-label">存取次数</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ user.currentLockers || 0 }}</text>
-              <text class="stat-label">当前杆柜</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ formatDays(user.lastActiveAt) }}</text>
-              <text class="stat-label">最后活跃</text>
-            </view>
-          </view>
+          <div class="user-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ user.totalOperations || 0 }}</span>
+              <span class="stat-label">存取次数</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ user.currentLockers || 0 }}</span>
+              <span class="stat-label">当前杆柜</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ formatDays(user.lastActiveAt) }}</span>
+              <span class="stat-label">最后活跃</span>
+            </div>
+          </div>
 
           <!-- 快捷操作 -->
-          <view class="user-actions" @click.stop>
+          <div class="user-actions" @click.stop>
             <button class="btn-action" @click="viewRecords(user.id)">
-              <text class="iconfont icon-list"></text>
+              <span class="iconfont icon-list"></span>
               记录
             </button>
             <button class="btn-action" @click="sendNotification(user)">
-              <text class="iconfont icon-notification"></text>
+              <span class="iconfont icon-notification"></span>
               通知
             </button>
             <button class="btn-action" :class="{ disabled: user.disabled }" 
                     @click="toggleUserStatus(user)">
-              <text class="iconfont" :class="user.disabled ? 'icon-unlock' : 'icon-lock'"></text>
+              <span class="iconfont" :class="user.disabled ? 'icon-unlock' : 'icon-lock'"></span>
               {{ user.disabled ? '启用' : '禁用' }}
             </button>
-          </view>
-        </view>
-      </view>
+          </div>
+        </div>
+      </div>
 
       <!-- 加载更多 -->
-      <view v-if="hasMore && !loading" class="load-more">
-        <text>上拉加载更多</text>
-      </view>
-      <view v-else-if="!hasMore && users.length > 0" class="no-more">
-        <text>没有更多数据了</text>
-      </view>
-    </scroll-view>
-  </view>
+      <div v-if="hasMore && !loading" class="load-more">
+        <span>上拉加载更多</span>
+      </div>
+      <div v-else-if="!hasMore && users.length > 0" class="no-more">
+        <span>没有更多数据了</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -246,33 +244,24 @@ const loadMore = () => {
 
 // 跳转详情
 const goToDetail = (id: string) => {
-  uni.navigateTo({
-    url: `/pages/users/detail?id=${id}`
-  })
+  window.location.href = `/admin/pages/users/detail?id=${id}`
 }
 
 // 查看记录
 const viewRecords = (userId: string) => {
-  uni.navigateTo({
-    url: `/pages/logs/index?userId=${userId}`
-  })
+  window.location.href = `/admin/pages/logs/index?userId=${userId}`
 }
 
 // 发送通知
 const sendNotification = async (user: User) => {
-  const result = await uni.showModal({
-    title: '发送通知',
-    content: '请输入通知内容',
-    editable: true,
-    placeholderText: '请输入要发送的通知内容'
-  })
+  const content = prompt('请输入要发送的通知内容：')
   
-  if (result.confirm && result.content) {
+  if (content) {
     try {
       await adminApi.sendReminder({
         user_ids: [user.id],
         reminder_type: 'custom',
-        message: result.content
+        message: content
       })
       showToast('通知发送成功')
     } catch (error) {

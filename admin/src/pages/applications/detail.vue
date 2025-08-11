@@ -1,162 +1,162 @@
 <template>
-  <view class="application-detail">
+  <div class="application-detail">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-left" @click="goBack">
-        <text class="iconfont icon-arrow-left"></text>
-        <text class="back-text">返回</text>
-      </view>
-      <text class="header-title">申请详情</text>
-      <view class="header-right"></view>
-    </view>
+    <div class="page-header">
+      <div class="header-left" @click="goBack">
+        <span class="iconfont icon-arrow-left"></span>
+        <span class="back-text">返回</span>
+      </div>
+      <span class="header-title">申请详情</span>
+      <div class="header-right"></div>
+    </div>
 
     <!-- 加载中 -->
-    <view v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container">
       <loading-spinner />
-    </view>
+    </div>
 
     <!-- 详情内容 -->
-    <view v-else-if="application" class="detail-content">
+    <div v-else-if="application" class="detail-content">
       <!-- 状态卡片 -->
-      <view class="status-card" :class="`status-${application.status}`">
-        <text class="status-icon iconfont" :class="getStatusIcon(application.status)"></text>
-        <text class="status-text">{{ getStatusText(application.status) }}</text>
-        <text v-if="application.approved_at" class="status-time">
+      <div class="status-card" :class="`status-${application.status}`">
+        <span class="status-icon iconfont" :class="getStatusIcon(application.status)"></span>
+        <span class="status-text">{{ getStatusText(application.status) }}</span>
+        <span v-if="application.approved_at" class="status-time">
           {{ formatDate(application.approved_at) }}
-        </text>
-      </view>
+        </span>
+      </div>
 
       <!-- 用户信息 -->
-      <view class="info-section">
-        <view class="section-title">申请人信息</view>
-        <view class="info-card">
-          <view class="user-header">
-            <image :src="application.user.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGNUY1RjUiLz4KPHN2ZyB4PSI1IiB5PSI1IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+CjxwYXRoIGQ9Ik0xMiAxMmM0IDAgNi0yIDYtNnMtMi02LTYtNi02IDItNiA2IDIgNiA2IDZ6bTAgMmMtNiAwLTEyIDMtMTIgOXYzaDI0di0zYzAtNi02LTktMTItOXoiLz4KPC9zdmc+Cjwvc3ZnPg=='" 
-                   class="user-avatar" mode="aspectFill" />
-            <view class="user-basic">
-              <text class="user-name">{{ application.user.name }}</text>
-              <text class="user-phone">{{ application.user.phone }}</text>
-            </view>
-          </view>
-          <view class="info-item">
-            <text class="info-label">用户ID：</text>
-            <text class="info-value">{{ application.user.id }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">注册时间：</text>
-            <text class="info-value">{{ formatDate(application.user.created_at) }}</text>
-          </view>
-          <view v-if="application.user.id_card" class="info-item">
-            <text class="info-label">身份证号：</text>
-            <text class="info-value">{{ maskIdCard(application.user.id_card) }}</text>
-          </view>
-        </view>
-      </view>
+      <div class="info-section">
+        <div class="section-title">申请人信息</div>
+        <div class="info-card">
+          <div class="user-header">
+            <img :src="application.user.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGNUY1RjUiLz4KPHN2ZyB4PSI1IiB5PSI1IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+CjxwYXRoIGQ9Ik0xMiAxMmM0IDAgNi0yIDYtNnMtMi02LTYtNi02IDItNiA2IDIgNiA2IDZ6bTAgMmMtNiAwLTEyIDMtMTIgOXYzaDI0di0zYzAtNi02LTktMTItOXoiLz4KPC9zdmc+Cjwvc3ZnPg=='" 
+                   class="user-avatar" />
+            <div class="user-basic">
+              <span class="user-name">{{ application.user.name }}</span>
+              <span class="user-phone">{{ application.user.phone }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-label">用户ID：</span>
+            <span class="info-value">{{ application.user.id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">注册时间：</span>
+            <span class="info-value">{{ formatDate(application.user.created_at) }}</span>
+          </div>
+          <div v-if="application.user.id_card" class="info-item">
+            <span class="info-label">身份证号：</span>
+            <span class="info-value">{{ maskIdCard(application.user.id_card) }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 杆柜信息 -->
-      <view class="info-section">
-        <view class="section-title">杆柜信息</view>
-        <view class="info-card">
-          <view class="info-item">
-            <text class="info-label">所属门店：</text>
-            <text class="info-value">{{ application.store.name }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">门店地址：</text>
-            <text class="info-value">{{ application.store.address }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">杆柜编号：</text>
-            <text class="info-value">{{ application.locker.number }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">杆柜状态：</text>
-            <text class="info-value" :class="application.locker.status === 'available' ? 'text-success' : 'text-danger'">
+      <div class="info-section">
+        <div class="section-title">杆柜信息</div>
+        <div class="info-card">
+          <div class="info-item">
+            <span class="info-label">所属门店：</span>
+            <span class="info-value">{{ application.store.name }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">门店地址：</span>
+            <span class="info-value">{{ application.store.address }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">杆柜编号：</span>
+            <span class="info-value">{{ application.locker.number }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">杆柜状态：</span>
+            <span class="info-value" :class="application.locker.status === 'available' ? 'text-success' : 'text-danger'">
               {{ application.locker.status === 'available' ? '可用' : '已占用' }}
-            </text>
-          </view>
-        </view>
-      </view>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <!-- 申请信息 -->
-      <view class="info-section">
-        <view class="section-title">申请信息</view>
-        <view class="info-card">
-          <view class="info-item">
-            <text class="info-label">申请时间：</text>
-            <text class="info-value">{{ formatDate(application.created_at) }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">申请编号：</text>
-            <text class="info-value">{{ application.id }}</text>
-          </view>
-          <view v-if="application.remark" class="info-item">
-            <text class="info-label">备注信息：</text>
-            <text class="info-value">{{ application.remark }}</text>
-          </view>
-          <view v-if="application.approved_by" class="info-item">
-            <text class="info-label">审核人：</text>
-            <text class="info-value">{{ application.approved_by_name }}</text>
-          </view>
-          <view v-if="application.reject_reason" class="info-item">
-            <text class="info-label">拒绝原因：</text>
-            <text class="info-value text-danger">{{ application.reject_reason }}</text>
-          </view>
-        </view>
-      </view>
+      <div class="info-section">
+        <div class="section-title">申请信息</div>
+        <div class="info-card">
+          <div class="info-item">
+            <span class="info-label">申请时间：</span>
+            <span class="info-value">{{ formatDate(application.created_at) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">申请编号：</span>
+            <span class="info-value">{{ application.id }}</span>
+          </div>
+          <div v-if="application.remark" class="info-item">
+            <span class="info-label">备注信息：</span>
+            <span class="info-value">{{ application.remark }}</span>
+          </div>
+          <div v-if="application.approved_by" class="info-item">
+            <span class="info-label">审核人：</span>
+            <span class="info-value">{{ application.approved_by_name }}</span>
+          </div>
+          <div v-if="application.reject_reason" class="info-item">
+            <span class="info-label">拒绝原因：</span>
+            <span class="info-value text-danger">{{ application.reject_reason }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 审核历史记录 -->
-      <view class="info-section">
-        <view class="section-title">审核历史记录</view>
-        <view v-if="auditHistory.length === 0" class="empty-history">
-          <text class="empty-text">暂无审核记录</text>
-        </view>
-        <view v-else class="history-timeline">
-          <view v-for="(item, index) in auditHistory" :key="item.id" class="timeline-item">
-            <view class="timeline-dot" :class="getActionClass(item.action)"></view>
-            <view class="timeline-content">
-              <view class="timeline-header">
-                <text class="timeline-action">{{ getActionText(item.action) }}</text>
-                <text class="timeline-time">{{ formatDateTime(item.created_at) }}</text>
-              </view>
-              <view class="timeline-body">
-                <view class="timeline-info">
-                  <text class="info-label">操作人：</text>
-                  <text class="info-value">{{ item.operator_name || item.operator }}</text>
-                </view>
-                <view v-if="item.details" class="timeline-info">
-                  <text class="info-label">详情：</text>
-                  <text class="info-value">{{ item.details }}</text>
-                </view>
-                <view v-if="item.ip_address" class="timeline-info">
-                  <text class="info-label">IP地址：</text>
-                  <text class="info-value">{{ item.ip_address }}</text>
-                </view>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
+      <div class="info-section">
+        <div class="section-title">审核历史记录</div>
+        <div v-if="auditHistory.length === 0" class="empty-history">
+          <span class="empty-text">暂无审核记录</span>
+        </div>
+        <div v-else class="history-timeline">
+          <div v-for="(item, index) in auditHistory" :key="item.id" class="timeline-item">
+            <div class="timeline-dot" :class="getActionClass(item.action)"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="timeline-action">{{ getActionText(item.action) }}</span>
+                <span class="timeline-time">{{ formatDateTime(item.created_at) }}</span>
+              </div>
+              <div class="timeline-body">
+                <div class="timeline-info">
+                  <span class="info-label">操作人：</span>
+                  <span class="info-value">{{ item.operator_name || item.operator }}</span>
+                </div>
+                <div v-if="item.details" class="timeline-info">
+                  <span class="info-label">详情：</span>
+                  <span class="info-value">{{ item.details }}</span>
+                </div>
+                <div v-if="item.ip_address" class="timeline-info">
+                  <span class="info-label">IP地址：</span>
+                  <span class="info-value">{{ item.ip_address }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 操作按钮 -->
-      <view v-if="application.status === 'pending'" class="action-buttons">
+      <div v-if="application.status === 'pending'" class="action-buttons">
         <button class="btn-reject" @click="handleReject">
-          <text class="iconfont icon-close"></text>
+          <span class="iconfont icon-close"></span>
           拒绝申请
         </button>
         <button class="btn-approve" @click="handleApprove">
-          <text class="iconfont icon-check"></text>
+          <span class="iconfont icon-check"></span>
           通过申请
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 错误提示 -->
-    <view v-else class="error-container">
-      <text class="error-text">申请信息加载失败</text>
+    <div v-else class="error-container">
+      <span class="error-text">申请信息加载失败</span>
       <button class="btn-retry" @click="getApplicationDetail">重新加载</button>
-    </view>
-  </view>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -211,12 +211,10 @@ const loading = ref(false)
 const auditHistory = ref<Array<any>>([])
 const applicationId = ref('')
 
-// Get application ID from page options
+// Get application ID from URL parameters
 onBeforeMount(() => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const options = currentPage.options || {}
-  applicationId.value = options.id || ''
+  const urlParams = new URLSearchParams(window.location.search)
+  applicationId.value = urlParams.get('id') || ''
 })
 
 // 获取状态图标
@@ -277,7 +275,8 @@ const getAuditHistory = async (applicationId: string) => {
   try {
     // TODO: Implement history endpoint
     // const response = await adminApi.getApplicationHistory(applicationId)
-    auditHistory.value = response.data || []
+    // auditHistory.value = response.data || []
+    auditHistory.value = []
   } catch (error) {
     console.error('获取审核历史失败:', error)
     // 如果历史记录获取失败，不影响主流程
@@ -311,7 +310,7 @@ const getActionText = (action: string) => {
 
 // 返回上一页
 const goBack = () => {
-  uni.navigateBack()
+  window.history.back()
 }
 
 // 审核通过
@@ -343,14 +342,12 @@ const handleApprove = async () => {
 
 // 审核拒绝
 const handleReject = async () => {
-  const result = await uni.showModal({
-    title: '拒绝申请',
-    content: '请输入拒绝原因',
-    editable: true,
-    placeholderText: '请输入拒绝原因（必填）',
-    confirmText: '确认拒绝',
-    cancelText: '取消'
-  })
+  const reason = prompt('请输入拒绝原因（必填）')
+  
+  const result = {
+    confirm: reason !== null && reason.trim() !== '',
+    content: reason
+  }
   
   if (result.confirm) {
     if (!result.content || result.content.trim().length === 0) {

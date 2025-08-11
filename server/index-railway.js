@@ -255,12 +255,12 @@ class RailwayServer {
     // User login
     this.app.post('/auth-login', async (req, res) => {
       try {
-        const { phone, code } = req.body;
+        const { phone } = req.body;
 
-        if (!phone || !code) {
+        if (!phone) {
           return res.status(400).json({
             error: 'Missing required fields',
-            message: '请输入手机号和验证码'
+            message: '请输入手机号'
           });
         }
 
@@ -271,23 +271,39 @@ class RailwayServer {
           const result = await client.query(userQuery, [phone, 'active']);
           
           if (result.rows.length === 0) {
+            // Auto-create user for development/testing
+            console.log(`🔧 Auto-creating user for phone: ${phone}`);
+            const createUserQuery = `
+              INSERT INTO users (id, phone, name, status, store_id, created_at) 
+              VALUES (gen_random_uuid(), $1, $2, 'active', '00000000-0000-0000-0000-000000000001', NOW()) 
+              RETURNING *
+            `;
+            const createResult = await client.query(createUserQuery, [phone, `用户${phone.slice(-4)}`]);
+            const newUser = createResult.rows[0];
             client.release();
-            return res.status(404).json({
-              error: 'User not found',
-              message: '用户不存在，请先注册'
+            
+            console.log(`✅ 新用户自动创建并登录成功: ${newUser.name} (${phone})`);
+            
+            return res.json({
+              success: true,
+              message: '登录成功（新用户已创建）',
+              data: {
+                user: {
+                  id: newUser.id,
+                  phone: newUser.phone,
+                  name: newUser.name,
+                  avatar: newUser.avatar_url,
+                  store_id: newUser.store_id
+                },
+                token: 'test_token_' + newUser.id
+              }
             });
           }
 
           const user = result.rows[0];
           client.release();
 
-          // Test code validation (accept 123456 for testing)
-          if (code !== '123456') {
-            return res.status(401).json({
-              error: 'Invalid code',
-              message: '验证码错误'
-            });
-          }
+          // Login with phone number only (verification code removed)
 
           console.log(`✅ 用户登录成功: ${user.name} (${phone})`);
 

@@ -1,48 +1,54 @@
 <template>
-  <view class="records-container">
-    <view class="page-header">
-      <view class="title">操作记录</view>
-    </view>
+  <div class="records-container">
+    <div class="page-header">
+      <div class="title">操作记录</div>
+    </div>
     
-    <view class="filter-section">
-      <view class="filter-item">
-        <text class="filter-label">操作类型:</text>
-        <picker @change="onTypeChange" :value="filterType" :range="typeOptions">
-          <view class="picker">{{ typeOptions[filterType] }}</view>
-        </picker>
-      </view>
-      <view class="filter-item">
-        <text class="filter-label">时间范围:</text>
-        <picker mode="date" @change="onDateChange" :value="filterDate">
-          <view class="picker">{{ filterDate || '选择日期' }}</view>
-        </picker>
-      </view>
-    </view>
+    <div class="filter-section">
+      <div class="filter-item">
+        <span class="filter-label">操作类型:</span>
+        <select class="picker" v-model="filterType" @change="onTypeChange">
+          <option v-for="(option, index) in typeOptions" :key="index" :value="index">
+            {{ option }}
+          </option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">时间范围:</span>
+        <input 
+          type="date" 
+          class="picker" 
+          v-model="filterDate" 
+          @change="onDateChange"
+          placeholder="选择日期"
+        />
+      </div>
+    </div>
     
-    <view class="records-list">
-      <view 
+    <div class="records-list">
+      <div 
         class="record-item" 
         v-for="record in recordsList" 
         :key="record.id"
         @click="viewDetail(record)"
       >
-        <view class="record-header">
-          <view class="record-type" :class="`type-${record.type}`">
+        <div class="record-header">
+          <div class="record-type" :class="`type-${record.type}`">
             {{ getTypeText(record.type) }}
-          </view>
-          <view class="record-time">{{ record.createdAt }}</view>
-        </view>
-        <view class="record-content">
-          <text class="record-desc">{{ record.description }}</text>
-          <text class="record-operator">操作员: {{ record.operator }}</text>
-        </view>
-      </view>
-    </view>
+          </div>
+          <div class="record-time">{{ record.createdAt }}</div>
+        </div>
+        <div class="record-content">
+          <span class="record-desc">{{ record.description }}</span>
+          <span class="record-operator">操作员: {{ record.operator }}</span>
+        </div>
+      </div>
+    </div>
     
-    <view class="load-more" v-if="hasMore" @click="loadMore">
-      <text>加载更多</text>
-    </view>
-  </view>
+    <div class="load-more" v-if="hasMore" @click="loadMore">
+      <span>加载更多</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -85,12 +91,13 @@ const recordsList = ref([
 ])
 
 const onTypeChange = (e: any) => {
-  filterType.value = e.detail.value
+  const value = e.target?.value ?? e.detail?.value ?? e
+  filterType.value = typeof value === 'string' ? parseInt(value) : value
   // 根据类型筛选记录
 }
 
 const onDateChange = (e: any) => {
-  filterDate.value = e.detail.value
+  filterDate.value = e.target?.value ?? e.detail?.value ?? e
   // 根据日期筛选记录
 }
 
@@ -105,18 +112,11 @@ const getTypeText = (type: string) => {
 }
 
 const viewDetail = (record: any) => {
-  uni.showModal({
-    title: '操作详情',
-    content: `操作类型: ${getTypeText(record.type)}\n描述: ${record.description}\n操作员: ${record.operator}\n时间: ${record.createdAt}`,
-    showCancel: false
-  })
+  alert(`操作详情\n\n操作类型: ${getTypeText(record.type)}\n描述: ${record.description}\n操作员: ${record.operator}\n时间: ${record.createdAt}`)
 }
 
 const loadMore = () => {
-  uni.showToast({
-    title: '暂无更多数据',
-    icon: 'none'
-  })
+  alert('暂无更多数据')
   hasMore.value = false
 }
 

@@ -1,215 +1,214 @@
 <template>
-  <view class="settings-container">
+  <div class="settings-container">
     <!-- 标题栏 -->
-    <view class="page-header">
-      <text class="page-title">系统设置</text>
-      <text class="page-subtitle">配置系统参数和规则</text>
-    </view>
+    <div class="page-header">
+      <span class="page-title">系统设置</span>
+      <span class="page-subtitle">配置系统参数和规则</span>
+    </div>
 
     <!-- 设置组 -->
-    <view class="settings-sections">
+    <div class="settings-sections">
       <!-- 短信服务配置 -->
-      <view class="settings-section">
-        <view class="section-header">
-          <text class="section-title">短信服务配置</text>
-          <view class="section-badge" :class="smsConfig.enabled ? 'active' : 'inactive'">
+      <div class="settings-section">
+        <div class="section-header">
+          <span class="section-title">短信服务配置</span>
+          <div class="section-badge" :class="smsConfig.enabled ? 'active' : 'inactive'">
             {{ smsConfig.enabled ? '已启用' : '未启用' }}
-          </view>
-        </view>
+          </div>
+        </div>
         
-        <view class="settings-form">
-          <view class="form-item">
-            <text class="form-label">服务商</text>
-            <picker mode="selector" :value="smsProviderIndex" :range="smsProviders" @change="handleProviderChange">
-              <view class="picker-display">
-                <text>{{ smsProviders[smsProviderIndex] }}</text>
-                <text class="arrow">›</text>
-              </view>
-            </picker>
-          </view>
+        <div class="settings-form">
+          <div class="form-item">
+            <span class="form-label">服务商</span>
+            <select class="picker-display" v-model="smsProviderIndex" @change="handleProviderChange">
+              <option v-for="(provider, index) in smsProviders" :key="index" :value="index">
+                {{ provider }}
+              </option>
+            </select>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">App ID</text>
+          <div class="form-item">
+            <span class="form-label">App ID</span>
             <input 
               class="form-input" 
               v-model="smsConfig.appId" 
               placeholder="请输入SMS App ID"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">签名名称</text>
+          <div class="form-item">
+            <span class="form-label">签名名称</span>
             <input 
               class="form-input" 
               v-model="smsConfig.signName" 
               placeholder="请输入短信签名"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">模板ID</text>
+          <div class="form-item">
+            <span class="form-label">模板ID</span>
             <input 
               class="form-input" 
               v-model="smsConfig.templateId" 
               placeholder="请输入短信模板ID"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
+          </div>
           
-          <view class="form-item switch-item">
-            <text class="form-label">启用短信服务</text>
-            <switch 
-              :checked="smsConfig.enabled" 
+          <div class="form-item switch-item">
+            <span class="form-label">启用短信服务</span>
+            <input 
+              type="checkbox"
+              v-model="smsConfig.enabled" 
               @change="handleSmsToggle"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
-        </view>
+          </div>
+        </div>
         
-        <view class="section-actions">
+        <div class="section-actions">
           <button 
             class="test-btn" 
-            @tap="testSmsService"
+            @click="testSmsService"
             :disabled="!smsConfig.enabled || testingSms"
           >
             {{ testingSms ? '测试中...' : '测试短信发送' }}
           </button>
           <button 
             class="save-btn primary" 
-            @tap="saveSmsConfig"
+            @click="saveSmsConfig"
             :disabled="!adminStore.isSuperAdmin || savingSms"
           >
             {{ savingSms ? '保存中...' : '保存配置' }}
           </button>
-        </view>
-      </view>
+        </div>
+      </div>
 
       <!-- 杆柜规则设置 -->
-      <view class="settings-section">
-        <view class="section-header">
-          <text class="section-title">杆柜使用规则</text>
-        </view>
+      <div class="settings-section">
+        <div class="section-header">
+          <span class="section-title">杆柜使用规则</span>
+        </div>
         
-        <view class="settings-form">
-          <view class="form-item">
-            <text class="form-label">申请审核模式</text>
-            <picker mode="selector" :value="approvalModeIndex" :range="approvalModes" @change="handleApprovalModeChange">
-              <view class="picker-display">
-                <text>{{ approvalModes[approvalModeIndex] }}</text>
-                <text class="arrow">›</text>
-              </view>
-            </picker>
-          </view>
+        <div class="settings-form">
+          <div class="form-item">
+            <span class="form-label">申请审核模式</span>
+            <select class="picker-display" v-model="approvalModeIndex" @change="handleApprovalModeChange">
+              <option v-for="(mode, index) in approvalModes" :key="index" :value="index">
+                {{ mode }}
+              </option>
+            </select>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">最长使用期限（月）</text>
+          <div class="form-item">
+            <span class="form-label">最长使用期限（月）</span>
             <input 
               class="form-input" 
               type="number"
               v-model.number="lockerRules.maxDuration" 
               placeholder="请输入最长使用期限"
             />
-          </view>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">提前提醒天数</text>
+          <div class="form-item">
+            <span class="form-label">提前提醒天数</span>
             <input 
               class="form-input" 
               type="number"
               v-model.number="lockerRules.reminderDays" 
               placeholder="请输入提前提醒天数"
             />
-          </view>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">超期处理方式</text>
-            <picker mode="selector" :value="overtimeModeIndex" :range="overtimeModes" @change="handleOvertimeModeChange">
-              <view class="picker-display">
-                <text>{{ overtimeModes[overtimeModeIndex] }}</text>
-                <text class="arrow">›</text>
-              </view>
-            </picker>
-          </view>
+          <div class="form-item">
+            <span class="form-label">超期处理方式</span>
+            <select class="picker-display" v-model="overtimeModeIndex" @change="handleOvertimeModeChange">
+              <option v-for="(mode, index) in overtimeModes" :key="index" :value="index">
+                {{ mode }}
+              </option>
+            </select>
+          </div>
           
-          <view class="form-item switch-item">
-            <text class="form-label">允许续期申请</text>
-            <switch 
-              :checked="lockerRules.allowRenewal" 
+          <div class="form-item switch-item">
+            <span class="form-label">允许续期申请</span>
+            <input 
+              type="checkbox"
+              v-model="lockerRules.allowRenewal" 
               @change="handleRenewalToggle"
             />
-          </view>
-        </view>
+          </div>
+        </div>
         
-        <view class="section-actions">
+        <div class="section-actions">
           <button 
             class="save-btn primary" 
-            @tap="saveLockerRules"
+            @click="saveLockerRules"
             :disabled="savingRules"
           >
             {{ savingRules ? '保存中...' : '保存规则' }}
           </button>
-        </view>
-      </view>
+        </div>
+      </div>
 
       <!-- 通知模板管理 -->
-      <view class="settings-section">
-        <view class="section-header">
-          <text class="section-title">通知模板管理</text>
-          <button class="add-btn" @tap="addTemplate">添加模板</button>
-        </view>
+      <div class="settings-section">
+        <div class="section-header">
+          <span class="section-title">通知模板管理</span>
+          <button class="add-btn" @click="addTemplate">添加模板</button>
+        </div>
         
-        <view class="template-list">
-          <view 
+        <div class="template-list">
+          <div 
             v-for="template in notificationTemplates" 
             :key="template.id"
             class="template-item"
-            @tap="editTemplate(template)"
+            @click="editTemplate(template)"
           >
-            <view class="template-info">
-              <text class="template-name">{{ template.name }}</text>
-              <text class="template-type">{{ template.type }}</text>
-            </view>
-            <view class="template-actions">
-              <text class="edit-icon">编辑</text>
-            </view>
-          </view>
-        </view>
+            <div class="template-info">
+              <span class="template-name">{{ template.name }}</span>
+              <span class="template-type">{{ template.type }}</span>
+            </div>
+            <div class="template-actions">
+              <span class="edit-icon">编辑</span>
+            </div>
+          </div>
+        </div>
         
-        <view v-if="notificationTemplates.length === 0" class="empty-placeholder">
-          <text>暂无通知模板</text>
-        </view>
-      </view>
+        <div v-if="notificationTemplates.length === 0" class="empty-placeholder">
+          <span>暂无通知模板</span>
+        </div>
+      </div>
 
       <!-- 数据备份设置 -->
-      <view class="settings-section">
-        <view class="section-header">
-          <text class="section-title">数据备份设置</text>
-        </view>
+      <div class="settings-section">
+        <div class="section-header">
+          <span class="section-title">数据备份设置</span>
+        </div>
         
-        <view class="settings-form">
-          <view class="form-item switch-item">
-            <text class="form-label">自动备份</text>
-            <switch 
-              :checked="backupSettings.autoBackup" 
+        <div class="settings-form">
+          <div class="form-item switch-item">
+            <span class="form-label">自动备份</span>
+            <input 
+              type="checkbox"
+              v-model="backupSettings.autoBackup" 
               @change="handleAutoBackupToggle"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
+          </div>
           
-          <view v-if="backupSettings.autoBackup" class="form-item">
-            <text class="form-label">备份频率</text>
-            <picker mode="selector" :value="backupFrequencyIndex" :range="backupFrequencies" @change="handleBackupFrequencyChange">
-              <view class="picker-display">
-                <text>{{ backupFrequencies[backupFrequencyIndex] }}</text>
-                <text class="arrow">›</text>
-              </view>
-            </picker>
-          </view>
+          <div v-if="backupSettings.autoBackup" class="form-item">
+            <span class="form-label">备份频率</span>
+            <select class="picker-display" v-model="backupFrequencyIndex" @change="handleBackupFrequencyChange">
+              <option v-for="(freq, index) in backupFrequencies" :key="index" :value="index">
+                {{ freq }}
+              </option>
+            </select>
+          </div>
           
-          <view class="form-item">
-            <text class="form-label">保留备份数量</text>
+          <div class="form-item">
+            <span class="form-label">保留备份数量</span>
             <input 
               class="form-input" 
               type="number"
@@ -217,106 +216,105 @@
               placeholder="请输入保留备份数量"
               :disabled="!adminStore.isSuperAdmin"
             />
-          </view>
+          </div>
           
-          <view class="backup-info">
-            <view class="info-item">
-              <text class="info-label">上次备份时间：</text>
-              <text class="info-value">{{ lastBackupTime || '从未备份' }}</text>
-            </view>
-            <view class="info-item">
-              <text class="info-label">备份大小：</text>
-              <text class="info-value">{{ backupSize || '-' }}</text>
-            </view>
-          </view>
-        </view>
+          <div class="backup-info">
+            <div class="info-item">
+              <span class="info-label">上次备份时间：</span>
+              <span class="info-value">{{ lastBackupTime || '从未备份' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">备份大小：</span>
+              <span class="info-value">{{ backupSize || '-' }}</span>
+            </div>
+          </div>
+        </div>
         
-        <view class="section-actions">
+        <div class="section-actions">
           <button 
             class="backup-btn" 
-            @tap="createBackup"
+            @click="createBackup"
             :disabled="!adminStore.isSuperAdmin || backingUp"
           >
             {{ backingUp ? '备份中...' : '立即备份' }}
           </button>
           <button 
             class="save-btn primary" 
-            @tap="saveBackupSettings"
+            @click="saveBackupSettings"
             :disabled="!adminStore.isSuperAdmin || savingBackup"
           >
             {{ savingBackup ? '保存中...' : '保存设置' }}
           </button>
-        </view>
-      </view>
+        </div>
+      </div>
 
       <!-- 系统信息 -->
-      <view class="settings-section">
-        <view class="section-header">
-          <text class="section-title">系统信息</text>
-        </view>
+      <div class="settings-section">
+        <div class="section-header">
+          <span class="section-title">系统信息</span>
+        </div>
         
-        <view class="system-info">
-          <view class="info-item">
-            <text class="info-label">系统版本：</text>
-            <text class="info-value">v1.0.0</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">数据库版本：</text>
-            <text class="info-value">PostgreSQL 14.6</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">部署环境：</text>
-            <text class="info-value">{{ deployEnv }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">最后更新：</text>
-            <text class="info-value">{{ lastUpdateTime }}</text>
-          </view>
-        </view>
-      </view>
-    </view>
+        <div class="system-info">
+          <div class="info-item">
+            <span class="info-label">系统版本：</span>
+            <span class="info-value">v1.0.0</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">数据库版本：</span>
+            <span class="info-value">PostgreSQL 14.6</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">部署环境：</span>
+            <span class="info-value">{{ deployEnv }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">最后更新：</span>
+            <span class="info-value">{{ lastUpdateTime }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 模板编辑弹窗 -->
-    <uni-popup ref="templatePopup" type="center">
-      <view class="template-editor">
-        <view class="editor-header">
-          <text class="editor-title">{{ editingTemplate.id ? '编辑模板' : '新建模板' }}</text>
-          <text class="close-btn" @tap="closeTemplateEditor">×</text>
-        </view>
-        <view class="editor-form">
-          <view class="form-item">
-            <text class="form-label">模板名称</text>
+    <div v-if="showTemplateEditor" class="modal-overlay" @click.self="closeTemplateEditor">
+      <div class="template-editor">
+        <div class="editor-header">
+          <span class="editor-title">{{ editingTemplate.id ? '编辑模板' : '新建模板' }}</span>
+          <span class="close-btn" @click="closeTemplateEditor">×</span>
+        </div>
+        <div class="editor-form">
+          <div class="form-item">
+            <span class="form-label">模板名称</span>
             <input 
               class="form-input" 
               v-model="editingTemplate.name" 
               placeholder="请输入模板名称"
             />
-          </view>
-          <view class="form-item">
-            <text class="form-label">模板类型</text>
-            <picker mode="selector" :value="templateTypeIndex" :range="templateTypes" @change="handleTemplateTypeChange">
-              <view class="picker-display">
-                <text>{{ templateTypes[templateTypeIndex] }}</text>
-                <text class="arrow">›</text>
-              </view>
-            </picker>
-          </view>
-          <view class="form-item">
-            <text class="form-label">模板内容</text>
+          </div>
+          <div class="form-item">
+            <span class="form-label">模板类型</span>
+            <select class="picker-display" v-model="templateTypeIndex" @change="handleTemplateTypeChange">
+              <option v-for="(type, index) in templateTypes" :key="index" :value="index">
+                {{ type }}
+              </option>
+            </select>
+          </div>
+          <div class="form-item">
+            <span class="form-label">模板内容</span>
             <textarea 
               class="form-textarea" 
               v-model="editingTemplate.content" 
               placeholder="请输入模板内容，可使用变量如 {name}, {date} 等"
               :maxlength="500"
             />
-          </view>
-        </view>
-        <view class="editor-actions">
-          <button class="cancel-btn" @tap="closeTemplateEditor">取消</button>
-          <button class="save-btn primary" @tap="saveTemplate">保存</button>
-        </view>
-      </view>
-    </uni-popup>
+          </div>
+        </div>
+        <div class="editor-actions">
+          <button class="cancel-btn" @click="closeTemplateEditor">取消</button>
+          <button class="save-btn primary" @click="saveTemplate">保存</button>
+        </div>
+      </div>
+    </div>
   </view>
 </template>
 
@@ -371,6 +369,7 @@ const editingTemplate = ref({
 
 const templateTypes = ['审核通知', '提醒通知', '系统通知', '营销通知']
 const templateTypeIndex = ref(0)
+const showTemplateEditor = ref(false)
 
 // 备份设置
 const backupSettings = ref({
@@ -392,12 +391,12 @@ const lastUpdateTime = ref('2024-03-14 18:30:00')
 
 // Methods
 const handleProviderChange = (e: any) => {
-  smsProviderIndex.value = e.detail.value
-  smsConfig.value.provider = ['tencent', 'aliyun', 'huawei'][e.detail.value]
+  smsProviderIndex.value = e.target.value
+  smsConfig.value.provider = ['tencent', 'aliyun', 'huawei'][e.target.value]
 }
 
 const handleSmsToggle = (e: any) => {
-  smsConfig.value.enabled = e.detail.value
+  smsConfig.value.enabled = e.target.checked
 }
 
 const testSmsService = async () => {
@@ -405,15 +404,9 @@ const testSmsService = async () => {
   try {
     // 模拟测试短信发送
     await new Promise(resolve => setTimeout(resolve, 2000))
-    uni.showToast({
-      title: '测试短信已发送',
-      icon: 'success'
-    })
+    alert('测试短信已发送')
   } catch (error) {
-    uni.showToast({
-      title: '测试失败',
-      icon: 'none'
-    })
+    alert('测试失败')
   } finally {
     testingSms.value = false
   }
@@ -424,47 +417,35 @@ const saveSmsConfig = async () => {
   try {
     // 模拟保存配置
     await new Promise(resolve => setTimeout(resolve, 1000))
-    uni.showToast({
-      title: '配置已保存',
-      icon: 'success'
-    })
+    alert('配置已保存')
   } catch (error) {
-    uni.showToast({
-      title: '保存失败',
-      icon: 'none'
-    })
+    alert('保存失败')
   } finally {
     savingSms.value = false
   }
 }
 
 const handleApprovalModeChange = (e: any) => {
-  approvalModeIndex.value = e.detail.value
-  lockerRules.value.approvalMode = ['manual', 'auto', 'conditional'][e.detail.value]
+  approvalModeIndex.value = e.target.value
+  lockerRules.value.approvalMode = ['manual', 'auto', 'conditional'][e.target.value]
 }
 
 const handleOvertimeModeChange = (e: any) => {
-  overtimeModeIndex.value = e.detail.value
-  lockerRules.value.overtimeMode = ['notify', 'lock', 'clean'][e.detail.value]
+  overtimeModeIndex.value = e.target.value
+  lockerRules.value.overtimeMode = ['notify', 'lock', 'clean'][e.target.value]
 }
 
 const handleRenewalToggle = (e: any) => {
-  lockerRules.value.allowRenewal = e.detail.value
+  lockerRules.value.allowRenewal = e.target.checked
 }
 
 const saveLockerRules = async () => {
   savingRules.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    uni.showToast({
-      title: '规则已保存',
-      icon: 'success'
-    })
+    alert('规则已保存')
   } catch (error) {
-    uni.showToast({
-      title: '保存失败',
-      icon: 'none'
-    })
+    alert('保存失败')
   } finally {
     savingRules.value = false
   }
@@ -478,7 +459,7 @@ const addTemplate = () => {
     content: ''
   }
   templateTypeIndex.value = 0
-  ;(proxy.$refs.templatePopup as any).open()
+  showTemplateEditor.value = true
 }
 
 const editTemplate = (template: any) => {
@@ -486,24 +467,22 @@ const editTemplate = (template: any) => {
   templateTypeIndex.value = templateTypes.findIndex(t => 
     t.includes(template.type === 'approval' ? '审核' : '提醒')
   )
-  ;(proxy.$refs.templatePopup as any).open()
+  showTemplateEditor.value = true
 }
 
 const closeTemplateEditor = () => {
-  ;(proxy.$refs.templatePopup as any).close()
+  showTemplateEditor.value = false
 }
 
 const handleTemplateTypeChange = (e: any) => {
-  templateTypeIndex.value = e.detail.value
-  editingTemplate.value.type = ['approval', 'reminder', 'system', 'marketing'][e.detail.value]
+  const value = e.target?.value ?? e.detail?.value ?? e
+  templateTypeIndex.value = typeof value === 'string' ? parseInt(value) : value
+  editingTemplate.value.type = ['approval', 'reminder', 'system', 'marketing'][templateTypeIndex.value]
 }
 
 const saveTemplate = async () => {
   if (!editingTemplate.value.name || !editingTemplate.value.content) {
-    uni.showToast({
-      title: '请填写完整信息',
-      icon: 'none'
-    })
+    alert('请填写完整信息')
     return
   }
 
@@ -522,19 +501,17 @@ const saveTemplate = async () => {
   }
 
   closeTemplateEditor()
-  uni.showToast({
-    title: '模板已保存',
-    icon: 'success'
-  })
+  alert('模板已保存')
 }
 
 const handleAutoBackupToggle = (e: any) => {
-  backupSettings.value.autoBackup = e.detail.value
+  backupSettings.value.autoBackup = e.target?.checked ?? e.detail?.value ?? e
 }
 
 const handleBackupFrequencyChange = (e: any) => {
-  backupFrequencyIndex.value = e.detail.value
-  backupSettings.value.frequency = ['daily', 'weekly', 'monthly'][e.detail.value]
+  const value = e.target?.value ?? e.detail?.value ?? e
+  backupFrequencyIndex.value = typeof value === 'string' ? parseInt(value) : value
+  backupSettings.value.frequency = ['daily', 'weekly', 'monthly'][backupFrequencyIndex.value]
 }
 
 const createBackup = async () => {
@@ -543,15 +520,9 @@ const createBackup = async () => {
     await new Promise(resolve => setTimeout(resolve, 3000))
     lastBackupTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
     backupSize.value = '168.2 MB'
-    uni.showToast({
-      title: '备份成功',
-      icon: 'success'
-    })
+    alert('备份成功')
   } catch (error) {
-    uni.showToast({
-      title: '备份失败',
-      icon: 'none'
-    })
+    alert('备份失败')
   } finally {
     backingUp.value = false
   }
@@ -561,23 +532,15 @@ const saveBackupSettings = async () => {
   savingBackup.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    uni.showToast({
-      title: '设置已保存',
-      icon: 'success'
-    })
+    alert('设置已保存')
   } catch (error) {
-    uni.showToast({
-      title: '保存失败',
-      icon: 'none'
-    })
+    alert('保存失败')
   } finally {
     savingBackup.value = false
   }
 }
 
-// 获取当前实例
-import { getCurrentInstance } from 'vue'
-const { proxy } = getCurrentInstance()!
+// Remove getCurrentInstance as it's no longer needed
 
 // Lifecycle
 onMounted(() => {
@@ -894,5 +857,19 @@ onMounted(() => {
 .template-editor button.save-btn.primary {
   background-color: #1B5E20;
   color: #fff;
+}
+
+/* Modal overlay styles for Teleport modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 </style>

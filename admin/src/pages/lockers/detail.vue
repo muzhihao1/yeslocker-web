@@ -1,48 +1,48 @@
 <template>
-  <view class="locker-detail-container">
-    <view class="page-header">
-      <view class="title">杆柜详情</view>
-    </view>
+  <div class="locker-detail-container">
+    <div class="page-header">
+      <div class="title">杆柜详情</div>
+    </div>
     
-    <view class="detail-content">
-      <view class="info-section">
-        <view class="section-title">基本信息</view>
-        <view class="info-item">
-          <text class="label">杆柜编号:</text>
-          <text class="value">{{ lockerInfo.code }}</text>
-        </view>
-        <view class="info-item">
-          <text class="label">所属门店:</text>
-          <text class="value">{{ lockerInfo.storeName }}</text>
-        </view>
-        <view class="info-item">
-          <text class="label">状态:</text>
-          <text class="value" :class="statusClass">{{ statusText }}</text>
-        </view>
-      </view>
+    <div class="detail-content">
+      <div class="info-section">
+        <div class="section-title">基本信息</div>
+        <div class="info-item">
+          <span class="label">杆柜编号:</span>
+          <span class="value">{{ lockerInfo.code }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">所属门店:</span>
+          <span class="value">{{ lockerInfo.storeName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">状态:</span>
+          <span class="value" :class="statusClass">{{ statusText }}</span>
+        </div>
+      </div>
       
-      <view class="info-section" v-if="lockerInfo.currentUser">
-        <view class="section-title">使用信息</view>
-        <view class="info-item">
-          <text class="label">用户姓名:</text>
-          <text class="value">{{ lockerInfo.currentUser.name }}</text>
-        </view>
-        <view class="info-item">
-          <text class="label">手机号:</text>
-          <text class="value">{{ lockerInfo.currentUser.phone }}</text>
-        </view>
-        <view class="info-item">
-          <text class="label">开始时间:</text>
-          <text class="value">{{ lockerInfo.startTime }}</text>
-        </view>
-      </view>
-    </view>
+      <div class="info-section" v-if="lockerInfo.currentUser">
+        <div class="section-title">使用信息</div>
+        <div class="info-item">
+          <span class="label">用户姓名:</span>
+          <span class="value">{{ lockerInfo.currentUser.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">手机号:</span>
+          <span class="value">{{ lockerInfo.currentUser.phone }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">开始时间:</span>
+          <span class="value">{{ lockerInfo.startTime }}</span>
+        </div>
+      </div>
+    </div>
     
-    <view class="action-buttons">
+    <div class="action-buttons">
       <button class="btn btn-primary" @click="handleEdit">编辑信息</button>
       <button class="btn btn-secondary" @click="handleViewHistory">查看历史</button>
-    </view>
-  </view>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -73,17 +73,11 @@ const statusClass = computed(() => {
 })
 
 const handleEdit = () => {
-  uni.showToast({
-    title: '编辑功能开发中',
-    icon: 'none'
-  })
+  alert('编辑功能开发中')
 }
 
 const handleViewHistory = () => {
-  uni.showToast({
-    title: '历史记录功能开发中',
-    icon: 'none'
-  })
+  alert('历史记录功能开发中')
 }
 
 onMounted(() => {
