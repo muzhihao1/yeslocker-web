@@ -1,276 +1,269 @@
 <template>
-  <view class="statistics-page">
+  <div class="statistics-page">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-title">
-        <text class="title">数据统计</text>
-        <text class="subtitle">实时业务数据分析</text>
-      </view>
-      <view class="header-actions">
+    <div class="page-header">
+      <div class="header-title">
+        <span class="title">数据统计</span>
+        <span class="subtitle">实时业务数据分析</span>
+      </div>
+      <div class="header-actions">
         <button class="btn-export" @click="exportReport">
-          <text class="iconfont icon-export"></text>
+          <span class="iconfont icon-export"></span>
           导出报表
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 时间筛选 -->
-    <view class="time-filter">
-      <scroll-view scroll-x class="filter-tabs">
-        <view v-for="(item, index) in timeOptions" :key="index"
+    <div class="time-filter">
+      <div class="filter-tabs">
+        <div v-for="(item, index) in timeOptions" :key="index"
               class="filter-tab" 
               :class="{ active: currentTimeFilter === item.value }"
               @click="setTimeFilter(item.value)">
           {{ item.label }}
-        </view>
-      </scroll-view>
-      <view class="custom-date" @click="showDatePicker">
-        <text class="iconfont icon-calendar"></text>
-        <text>自定义</text>
-      </view>
-    </view>
+        </div>
+      </div>
+      <div class="custom-date" @click="showDatePicker">
+        <span class="iconfont icon-calendar"></span>
+        <span>自定义</span>
+      </div>
+    </div>
 
     <!-- 核心指标卡片 -->
-    <view class="metrics-cards">
-      <view class="metric-card">
-        <view class="metric-icon users">
-          <text class="iconfont icon-user"></text>
-        </view>
-        <view class="metric-info">
-          <text class="metric-value">{{ stats.totalUsers || 0 }}</text>
-          <text class="metric-label">总用户数</text>
-          <text class="metric-change" :class="stats.userGrowth >= 0 ? 'positive' : 'negative'">
+    <div class="metrics-cards">
+      <div class="metric-card">
+        <div class="metric-icon users">
+          <span class="iconfont icon-user"></span>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">{{ stats.totalUsers || 0 }}</span>
+          <span class="metric-label">总用户数</span>
+          <span class="metric-change" :class="stats.userGrowth >= 0 ? 'positive' : 'negative'">
             {{ stats.userGrowth >= 0 ? '+' : '' }}{{ stats.userGrowth || 0 }}%
-          </text>
-        </view>
-      </view>
+          </span>
+        </div>
+      </div>
       
-      <view class="metric-card">
-        <view class="metric-icon lockers">
-          <text class="iconfont icon-locker"></text>
-        </view>
-        <view class="metric-info">
-          <text class="metric-value">{{ stats.totalLockers || 0 }}</text>
-          <text class="metric-label">总杆柜数</text>
-          <text class="metric-change" :class="stats.lockerUtilization >= 70 ? 'positive' : 'negative'">
+      <div class="metric-card">
+        <div class="metric-icon lockers">
+          <span class="iconfont icon-locker"></span>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">{{ stats.totalLockers || 0 }}</span>
+          <span class="metric-label">总杆柜数</span>
+          <span class="metric-change" :class="stats.lockerUtilization >= 70 ? 'positive' : 'negative'">
             {{ (stats.lockerUtilization || 0).toFixed(1) }}% 使用率
-          </text>
-        </view>
-      </view>
+          </span>
+        </div>
+      </div>
       
-      <view class="metric-card">
-        <view class="metric-icon operations">
-          <text class="iconfont icon-activity"></text>
-        </view>
-        <view class="metric-info">
-          <text class="metric-value">{{ stats.totalOperations || 0 }}</text>
-          <text class="metric-label">总操作次数</text>
-          <text class="metric-change" :class="stats.operationGrowth >= 0 ? 'positive' : 'negative'">
+      <div class="metric-card">
+        <div class="metric-icon operations">
+          <span class="iconfont icon-activity"></span>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">{{ stats.totalOperations || 0 }}</span>
+          <span class="metric-label">总操作次数</span>
+          <span class="metric-change" :class="stats.operationGrowth >= 0 ? 'positive' : 'negative'">
             {{ stats.operationGrowth >= 0 ? '+' : '' }}{{ stats.operationGrowth || 0 }}%
-          </text>
-        </view>
-      </view>
+          </span>
+        </div>
+      </div>
       
-      <view class="metric-card">
-        <view class="metric-icon revenue">
-          <text class="iconfont icon-money"></text>
-        </view>
-        <view class="metric-info">
-          <text class="metric-value">{{ stats.totalRevenue || 0 }}</text>
-          <text class="metric-label">营收 (元)</text>
-          <text class="metric-change" :class="stats.revenueGrowth >= 0 ? 'positive' : 'negative'">
+      <div class="metric-card">
+        <div class="metric-icon revenue">
+          <span class="iconfont icon-money"></span>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">{{ stats.totalRevenue || 0 }}</span>
+          <span class="metric-label">营收 (元)</span>
+          <span class="metric-change" :class="stats.revenueGrowth >= 0 ? 'positive' : 'negative'">
             {{ stats.revenueGrowth >= 0 ? '+' : '' }}{{ stats.revenueGrowth || 0 }}%
-          </text>
-        </view>
-      </view>
-    </view>
+          </span>
+        </div>
+      </div>
+    </div>
 
     <!-- 图表区域 -->
-    <scroll-view class="charts-container" scroll-y>
+    <div class="charts-container">
       <!-- 用户趋势图 -->
-      <view class="chart-section">
-        <view class="chart-header">
-          <text class="chart-title">用户注册趋势</text>
-          <view class="chart-legend">
-            <view class="legend-item">
-              <view class="legend-dot new-users"></view>
-              <text>新增用户</text>
-            </view>
-            <view class="legend-item">
-              <view class="legend-dot active-users"></view>
-              <text>活跃用户</text>
-            </view>
-          </view>
-        </view>
-        <view class="chart-container">
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">用户注册趋势</span>
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-dot new-users"></div>
+              <span>新增用户</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot active-users"></div>
+              <span>活跃用户</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-container">
           <canvas v-if="userTrendData.length > 0" 
+                  id="userTrendChart"
                   class="chart-canvas" 
-                  canvas-id="userTrendChart"
-                  :style="{ width: chartWidth + 'rpx', height: '400rpx' }">
+                  width="680"
+                  height="400">
           </canvas>
-          <view v-else class="empty-chart">
-            <text>暂无数据</text>
-          </view>
-        </view>
-      </view>
+          <div v-else class="empty-chart">
+            <span>暂无数据</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 杆柜使用分析 -->
-      <view class="chart-section">
-        <view class="chart-header">
-          <text class="chart-title">杆柜使用分析</text>
-        </view>
-        <view class="locker-analysis">
-          <view class="analysis-item">
-            <view class="analysis-label">
-              <view class="status-dot available"></view>
-              <text>可用杆柜</text>
-            </view>
-            <view class="analysis-value">
-              <text class="value">{{ lockerStats.available || 0 }}</text>
-              <text class="percentage">{{ ((lockerStats.available || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</text>
-            </view>
-          </view>
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">杆柜使用分析</span>
+        </div>
+        <div class="locker-analysis">
+          <div class="analysis-item">
+            <div class="analysis-label">
+              <div class="status-dot available"></div>
+              <span>可用杆柜</span>
+            </div>
+            <div class="analysis-value">
+              <span class="value">{{ lockerStats.available || 0 }}</span>
+              <span class="percentage">{{ ((lockerStats.available || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
           
-          <view class="analysis-item">
-            <view class="analysis-label">
-              <view class="status-dot occupied"></view>
-              <text>使用中</text>
-            </view>
-            <view class="analysis-value">
-              <text class="value">{{ lockerStats.occupied || 0 }}</text>
-              <text class="percentage">{{ ((lockerStats.occupied || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</text>
-            </view>
-          </view>
+          <div class="analysis-item">
+            <div class="analysis-label">
+              <div class="status-dot occupied"></div>
+              <span>使用中</span>
+            </div>
+            <div class="analysis-value">
+              <span class="value">{{ lockerStats.occupied || 0 }}</span>
+              <span class="percentage">{{ ((lockerStats.occupied || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
           
-          <view class="analysis-item">
-            <view class="analysis-label">
-              <view class="status-dot storing"></view>
-              <text>存杆中</text>
-            </view>
-            <view class="analysis-value">
-              <text class="value">{{ lockerStats.storing || 0 }}</text>
-              <text class="percentage">{{ ((lockerStats.storing || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</text>
-            </view>
-          </view>
+          <div class="analysis-item">
+            <div class="analysis-label">
+              <div class="status-dot storing"></div>
+              <span>存杆中</span>
+            </div>
+            <div class="analysis-value">
+              <span class="value">{{ lockerStats.storing || 0 }}</span>
+              <span class="percentage">{{ ((lockerStats.storing || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
           
-          <view class="analysis-item">
-            <view class="analysis-label">
-              <view class="status-dot maintenance"></view>
-              <text>维护中</text>
-            </view>
-            <view class="analysis-value">
-              <text class="value">{{ lockerStats.maintenance || 0 }}</text>
-              <text class="percentage">{{ ((lockerStats.maintenance || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</text>
-            </view>
-          </view>
-        </view>
-      </view>
+          <div class="analysis-item">
+            <div class="analysis-label">
+              <div class="status-dot maintenance"></div>
+              <span>维护中</span>
+            </div>
+            <div class="analysis-value">
+              <span class="value">{{ lockerStats.maintenance || 0 }}</span>
+              <span class="percentage">{{ ((lockerStats.maintenance || 0) / (stats.totalLockers || 1) * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 门店排行 -->
-      <view class="chart-section">
-        <view class="chart-header">
-          <text class="chart-title">门店使用排行</text>
-          <text class="chart-subtitle">按操作次数排序</text>
-        </view>
-        <view class="store-ranking">
-          <view v-for="(store, index) in storeRanking" :key="store.id" class="ranking-item">
-            <view class="ranking-position">
-              <text class="position-number" :class="{ top: index < 3 }">{{ index + 1 }}</text>
-            </view>
-            <view class="store-info">
-              <text class="store-name">{{ store.name }}</text>
-              <text class="store-detail">{{ store.total_lockers }} 个杆柜 | {{ store.operations_count }} 次操作</text>
-            </view>
-            <view class="store-progress">
-              <view class="progress-bar">
-                <view class="progress-fill" :style="{ width: (store.operations_count / maxOperations * 100) + '%' }"></view>
-              </view>
-              <text class="progress-text">{{ store.operations_count }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">门店使用排行</span>
+          <span class="chart-subtitle">按操作次数排序</span>
+        </div>
+        <div class="store-ranking">
+          <div v-for="(store, index) in storeRanking" :key="store.id" class="ranking-item">
+            <div class="ranking-position">
+              <span class="position-number" :class="{ top: index < 3 }">{{ index + 1 }}</span>
+            </div>
+            <div class="store-info">
+              <span class="store-name">{{ store.name }}</span>
+              <span class="store-detail">{{ store.total_lockers }} 个杆柜 | {{ store.operations_count }} 次操作</span>
+            </div>
+            <div class="store-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: (store.operations_count / maxOperations * 100) + '%' }"></div>
+              </div>
+              <span class="progress-text">{{ store.operations_count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 用户活跃时段 -->
-      <view class="chart-section">
-        <view class="chart-header">
-          <text class="chart-title">用户活跃时段</text>
-          <text class="chart-subtitle">24小时分布</text>
-        </view>
-        <view class="hourly-activity">
-          <view v-for="hour in hourlyData" :key="hour.hour" class="activity-bar">
-            <view class="bar-container">
-              <view class="bar-fill" :style="{ height: (hour.count / maxHourlyCount * 100) + '%' }"></view>
-            </view>
-            <text class="hour-label">{{ hour.hour }}:00</text>
-            <text class="count-label">{{ hour.count }}</text>
-          </view>
-        </view>
-      </view>
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">用户活跃时段</span>
+          <span class="chart-subtitle">24小时分布</span>
+        </div>
+        <div class="hourly-activity">
+          <div v-for="hour in hourlyData" :key="hour.hour" class="activity-bar">
+            <div class="bar-container">
+              <div class="bar-fill" :style="{ height: (hour.count / maxHourlyCount * 100) + '%' }"></div>
+            </div>
+            <span class="hour-label">{{ hour.hour }}:00</span>
+            <span class="count-label">{{ hour.count }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 用户统计表格 -->
-      <view class="chart-section">
-        <view class="chart-header">
-          <text class="chart-title">活跃用户 TOP 10</text>
-          <text class="chart-subtitle">按操作次数排序</text>
-        </view>
-        <view class="user-table">
-          <view class="table-header">
-            <text class="col-user">用户</text>
-            <text class="col-operations">操作次数</text>
-            <text class="col-lockers">当前杆柜</text>
-            <text class="col-last-active">最后活跃</text>
-          </view>
-          <view v-for="user in topUsers" :key="user.id" class="table-row">
-            <view class="col-user">
-              <image :src="user.avatar || '/static/images/default-avatar.png'" class="user-avatar" />
-              <view class="user-info">
-                <text class="user-name">{{ user.name || '未设置' }}</text>
-                <text class="user-phone">{{ user.phone }}</text>
-              </view>
-            </view>
-            <text class="col-operations">{{ user.operations_count }}</text>
-            <text class="col-lockers">{{ user.current_lockers }}</text>
-            <text class="col-last-active">{{ formatDate(user.last_active_at, 'date') }}</text>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">活跃用户 TOP 10</span>
+          <span class="chart-subtitle">按操作次数排序</span>
+        </div>
+        <div class="user-table">
+          <div class="table-header">
+            <span class="col-user">用户</span>
+            <span class="col-operations">操作次数</span>
+            <span class="col-lockers">当前杆柜</span>
+            <span class="col-last-active">最后活跃</span>
+          </div>
+          <div v-for="user in topUsers" :key="user.id" class="table-row">
+            <div class="col-user">
+              <div class="user-avatar">👤</div>
+              <div class="user-info">
+                <span class="user-name">{{ user.name || '未设置' }}</span>
+                <span class="user-phone">{{ user.phone }}</span>
+              </div>
+            </div>
+            <span class="col-operations">{{ user.operations_count }}</span>
+            <span class="col-lockers">{{ user.current_lockers }}</span>
+            <span class="col-last-active">{{ formatDate(user.last_active_at, 'date') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 自定义日期选择器 -->
-    <uni-popup ref="datePickerPopup" type="bottom">
-      <view class="date-picker-container">
-        <view class="picker-header">
-          <text class="picker-title">选择时间范围</text>
-          <text class="iconfont icon-close" @click="closeDatePicker"></text>
-        </view>
-        <view class="date-inputs">
-          <view class="date-input-group">
-            <text class="input-label">开始日期</text>
-            <picker mode="date" :value="customDate.start" @change="handleStartDateChange">
-              <view class="date-input">
-                <text>{{ customDate.start }}</text>
-                <text class="iconfont icon-calendar"></text>
-              </view>
-            </picker>
-          </view>
-          <view class="date-input-group">
-            <text class="input-label">结束日期</text>
-            <picker mode="date" :value="customDate.end" @change="handleEndDateChange">
-              <view class="date-input">
-                <text>{{ customDate.end }}</text>
-                <text class="iconfont icon-calendar"></text>
-              </view>
-            </picker>
-          </view>
-        </view>
-        <view class="picker-actions">
-          <button class="btn-cancel" @click="closeDatePicker">取消</button>
-          <button class="btn-confirm" @click="confirmCustomDate">确定</button>
-        </view>
-      </view>
-    </uni-popup>
-  </view>
+    <Teleport to="body">
+      <div v-if="isDatePickerOpen" class="modal-overlay" @click.self="closeDatePicker">
+        <div class="date-picker-container">
+          <div class="picker-header">
+            <span class="picker-title">选择时间范围</span>
+            <span class="iconfont icon-close" @click="closeDatePicker"></span>
+          </div>
+          <div class="date-inputs">
+            <div class="date-input-group">
+              <span class="input-label">开始日期</span>
+              <input type="date" v-model="customDate.start" class="date-input" />
+            </div>
+            <div class="date-input-group">
+              <span class="input-label">结束日期</span>
+              <input type="date" v-model="customDate.end" class="date-input" />
+            </div>
+          </div>
+          <div class="picker-actions">
+            <button class="btn-cancel" @click="closeDatePicker">取消</button>
+            <button class="btn-confirm" @click="confirmCustomDate">确定</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -317,7 +310,7 @@ const timeOptions = [
 ]
 
 // 自定义日期
-const datePickerPopup = ref()
+const isDatePickerOpen = ref(false)
 const customDate = ref({
   start: '',
   end: ''
@@ -401,23 +394,15 @@ const showDatePicker = () => {
     end: today.toISOString().split('T')[0]
   }
   
-  datePickerPopup.value.open()
+  isDatePickerOpen.value = true
 }
 
 // 关闭日期选择器
 const closeDatePicker = () => {
-  datePickerPopup.value.close()
+  isDatePickerOpen.value = false
 }
 
-// 处理开始日期
-const handleStartDateChange = (e: any) => {
-  customDate.value.start = e.detail.value
-}
-
-// 处理结束日期
-const handleEndDateChange = (e: any) => {
-  customDate.value.end = e.detail.value
-}
+// 日期现在通过v-model直接绑定，不需要额外处理
 
 // 确认自定义日期
 const confirmCustomDate = () => {
@@ -440,69 +425,77 @@ const confirmCustomDate = () => {
 const renderUserTrendChart = () => {
   if (userTrendData.value.length === 0) return
   
-  const ctx = uni.createCanvasContext('userTrendChart')
-  const canvas = {
-    width: chartWidth.value * 2, // 适配高分辨率
-    height: 400 * 2,
-    padding: { top: 40, right: 40, bottom: 80, left: 80 }
-  }
-  
-  // 清空画布
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  
-  // 计算绘制区域
-  const chartArea = {
-    x: canvas.padding.left,
-    y: canvas.padding.top,
-    width: canvas.width - canvas.padding.left - canvas.padding.right,
-    height: canvas.height - canvas.padding.top - canvas.padding.bottom
-  }
-  
-  // 数据处理
-  const maxValue = Math.max(...userTrendData.value.map(d => Math.max(d.newUsers, d.activeUsers)))
-  const stepX = chartArea.width / (userTrendData.value.length - 1)
-  
-  // 绘制网格线
-  ctx.setStrokeStyle('#F0F0F0')
-  ctx.setLineWidth(1)
-  for (let i = 0; i <= 5; i++) {
-    const y = chartArea.y + (chartArea.height / 5) * i
-    ctx.moveTo(chartArea.x, y)
-    ctx.lineTo(chartArea.x + chartArea.width, y)
+  try {
+    const canvasEl = document.getElementById('userTrendChart') as HTMLCanvasElement
+    if (!canvasEl) return
+    
+    const ctx = canvasEl.getContext('2d')
+    if (!ctx) return
+    
+    const canvas = {
+      width: canvasEl.width,
+      height: canvasEl.height,
+      padding: { top: 40, right: 40, bottom: 80, left: 80 }
+    }
+    
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    
+    // 计算绘制区域
+    const chartArea = {
+      x: canvas.padding.left,
+      y: canvas.padding.top,
+      width: canvas.width - canvas.padding.left - canvas.padding.right,
+      height: canvas.height - canvas.padding.top - canvas.padding.bottom
+    }
+    
+    // 数据处理
+    const maxValue = Math.max(...userTrendData.value.map(d => Math.max(d.newUsers || 0, d.activeUsers || 0)), 1)
+    const stepX = chartArea.width / Math.max(userTrendData.value.length - 1, 1)
+    
+    // 绘制网格线
+    ctx.strokeStyle = '#F0F0F0'
+    ctx.lineWidth = 1
+    for (let i = 0; i <= 5; i++) {
+      const y = chartArea.y + (chartArea.height / 5) * i
+      ctx.beginPath()
+      ctx.moveTo(chartArea.x, y)
+      ctx.lineTo(chartArea.x + chartArea.width, y)
+      ctx.stroke()
+    }
+    
+    // 绘制新增用户曲线
+    ctx.strokeStyle = '#1890FF'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    userTrendData.value.forEach((data, index) => {
+      const x = chartArea.x + stepX * index
+      const y = chartArea.y + chartArea.height - ((data.newUsers || 0) / maxValue * chartArea.height)
+      if (index === 0) {
+        ctx.moveTo(x, y)
+      } else {
+        ctx.lineTo(x, y)
+      }
+    })
     ctx.stroke()
+    
+    // 绘制活跃用户曲线
+    ctx.strokeStyle = '#52C41A'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    userTrendData.value.forEach((data, index) => {
+      const x = chartArea.x + stepX * index
+      const y = chartArea.y + chartArea.height - ((data.activeUsers || 0) / maxValue * chartArea.height)
+      if (index === 0) {
+        ctx.moveTo(x, y)
+      } else {
+        ctx.lineTo(x, y)
+      }
+    })
+    ctx.stroke()
+  } catch (error) {
+    console.error('Chart rendering error:', error)
   }
-  
-  // 绘制新增用户曲线
-  ctx.setStrokeStyle('#1890FF')
-  ctx.setLineWidth(3)
-  ctx.beginPath()
-  userTrendData.value.forEach((data, index) => {
-    const x = chartArea.x + stepX * index
-    const y = chartArea.y + chartArea.height - (data.newUsers / maxValue * chartArea.height)
-    if (index === 0) {
-      ctx.moveTo(x, y)
-    } else {
-      ctx.lineTo(x, y)
-    }
-  })
-  ctx.stroke()
-  
-  // 绘制活跃用户曲线
-  ctx.setStrokeStyle('#52C41A')
-  ctx.setLineWidth(3)
-  ctx.beginPath()
-  userTrendData.value.forEach((data, index) => {
-    const x = chartArea.x + stepX * index
-    const y = chartArea.y + chartArea.height - (data.activeUsers / maxValue * chartArea.height)
-    if (index === 0) {
-      ctx.moveTo(x, y)
-    } else {
-      ctx.lineTo(x, y)
-    }
-  })
-  ctx.stroke()
-  
-  ctx.draw()
 }
 
 // 导出报表
@@ -609,11 +602,7 @@ const getFilterText = (filter: string) => {
 // 初始化
 onMounted(() => {
   // 获取画布宽度
-  uni.getSystemInfo({
-    success: (res) => {
-      chartWidth.value = res.windowWidth - 40
-    }
-  })
+  chartWidth.value = window.innerWidth - 40
   
   getStatistics()
 })
@@ -625,6 +614,20 @@ onMounted(() => {
 .statistics-page {
   min-height: 100vh;
   background-color: var(--bg-color);
+}
+
+/* Modal overlay styles for Teleport modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1000;
 }
 
 .page-header {

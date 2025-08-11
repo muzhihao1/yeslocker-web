@@ -52,7 +52,7 @@ export const lockersApi = {
   async applyLocker(data: ApplyLockerRequest): Promise<ApplyLockerResponse> {
     try {
       // 从auth store获取当前用户
-      const authStore = (await import('@/stores/auth')).useAuthStore()
+      const authStore = (await import('@/stores/auth-vue')).useAuthStore()
       const user = authStore.user
       
       if (!user) {
@@ -141,7 +141,7 @@ export const lockersApi = {
   }): Promise<any> {
     try {
       // 获取当前用户
-      const authStore = (await import('@/stores/auth')).useAuthStore()
+      const authStore = (await import('@/stores/auth-vue')).useAuthStore()
       const user = authStore.user
       
       if (!user) {

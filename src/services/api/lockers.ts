@@ -35,7 +35,7 @@ export const lockersApi = {
   // Apply for a locker
   async applyLocker(data: ApplyLockerRequest): Promise<ApplyLockerResponse> {
     // Get current user from auth store
-    const authStore = (await import('@/stores/auth')).useAuthStore()
+    const authStore = (await import('@/stores/auth-vue')).useAuthStore()
     const user = authStore.user
     
     if (!user) {
@@ -120,7 +120,7 @@ export const lockersApi = {
     storeName?: string
   }): Promise<any> {
     // Get current user from auth store
-    const authStore = (await import('@/stores/auth')).useAuthStore()
+    const authStore = (await import('@/stores/auth-vue')).useAuthStore()
     const user = authStore.user
     
     if (!user) {

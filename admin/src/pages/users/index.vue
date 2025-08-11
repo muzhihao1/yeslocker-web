@@ -57,7 +57,7 @@
       </view>
       
       <view v-else-if="users.length === 0" class="empty-container">
-        <image src="/static/images/empty-users.png" class="empty-image" />
+        <div class="empty-icon">👥</div>
         <text class="empty-text">暂无用户数据</text>
       </view>
 
@@ -65,8 +65,7 @@
         <view v-for="user in users" :key="user.id" class="user-card" @click="goToDetail(user.id)">
           <!-- 用户基本信息 -->
           <view class="user-header">
-            <image :src="user.avatar || '/static/images/default-avatar.png'" 
-                   class="user-avatar" mode="aspectFill" />
+            <div class="user-avatar">👤</div>
             <view class="user-info">
               <view class="user-name-line">
                 <text class="user-name">{{ user.name || '未设置' }}</text>

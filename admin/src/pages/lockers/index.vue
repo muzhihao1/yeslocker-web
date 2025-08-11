@@ -1,131 +1,127 @@
 <template>
-  <view class="lockers-page">
+  <div class="lockers-page">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-title">
-        <text class="title">杆柜管理</text>
-        <text class="subtitle">共 {{ totalCount }} 个杆柜</text>
-      </view>
-      <view class="header-actions">
+    <div class="page-header">
+      <div class="header-title">
+        <span class="title">杆柜管理</span>
+        <span class="subtitle">共 {{ totalCount }} 个杆柜</span>
+      </div>
+      <div class="header-actions">
         <button class="btn-add" @click="addLocker">
-          <text class="iconfont icon-plus"></text>
+          <span class="iconfont icon-plus"></span>
           新增
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 统计卡片 -->
-    <view class="stats-cards">
-      <view class="stat-card">
-        <view class="stat-icon available">
-          <text class="iconfont icon-check-circle"></text>
-        </view>
-        <view class="stat-info">
-          <text class="stat-value">{{ stats.available }}</text>
-          <text class="stat-label">可用</text>
-        </view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-icon occupied">
-          <text class="iconfont icon-locker"></text>
-        </view>
-        <view class="stat-info">
-          <text class="stat-value">{{ stats.occupied }}</text>
-          <text class="stat-label">使用中</text>
-        </view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-icon storing">
-          <text class="iconfont icon-time"></text>
-        </view>
-        <view class="stat-info">
-          <text class="stat-value">{{ stats.storing }}</text>
-          <text class="stat-label">存杆中</text>
-        </view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-icon maintenance">
-          <text class="iconfont icon-warning"></text>
-        </view>
-        <view class="stat-info">
-          <text class="stat-value">{{ stats.maintenance }}</text>
-          <text class="stat-label">维护中</text>
-        </view>
-      </view>
-    </view>
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon available">
+          <span class="iconfont icon-check-circle"></span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.available }}</span>
+          <span class="stat-label">可用</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon occupied">
+          <span class="iconfont icon-locker"></span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.occupied }}</span>
+          <span class="stat-label">使用中</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon storing">
+          <span class="iconfont icon-time"></span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.storing }}</span>
+          <span class="stat-label">存杆中</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon maintenance">
+          <span class="iconfont icon-warning"></span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.maintenance }}</span>
+          <span class="stat-label">维护中</span>
+        </div>
+      </div>
+    </div>
 
     <!-- 筛选栏 -->
-    <view class="filter-bar">
-      <picker mode="selector" :range="storeOptions" range-key="name" :value="filterStore" @change="handleStoreChange">
-        <view class="filter-item">
-          <text>{{ filterStore === -1 ? '全部门店' : storeOptions[filterStore].name }}</text>
-          <text class="iconfont icon-arrow-down"></text>
-        </view>
-      </picker>
-      <picker mode="selector" :range="statusOptions" :value="filterStatus" @change="handleStatusChange">
-        <view class="filter-item">
-          <text>{{ statusOptions[filterStatus] }}</text>
-          <text class="iconfont icon-arrow-down"></text>
-        </view>
-      </picker>
-    </view>
+    <div class="filter-bar">
+      <select v-model="filterStore" @change="handleStoreChange" class="filter-select">
+        <option value="-1">全部门店</option>
+        <option v-for="(store, index) in storeOptions" :key="store.id" :value="index">
+          {{ store.name }}
+        </option>
+      </select>
+      <select v-model="filterStatus" @change="handleStatusChange" class="filter-select">
+        <option v-for="(status, index) in statusOptions" :key="index" :value="index">
+          {{ status }}
+        </option>
+      </select>
+    </div>
 
     <!-- 杆柜列表 -->
-    <scroll-view class="lockers-list" scroll-y :refresher-enabled="true" 
-                 :refresher-triggered="refreshing" @refresherrefresh="onPullDownRefresh"
-                 @scrolltolower="loadMore">
-      <view v-if="loading && lockers.length === 0" class="loading-container">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
+    <div class="lockers-list">
+      <div v-if="loading && lockers.length === 0" class="loading-container">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">加载中...</span>
+      </div>
       
-      <view v-else-if="lockers.length === 0" class="empty-container">
-        <image src="/static/images/empty-lockers.png" class="empty-image" />
-        <text class="empty-text">暂无杆柜数据</text>
-      </view>
+      <div v-else-if="lockers.length === 0" class="empty-container">
+        <div class="empty-icon">📦</div>
+        <span class="empty-text">暂无杆柜数据</span>
+      </div>
 
-      <view v-else class="locker-grid">
-        <view v-for="locker in lockers" :key="locker.id" 
+      <div v-else class="locker-grid">
+        <div v-for="locker in lockers" :key="locker.id" 
               class="locker-card" 
               :class="`status-${locker.status}`"
               @click="goToDetail(locker.id)">
           <!-- 杆柜编号和状态 -->
-          <view class="locker-header">
-            <text class="locker-number">{{ locker.number }}</text>
-            <view class="locker-status">
-              <text class="status-dot"></text>
-              <text class="status-text">{{ getStatusText(locker.status) }}</text>
-            </view>
-          </view>
+          <div class="locker-header">
+            <span class="locker-number">{{ locker.number }}</span>
+            <div class="locker-status">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ getStatusText(locker.status) }}</span>
+            </div>
+          </div>
           
           <!-- 门店信息 -->
-          <view class="store-info">
-            <text class="iconfont icon-store"></text>
-            <text class="store-name">{{ locker.store_name }}</text>
-          </view>
+          <div class="store-info">
+            <span class="iconfont icon-store"></span>
+            <span class="store-name">{{ locker.store_name }}</span>
+          </div>
           
           <!-- 使用者信息 -->
-          <view v-if="locker.user" class="user-info">
-            <image :src="locker.user.avatar || '/static/images/default-avatar.png'" 
-                   class="user-avatar" mode="aspectFill" />
-            <view class="user-detail">
-              <text class="user-name">{{ locker.user.name }}</text>
-              <text class="user-phone">{{ locker.user.phone }}</text>
-            </view>
-          </view>
-          <view v-else class="empty-user">
-            <text class="iconfont icon-user"></text>
-            <text>暂无使用者</text>
-          </view>
+          <div v-if="locker.user" class="user-info">
+            <div class="user-avatar">👤</div>
+            <div class="user-detail">
+              <span class="user-name">{{ locker.user.name }}</span>
+              <span class="user-phone">{{ locker.user.phone }}</span>
+            </div>
+          </div>
+          <div v-else class="empty-user">
+            <span class="iconfont icon-user"></span>
+            <span>暂无使用者</span>
+          </div>
           
           <!-- 使用信息 -->
-          <view v-if="locker.status === 'occupied' || locker.status === 'storing'" class="usage-info">
-            <text class="usage-label">{{ locker.status === 'storing' ? '存杆时间' : '开始使用' }}：</text>
-            <text class="usage-time">{{ formatDate(locker.last_operation_at, 'datetime') }}</text>
-          </view>
+          <div v-if="locker.status === 'occupied' || locker.status === 'storing'" class="usage-info">
+            <span class="usage-label">{{ locker.status === 'storing' ? '存杆时间' : '开始使用' }}：</span>
+            <span class="usage-time">{{ formatDate(locker.last_operation_at, 'datetime') }}</span>
+          </div>
           
           <!-- 快捷操作 -->
-          <view class="locker-actions" @click.stop>
+          <div class="locker-actions" @click.stop>
             <button v-if="locker.status === 'occupied'" class="btn-action" @click="releaseLocker(locker)">
               释放
             </button>
@@ -138,49 +134,51 @@
             <button class="btn-action primary" @click="viewHistory(locker.id)">
               历史
             </button>
-          </view>
-        </view>
-      </view>
+          </div>
+        </div>
+      </div>
 
       <!-- 加载更多 -->
-      <view v-if="hasMore && !loading" class="load-more">
-        <text>上拉加载更多</text>
-      </view>
-    </scroll-view>
+      <div v-if="hasMore && !loading" class="load-more">
+        <span>上拉加载更多</span>
+      </div>
+    </div>
 
     <!-- 新增杆柜弹窗 -->
-    <uni-popup ref="addLockerPopup" type="center">
-      <view class="add-locker-form">
-        <view class="form-header">
-          <text class="form-title">新增杆柜</text>
-          <text class="iconfont icon-close" @click="closeAddForm"></text>
-        </view>
-        <view class="form-body">
-          <view class="form-item">
-            <text class="form-label">所属门店</text>
-            <picker mode="selector" :range="storeOptions" range-key="name" :value="newLocker.storeIndex" @change="handleNewLockerStore">
-              <view class="form-input">
-                <text>{{ newLocker.storeIndex >= 0 ? storeOptions[newLocker.storeIndex].name : '请选择门店' }}</text>
-                <text class="iconfont icon-arrow-down"></text>
-              </view>
-            </picker>
-          </view>
-          <view class="form-item">
-            <text class="form-label">杆柜编号</text>
-            <input v-model="newLocker.number" class="form-input" placeholder="请输入杆柜编号" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">备注信息</text>
-            <textarea v-model="newLocker.remark" class="form-textarea" placeholder="选填" />
-          </view>
-        </view>
-        <view class="form-actions">
-          <button class="btn-cancel" @click="closeAddForm">取消</button>
-          <button class="btn-confirm" @click="confirmAddLocker">确定</button>
-        </view>
-      </view>
-    </uni-popup>
-  </view>
+    <Teleport to="body">
+      <div v-if="isAddLockerOpen" class="modal-overlay" @click.self="closeAddForm">
+        <div class="add-locker-form">
+          <div class="form-header">
+            <span class="form-title">新增杆柜</span>
+            <span class="iconfont icon-close" @click="closeAddForm"></span>
+          </div>
+          <div class="form-body">
+            <div class="form-item">
+              <span class="form-label">所属门店</span>
+              <select v-model="newLocker.storeIndex" class="form-input">
+                <option value="-1">请选择门店</option>
+                <option v-for="(store, index) in storeOptions" :key="store.id" :value="index">
+                  {{ store.name }}
+                </option>
+              </select>
+            </div>
+            <div class="form-item">
+              <span class="form-label">杆柜编号</span>
+              <input v-model="newLocker.number" class="form-input" placeholder="请输入杆柜编号" />
+            </div>
+            <div class="form-item">
+              <span class="form-label">备注信息</span>
+              <textarea v-model="newLocker.remark" class="form-textarea" placeholder="选填"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-cancel" @click="closeAddForm">取消</button>
+            <button class="btn-confirm" @click="confirmAddLocker">确定</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -234,7 +232,7 @@ const stats = ref({
 })
 
 // 新增杆柜
-const addLockerPopup = ref()
+const isAddLockerOpen = ref(false)
 const newLocker = ref({
   storeIndex: -1,
   number: '',
@@ -315,14 +313,12 @@ const getStores = async () => {
 }
 
 // 处理门店筛选
-const handleStoreChange = (e: any) => {
-  filterStore.value = e.detail.value
+const handleStoreChange = () => {
   getLockers(true)
 }
 
 // 处理状态筛选
-const handleStatusChange = (e: any) => {
-  filterStatus.value = e.detail.value
+const handleStatusChange = () => {
   getLockers(true)
 }
 
@@ -340,16 +336,12 @@ const loadMore = () => {
 
 // 跳转详情
 const goToDetail = (id: string) => {
-  uni.navigateTo({
-    url: `/pages/lockers/detail?id=${id}`
-  })
+  window.location.href = `/admin/lockers/detail?id=${id}`
 }
 
 // 查看历史
 const viewHistory = (lockerId: string) => {
-  uni.navigateTo({
-    url: `/pages/records/index?lockerId=${lockerId}`
-  })
+  window.location.href = `/admin/records?lockerId=${lockerId}`
 }
 
 // 释放杆柜
@@ -379,18 +371,13 @@ const releaseLocker = async (locker: Locker) => {
 
 // 设置维护
 const setMaintenance = async (locker: Locker) => {
-  const result = await uni.showModal({
-    title: '设置维护',
-    content: '请输入维护原因',
-    editable: true,
-    placeholderText: '例如：设备损坏、清洁保养等'
-  })
+  const reason = prompt('请输入维护原因（例如：设备损坏、清洁保养等）：')
   
-  if (result.confirm && result.content) {
+  if (reason) {
     try {
       await request.put(`/admin/lockers/${locker.id}`, {
         status: 'maintenance',
-        maintenanceReason: result.content
+        maintenanceReason: reason
       })
       
       showToast('设置成功')
@@ -430,12 +417,12 @@ const restoreLocker = async (locker: Locker) => {
 
 // 新增杆柜
 const addLocker = () => {
-  addLockerPopup.value.open()
+  isAddLockerOpen.value = true
 }
 
 // 关闭新增表单
 const closeAddForm = () => {
-  addLockerPopup.value.close()
+  isAddLockerOpen.value = false
   newLocker.value = {
     storeIndex: -1,
     number: '',
@@ -443,10 +430,7 @@ const closeAddForm = () => {
   }
 }
 
-// 选择门店
-const handleNewLockerStore = (e: any) => {
-  newLocker.value.storeIndex = e.detail.value
-}
+// 选择门店 - 现在通过v-model直接绑定，不需要额外处理
 
 // 确认新增
 const confirmAddLocker = async () => {
@@ -490,6 +474,20 @@ onMounted(() => {
 .lockers-page {
   min-height: 100vh;
   background-color: var(--bg-color);
+}
+
+/* Modal overlay styles for Teleport modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 .page-header {
@@ -592,6 +590,26 @@ onMounted(() => {
   padding: 20rpx 30rpx;
   background-color: #fff;
   border-bottom: 1px solid var(--border-color);
+  
+  .filter-select {
+    flex: 1;
+    padding: 16rpx 24rpx;
+    margin-right: 20rpx;
+    background-color: var(--bg-color);
+    border: none;
+    border-radius: 8rpx;
+    font-size: 28rpx;
+    color: var(--text-primary);
+    
+    &:last-child {
+      margin-right: 0;
+    }
+    
+    &:focus {
+      outline: none;
+      border: 2rpx solid var(--primary-color);
+    }
+  }
   
   .filter-item {
     flex: 1;

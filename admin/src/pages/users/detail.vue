@@ -1,169 +1,170 @@
 <template>
-  <view class="user-detail">
+  <div class="user-detail">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-left" @click="goBack">
-        <text class="iconfont icon-arrow-left"></text>
-        <text class="back-text">返回</text>
-      </view>
-      <text class="header-title">用户详情</text>
-      <view class="header-right">
-        <text class="iconfont icon-more" @click="showMoreActions"></text>
-      </view>
-    </view>
+    <div class="page-header">
+      <div class="header-left" @click="goBack">
+        <span class="iconfont icon-arrow-left"></span>
+        <span class="back-text">返回</span>
+      </div>
+      <span class="header-title">用户详情</span>
+      <div class="header-right">
+        <span class="iconfont icon-more" @click="showMoreActions"></span>
+      </div>
+    </div>
 
     <!-- 加载中 -->
-    <view v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container">
       <loading-spinner />
-    </view>
+    </div>
 
     <!-- 详情内容 -->
-    <view v-else-if="user" class="detail-content">
+    <div v-else-if="user" class="detail-content">
       <!-- 用户卡片 -->
-      <view class="user-card">
-        <view class="user-avatar-section">
-          <image :src="user.avatar || '/static/images/default-avatar.png'" 
-                 class="user-avatar" mode="aspectFill" />
-          <view class="user-status" :class="user.disabled ? 'disabled' : 'active'">
+      <div class="user-card">
+        <div class="user-avatar-section">
+          <div class="user-avatar">👤</div>
+          <div class="user-status" :class="user.disabled ? 'disabled' : 'active'">
             {{ user.disabled ? '已禁用' : '正常' }}
-          </view>
-        </view>
-        <view class="user-basic">
-          <text class="user-name">{{ user.name || '未设置昵称' }}</text>
-          <text class="user-phone">{{ user.phone }}</text>
-          <text class="user-id">ID: {{ user.id }}</text>
-        </view>
-      </view>
+          </div>
+        </div>
+        <div class="user-basic">
+          <span class="user-name">{{ user.name || '未设置昵称' }}</span>
+          <span class="user-phone">{{ user.phone }}</span>
+          <span class="user-id">ID: {{ user.id }}</span>
+        </div>
+      </div>
 
       <!-- 统计信息 -->
-      <view class="stats-section">
-        <view class="stats-card">
-          <view class="stat-item">
-            <text class="stat-label">注册时间</text>
-            <text class="stat-value">{{ formatDate(user.created_at) }}</text>
-          </view>
-          <view class="stat-item">
-            <text class="stat-label">最后活跃</text>
-            <text class="stat-value">{{ user.last_active_at ? formatDate(user.last_active_at) : '从未' }}</text>
-          </view>
-          <view class="stat-item">
-            <text class="stat-label">累计存取</text>
-            <text class="stat-value">{{ user.total_operations || 0 }} 次</text>
-          </view>
-          <view class="stat-item">
-            <text class="stat-label">当前杆柜</text>
-            <text class="stat-value">{{ user.current_lockers || 0 }} 个</text>
-          </view>
-        </view>
-      </view>
+      <div class="stats-section">
+        <div class="stats-card">
+          <div class="stat-item">
+            <span class="stat-label">注册时间</span>
+            <span class="stat-value">{{ formatDate(user.created_at) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">最后活跃</span>
+            <span class="stat-value">{{ user.last_active_at ? formatDate(user.last_active_at) : '从未' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">累计存取</span>
+            <span class="stat-value">{{ user.total_operations || 0 }} 次</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">当前杆柜</span>
+            <span class="stat-value">{{ user.current_lockers || 0 }} 个</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 当前杆柜 -->
-      <view v-if="user.lockers && user.lockers.length > 0" class="section">
-        <view class="section-header">
-          <text class="section-title">当前杆柜</text>
-          <text class="section-count">{{ user.lockers.length }} 个</text>
-        </view>
-        <view class="locker-list">
-          <view v-for="locker in user.lockers" :key="locker.id" class="locker-item">
-            <view class="locker-info">
-              <text class="locker-number">{{ locker.number }}</text>
-              <text class="locker-store">{{ locker.store_name }}</text>
-              <text class="locker-date">申请于 {{ formatDate(locker.approved_at, 'date') }}</text>
-            </view>
-            <view class="locker-status" :class="`status-${locker.status}`">
+      <div v-if="user.lockers && user.lockers.length > 0" class="section">
+        <div class="section-header">
+          <span class="section-title">当前杆柜</span>
+          <span class="section-count">{{ user.lockers.length }} 个</span>
+        </div>
+        <div class="locker-list">
+          <div v-for="locker in user.lockers" :key="locker.id" class="locker-item">
+            <div class="locker-info">
+              <span class="locker-number">{{ locker.number }}</span>
+              <span class="locker-store">{{ locker.store_name }}</span>
+              <span class="locker-date">申请于 {{ formatDate(locker.approved_at, 'date') }}</span>
+            </div>
+            <div class="locker-status" :class="`status-${locker.status}`">
               {{ getLockerStatusText(locker.status) }}
-            </view>
-          </view>
-        </view>
-      </view>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 最近操作记录 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">最近操作</text>
-          <text class="section-more" @click="viewAllRecords">查看全部</text>
-        </view>
-        <view v-if="recentRecords.length > 0" class="record-list">
-          <view v-for="record in recentRecords" :key="record.id" class="record-item">
-            <view class="record-icon" :class="`action-${record.action}`">
-              <text class="iconfont" :class="record.action === 'store' ? 'icon-in' : 'icon-out'"></text>
-            </view>
-            <view class="record-info">
-              <text class="record-action">{{ record.action === 'store' ? '存杆' : '取杆' }}</text>
-              <text class="record-detail">{{ record.locker_number }} - {{ record.store_name }}</text>
-              <text class="record-time">{{ formatDate(record.created_at) }}</text>
-            </view>
-          </view>
-        </view>
-        <view v-else class="empty-records">
-          <text>暂无操作记录</text>
-        </view>
-      </view>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">最近操作</span>
+          <span class="section-more" @click="viewAllRecords">查看全部</span>
+        </div>
+        <div v-if="recentRecords.length > 0" class="record-list">
+          <div v-for="record in recentRecords" :key="record.id" class="record-item">
+            <div class="record-icon" :class="`action-${record.action}`">
+              <span class="iconfont" :class="record.action === 'store' ? 'icon-in' : 'icon-out'"></span>
+            </div>
+            <div class="record-info">
+              <span class="record-action">{{ record.action === 'store' ? '存杆' : '取杆' }}</span>
+              <span class="record-detail">{{ record.locker_number }} - {{ record.store_name }}</span>
+              <span class="record-time">{{ formatDate(record.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-records">
+          <span>暂无操作记录</span>
+        </div>
+      </div>
 
       <!-- 个人信息 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">个人信息</text>
-          <text class="section-action" @click="editUserInfo">编辑</text>
-        </view>
-        <view class="info-list">
-          <view class="info-item">
-            <text class="info-label">真实姓名</text>
-            <text class="info-value">{{ user.real_name || '未填写' }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">身份证号</text>
-            <text class="info-value">{{ user.id_card ? maskIdCard(user.id_card) : '未填写' }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">会员等级</text>
-            <text class="info-value">{{ user.member_level || '普通会员' }}</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">备注信息</text>
-            <text class="info-value">{{ user.remark || '无' }}</text>
-          </view>
-        </view>
-      </view>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">个人信息</span>
+          <span class="section-action" @click="editUserInfo">编辑</span>
+        </div>
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">真实姓名</span>
+            <span class="info-value">{{ user.real_name || '未填写' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">身份证号</span>
+            <span class="info-value">{{ user.id_card ? maskIdCard(user.id_card) : '未填写' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">会员等级</span>
+            <span class="info-value">{{ user.member_level || '普通会员' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">备注信息</span>
+            <span class="info-value">{{ user.remark || '无' }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 操作按钮 -->
-      <view class="action-buttons">
+      <div class="action-buttons">
         <button class="btn-secondary" @click="sendNotification">
-          <text class="iconfont icon-notification"></text>
+          <span class="iconfont icon-notification"></span>
           发送通知
         </button>
         <button class="btn-primary" :class="{ danger: !user.disabled }" @click="toggleStatus">
-          <text class="iconfont" :class="user.disabled ? 'icon-unlock' : 'icon-lock'"></text>
+          <span class="iconfont" :class="user.disabled ? 'icon-unlock' : 'icon-lock'"></span>
           {{ user.disabled ? '启用账户' : '禁用账户' }}
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 更多操作菜单 -->
-    <uni-popup ref="moreActionsPopup" type="bottom">
-      <view class="action-menu">
-        <view class="action-item" @click="resetPassword">
-          <text class="iconfont icon-key"></text>
-          <text>重置密码</text>
-        </view>
-        <view class="action-item" @click="viewLoginHistory">
-          <text class="iconfont icon-history"></text>
-          <text>登录历史</text>
-        </view>
-        <view class="action-item" @click="exportUserData">
-          <text class="iconfont icon-export"></text>
-          <text>导出数据</text>
-        </view>
-        <view class="action-item danger" @click="deleteUser">
-          <text class="iconfont icon-delete"></text>
-          <text>删除用户</text>
-        </view>
-        <view class="action-cancel" @click="closeMoreActions">
-          取消
-        </view>
-      </view>
-    </uni-popup>
-  </view>
+    <Teleport to="body">
+      <div v-if="isMoreActionsOpen" class="modal-overlay" @click.self="closeMoreActions">
+        <div class="action-menu">
+          <div class="action-item" @click="resetPassword">
+            <span class="iconfont icon-key"></span>
+            <span>重置密码</span>
+          </div>
+          <div class="action-item" @click="viewLoginHistory">
+            <span class="iconfont icon-history"></span>
+            <span>登录历史</span>
+          </div>
+          <div class="action-item" @click="exportUserData">
+            <span class="iconfont icon-export"></span>
+            <span>导出数据</span>
+          </div>
+          <div class="action-item danger" @click="deleteUser">
+            <span class="iconfont icon-delete"></span>
+            <span>删除用户</span>
+          </div>
+          <div class="action-cancel" @click="closeMoreActions">
+            取消
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -205,18 +206,16 @@ interface OperationRecord {
 
 const userId = ref('')
 
-// Get user ID from page options
+// Get user ID from URL parameters
 onBeforeMount(() => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const options = currentPage.options || {}
-  userId.value = options.id || ''
+  const urlParams = new URLSearchParams(window.location.search)
+  userId.value = urlParams.get('id') || ''
 })
 
 const user = ref<UserDetail | null>(null)
 const recentRecords = ref<OperationRecord[]>([])
 const loading = ref(false)
-const moreActionsPopup = ref()
+const isMoreActionsOpen = ref(false)
 
 // 获取杆柜状态文本
 const getLockerStatusText = (status: string) => {
@@ -271,25 +270,22 @@ const getUserDetail = async () => {
 
 // 返回
 const goBack = () => {
-  uni.navigateBack()
+  window.history.back()
 }
 
 // 显示更多操作
 const showMoreActions = () => {
-  moreActionsPopup.value.open()
+  isMoreActionsOpen.value = true
 }
 
 // 关闭更多操作
 const closeMoreActions = () => {
-  moreActionsPopup.value.close()
+  isMoreActionsOpen.value = false
 }
 
 // 查看全部记录
 const viewAllRecords = () => {
-  router.push({
-    path: '/pages/records/index',
-    query: { userId: user.value?.id }
-  })
+  window.location.href = `/admin/records?userId=${user.value?.id}`
 }
 
 // 编辑用户信息
@@ -299,25 +295,20 @@ const editUserInfo = () => {
 
 // 发送通知
 const sendNotification = async () => {
-  const result = await uni.showModal({
-    title: '发送通知',
-    content: '请输入通知内容',
-    editable: true,
-    placeholderText: '请输入要发送的通知内容'
-  })
+  const content = prompt('请输入要发送的通知内容：')
   
-  if (result.confirm && result.content) {
+  if (content) {
     try {
       // TODO: Implement notification endpoint
       // await adminApi.sendNotification({
       //   userId: user.value!.id,
-      //   content: result.content,
+      //   content: content,
       //   type: 'custom'
       // })
-      showToast('通知发送成功')
+      alert('通知发送成功')
     } catch (error) {
       console.error('发送通知失败:', error)
-      showToast('发送失败')
+      alert('发送失败')
     }
   }
 }
@@ -369,10 +360,7 @@ const resetPassword = async () => {
 // 查看登录历史
 const viewLoginHistory = () => {
   closeMoreActions()
-  router.push({
-    path: '/pages/users/login-history',
-    query: { userId: user.value?.id }
-  })
+  window.location.href = `/admin/users/login-history?userId=${user.value?.id}`
 }
 
 // 导出用户数据
@@ -402,32 +390,24 @@ const exportUserData = async () => {
 // 删除用户
 const deleteUser = async () => {
   closeMoreActions()
-  const result = await showModal({
-    title: '危险操作',
-    content: '确定要删除该用户吗？此操作不可恢复！'
-  })
+  const confirmed = confirm('确定要删除该用户吗？此操作不可恢复！')
   
-  if (result.confirm) {
+  if (confirmed) {
     // 二次确认
-    const confirmResult = await uni.showModal({
-      title: '请再次确认',
-      content: `请输入用户手机号 ${user.value!.phone} 以确认删除`,
-      editable: true,
-      placeholderText: '请输入用户手机号'
-    })
+    const phoneConfirm = prompt(`请输入用户手机号 ${user.value!.phone} 以确认删除：`)
     
-    if (confirmResult.confirm && confirmResult.content === user.value!.phone) {
+    if (phoneConfirm === user.value!.phone) {
       try {
         // TODO: Implement user delete endpoint
         // await adminApi.deleteUser(user.value!.id)
-        showToast('删除成功')
+        alert('删除成功')
         setTimeout(() => goBack(), 1500)
       } catch (error) {
         console.error('删除失败:', error)
-        showToast('删除失败')
+        alert('删除失败')
       }
-    } else if (confirmResult.confirm) {
-      showToast('手机号不匹配')
+    } else if (phoneConfirm) {
+      alert('手机号不匹配')
     }
   }
 }
@@ -444,6 +424,20 @@ onMounted(() => {
 .user-detail {
   min-height: 100vh;
   background-color: var(--bg-color);
+}
+
+/* Modal overlay styles for Teleport modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1000;
 }
 
 .page-header {

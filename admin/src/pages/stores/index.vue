@@ -1,219 +1,214 @@
 <template>
-  <view class="stores-page">
+  <div class="stores-page">
     <!-- 页面头部 -->
-    <view class="page-header">
-      <view class="header-title">
-        <text class="title">门店管理</text>
-        <text class="subtitle">共 {{ stores.length }} 家门店</text>
-      </view>
-      <view class="header-actions">
+    <div class="page-header">
+      <div class="header-title">
+        <span class="title">门店管理</span>
+        <span class="subtitle">共 {{ stores.length }} 家门店</span>
+      </div>
+      <div class="header-actions">
         <button class="btn-add" @click="addStore">
-          <text class="iconfont icon-plus"></text>
+          <span class="iconfont icon-plus"></span>
           新增门店
         </button>
-      </view>
-    </view>
+      </div>
+    </div>
 
     <!-- 搜索栏 -->
-    <view class="search-bar">
-      <view class="search-input-wrapper">
-        <text class="iconfont icon-search"></text>
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <span class="iconfont icon-search"></span>
         <input 
           v-model="searchKey"
           class="search-input"
           placeholder="搜索门店名称、地址"
-          @confirm="handleSearch"
+          @keyup.enter="handleSearch"
         />
-        <text v-if="searchKey" class="iconfont icon-close" @click="clearSearch"></text>
-      </view>
-    </view>
+        <span v-if="searchKey" class="iconfont icon-close" @click="clearSearch"></span>
+      </div>
+    </div>
 
     <!-- 门店列表 -->
-    <scroll-view class="stores-list" scroll-y :refresher-enabled="true" 
-                 :refresher-triggered="refreshing" @refresherrefresh="onPullDownRefresh">
-      <view v-if="loading" class="loading-container">
+    <div class="stores-list">
+      <div v-if="loading" class="loading-container">
         <loading-spinner />
-      </view>
+      </div>
       
-      <view v-else-if="filteredStores.length === 0" class="empty-container">
-        <image src="/static/images/empty-stores.png" class="empty-image" />
-        <text class="empty-text">暂无门店数据</text>
-      </view>
+      <div v-else-if="filteredStores.length === 0" class="empty-container">
+        <div class="empty-icon">🏢</div>
+        <span class="empty-text">暂无门店数据</span>
+      </div>
 
-      <view v-else>
-        <view v-for="store in filteredStores" :key="store.id" class="store-card">
+      <div v-else>
+        <div v-for="store in filteredStores" :key="store.id" class="store-card">
           <!-- 门店基本信息 -->
-          <view class="store-header">
-            <view class="store-info">
-              <text class="store-name">{{ store.name }}</text>
-              <view class="store-meta">
-                <text class="store-code">编码：{{ store.code }}</text>
-                <view class="store-status" :class="store.is_active ? 'active' : 'inactive'">
+          <div class="store-header">
+            <div class="store-info">
+              <span class="store-name">{{ store.name }}</span>
+              <div class="store-meta">
+                <span class="store-code">编码：{{ store.code }}</span>
+                <div class="store-status" :class="store.is_active ? 'active' : 'inactive'">
                   {{ store.is_active ? '营业中' : '已停业' }}
-                </view>
-              </view>
-            </view>
-            <view class="store-actions">
-              <text class="iconfont icon-edit" @click="editStore(store)"></text>
-              <text class="iconfont icon-more" @click="showMoreActions(store)"></text>
-            </view>
-          </view>
+                </div>
+              </div>
+            </div>
+            <div class="store-actions">
+              <span class="iconfont icon-edit" @click="editStore(store)"></span>
+              <span class="iconfont icon-more" @click="showMoreActions(store)"></span>
+            </div>
+          </div>
 
           <!-- 门店地址 -->
-          <view class="store-address">
-            <text class="iconfont icon-location"></text>
-            <text class="address-text">{{ store.address }}</text>
-          </view>
+          <div class="store-address">
+            <span class="iconfont icon-location"></span>
+            <span class="address-text">{{ store.address }}</span>
+          </div>
 
           <!-- 联系信息 -->
-          <view class="store-contact">
-            <view class="contact-item">
-              <text class="iconfont icon-user"></text>
-              <text>{{ store.manager_name || '未设置' }}</text>
-            </view>
-            <view class="contact-item">
-              <text class="iconfont icon-phone"></text>
-              <text>{{ store.contact_phone || '未设置' }}</text>
-            </view>
-          </view>
+          <div class="store-contact">
+            <div class="contact-item">
+              <span class="iconfont icon-user"></span>
+              <span>{{ store.manager_name || '未设置' }}</span>
+            </div>
+            <div class="contact-item">
+              <span class="iconfont icon-phone"></span>
+              <span>{{ store.contact_phone || '未设置' }}</span>
+            </div>
+          </div>
 
           <!-- 杆柜统计 -->
-          <view class="locker-stats">
-            <view class="stat-item">
-              <text class="stat-value">{{ store.total_lockers || 0 }}</text>
-              <text class="stat-label">总杆柜</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ store.available_lockers || 0 }}</text>
-              <text class="stat-label">可用</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ store.occupied_lockers || 0 }}</text>
-              <text class="stat-label">使用中</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ store.maintenance_lockers || 0 }}</text>
-              <text class="stat-label">维护中</text>
-            </view>
-          </view>
+          <div class="locker-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ store.total_lockers || 0 }}</span>
+              <span class="stat-label">总杆柜</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ store.available_lockers || 0 }}</span>
+              <span class="stat-label">可用</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ store.occupied_lockers || 0 }}</span>
+              <span class="stat-label">使用中</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ store.maintenance_lockers || 0 }}</span>
+              <span class="stat-label">维护中</span>
+            </div>
+          </div>
 
           <!-- 营业时间 -->
-          <view class="business-hours">
-            <text class="hours-label">营业时间：</text>
-            <text class="hours-value">{{ store.business_hours || '09:00 - 22:00' }}</text>
-          </view>
+          <div class="business-hours">
+            <span class="hours-label">营业时间：</span>
+            <span class="hours-value">{{ store.business_hours || '09:00 - 22:00' }}</span>
+          </div>
 
           <!-- 快捷操作 -->
-          <view class="store-quick-actions">
+          <div class="store-quick-actions">
             <button class="btn-action" @click="viewLockers(store)">
-              <text class="iconfont icon-locker"></text>
+              <span class="iconfont icon-locker"></span>
               查看杆柜
             </button>
             <button class="btn-action" @click="viewStatistics(store)">
-              <text class="iconfont icon-chart"></text>
+              <span class="iconfont icon-chart"></span>
               数据统计
             </button>
             <button class="btn-action" :class="{ danger: store.is_active }" @click="toggleStoreStatus(store)">
-              <text class="iconfont" :class="store.is_active ? 'icon-pause' : 'icon-play'"></text>
+              <span class="iconfont" :class="store.is_active ? 'icon-pause' : 'icon-play'"></span>
               {{ store.is_active ? '停业' : '营业' }}
             </button>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 新增/编辑门店弹窗 -->
-    <uni-popup ref="storeFormPopup" type="center">
-      <view class="store-form">
-        <view class="form-header">
-          <text class="form-title">{{ isEdit ? '编辑门店' : '新增门店' }}</text>
-          <text class="iconfont icon-close" @click="closeStoreForm"></text>
-        </view>
-        <scroll-view class="form-body" scroll-y>
-          <view class="form-item">
-            <text class="form-label required">门店名称</text>
-            <input v-model="formData.name" class="form-input" placeholder="请输入门店名称" />
-          </view>
-          <view class="form-item">
-            <text class="form-label required">门店编码</text>
-            <input v-model="formData.code" class="form-input" placeholder="请输入门店编码" 
-                   :disabled="isEdit" />
-          </view>
-          <view class="form-item">
-            <text class="form-label required">门店地址</text>
-            <textarea v-model="formData.address" class="form-textarea" placeholder="请输入详细地址" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">负责人</text>
-            <input v-model="formData.manager_name" class="form-input" placeholder="请输入负责人姓名" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">联系电话</text>
-            <input v-model="formData.contact_phone" class="form-input" placeholder="请输入联系电话" 
-                   type="number" maxlength="11" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">营业时间</text>
-            <view class="time-inputs">
-              <picker mode="time" :value="formData.open_time" @change="handleOpenTimeChange">
-                <view class="time-input">
-                  <text>{{ formData.open_time || '09:00' }}</text>
-                  <text class="iconfont icon-arrow-down"></text>
-                </view>
-              </picker>
-              <text class="time-separator">至</text>
-              <picker mode="time" :value="formData.close_time" @change="handleCloseTimeChange">
-                <view class="time-input">
-                  <text>{{ formData.close_time || '22:00' }}</text>
-                  <text class="iconfont icon-arrow-down"></text>
-                </view>
-              </picker>
-            </view>
-          </view>
-          <view class="form-item">
-            <text class="form-label">备注信息</text>
-            <textarea v-model="formData.remark" class="form-textarea" placeholder="选填" />
-          </view>
-        </scroll-view>
-        <view class="form-actions">
-          <button class="btn-cancel" @click="closeStoreForm">取消</button>
-          <button class="btn-confirm" @click="confirmStoreForm">确定</button>
-        </view>
-      </view>
-    </uni-popup>
+    <Teleport to="body">
+      <div v-if="isStoreFormOpen" class="modal-overlay" @click.self="closeStoreForm">
+        <div class="store-form">
+          <div class="form-header">
+            <span class="form-title">{{ isEdit ? '编辑门店' : '新增门店' }}</span>
+            <span class="iconfont icon-close" @click="closeStoreForm"></span>
+          </div>
+            <div class="form-item">
+              <span class="form-label required">门店名称</span>
+              <input v-model="formData.name" class="form-input" placeholder="请输入门店名称" />
+            </div>
+            <div class="form-item">
+              <span class="form-label required">门店编码</span>
+              <input v-model="formData.code" class="form-input" placeholder="请输入门店编码" 
+                     :disabled="isEdit" />
+            </div>
+            <div class="form-item">
+              <span class="form-label required">门店地址</span>
+              <textarea v-model="formData.address" class="form-textarea" placeholder="请输入详细地址" />
+            </div>
+            <div class="form-item">
+              <span class="form-label">负责人</span>
+              <input v-model="formData.manager_name" class="form-input" placeholder="请输入负责人姓名" />
+            </div>
+            <div class="form-item">
+              <span class="form-label">联系电话</span>
+              <input v-model="formData.contact_phone" class="form-input" placeholder="请输入联系电话" 
+                     type="tel" maxlength="11" />
+            </div>
+            <div class="form-item">
+              <span class="form-label">营业时间</span>
+              <div class="time-inputs">
+                <input type="time" v-model="formData.open_time" class="time-input" />
+                <span class="time-separator">至</span>
+                <input type="time" v-model="formData.close_time" class="time-input" />
+              </div>
+            </div>
+            <div class="form-item">
+              <span class="form-label">备注信息</span>
+              <textarea v-model="formData.remark" class="form-textarea" placeholder="选填" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-cancel" @click="closeStoreForm">取消</button>
+            <button class="btn-confirm" @click="confirmStoreForm">确定</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- 更多操作菜单 -->
-    <uni-popup ref="moreActionsPopup" type="bottom">
-      <view class="action-menu">
-        <view class="action-item" @click="batchAddLockers">
-          <text class="iconfont icon-add-circle"></text>
-          <text>批量添加杆柜</text>
-        </view>
-        <view class="action-item" @click="exportStoreData">
-          <text class="iconfont icon-export"></text>
-          <text>导出门店数据</text>
-        </view>
-        <view class="action-item" @click="viewStoreQRCode">
-          <text class="iconfont icon-qrcode"></text>
-          <text>查看门店二维码</text>
-        </view>
-        <view class="action-item danger" @click="deleteStore">
-          <text class="iconfont icon-delete"></text>
-          <text>删除门店</text>
-        </view>
-        <view class="action-cancel" @click="closeMoreActions">
-          取消
-        </view>
-      </view>
-    </uni-popup>
-  </view>
+    <Teleport to="body">
+      <div v-if="isMoreActionsOpen" class="modal-overlay" @click.self="closeMoreActions">
+        <div class="action-menu">
+          <div class="action-item" @click="batchAddLockers">
+            <span class="iconfont icon-add-circle"></span>
+            <span>批量添加杆柜</span>
+          </div>
+          <div class="action-item" @click="exportStoreData">
+            <span class="iconfont icon-export"></span>
+            <span>导出门店数据</span>
+          </div>
+          <div class="action-item" @click="viewStoreQRCode">
+            <span class="iconfont icon-qrcode"></span>
+            <span>查看门店二维码</span>
+          </div>
+          <div class="action-item danger" @click="deleteStore">
+            <span class="iconfont icon-delete"></span>
+            <span>删除门店</span>
+          </div>
+          <div class="action-cancel" @click="closeMoreActions">
+            取消
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { adminApi } from '@/services/api'
 import { showToast, showModal } from '@/utils'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+
+const router = useRouter()
 
 interface Store {
   id: string
@@ -240,8 +235,8 @@ const searchKey = ref('')
 const currentStore = ref<Store | null>(null)
 
 // 表单相关
-const storeFormPopup = ref()
-const moreActionsPopup = ref()
+const isStoreFormOpen = ref(false)
+const isMoreActionsOpen = ref(false)
 const isEdit = ref(false)
 const formData = ref({
   name: '',
@@ -317,7 +312,7 @@ const addStore = () => {
     close_time: '22:00',
     remark: ''
   }
-  storeFormPopup.value.open()
+  isStoreFormOpen.value = true
 }
 
 // 编辑门店
@@ -338,24 +333,16 @@ const editStore = (store: Store) => {
     close_time: closeTime,
     remark: ''
   }
-  storeFormPopup.value.open()
+  isStoreFormOpen.value = true
 }
 
 // 关闭表单
 const closeStoreForm = () => {
-  storeFormPopup.value.close()
+  isStoreFormOpen.value = false
   currentStore.value = null
 }
 
-// 处理营业开始时间
-const handleOpenTimeChange = (e: any) => {
-  formData.value.open_time = e.detail.value
-}
-
-// 处理营业结束时间
-const handleCloseTimeChange = (e: any) => {
-  formData.value.close_time = e.detail.value
-}
+// Note: 营业时间现在直接通过HTML input[type="time"]的v-model绑定，不需要额外的事件处理函数
 
 // 确认提交表单
 const confirmStoreForm = async () => {
@@ -399,16 +386,12 @@ const confirmStoreForm = async () => {
 
 // 查看杆柜
 const viewLockers = (store: Store) => {
-  uni.navigateTo({
-    url: `/pages/lockers/index?storeId=${store.id}&storeName=${store.name}`
-  })
+  window.location.href = `/admin/lockers?storeId=${store.id}&storeName=${store.name}`
 }
 
 // 查看统计
 const viewStatistics = (store: Store) => {
-  uni.navigateTo({
-    url: `/pages/statistics/store?storeId=${store.id}&storeName=${store.name}`
-  })
+  window.location.href = `/admin/statistics?storeId=${store.id}&storeName=${store.name}`
 }
 
 // 切换门店状态
@@ -437,20 +420,18 @@ const toggleStoreStatus = async (store: Store) => {
 // 显示更多操作
 const showMoreActions = (store: Store) => {
   currentStore.value = store
-  moreActionsPopup.value.open()
+  isMoreActionsOpen.value = true
 }
 
 // 关闭更多操作
 const closeMoreActions = () => {
-  moreActionsPopup.value.close()
+  isMoreActionsOpen.value = false
 }
 
 // 批量添加杆柜
 const batchAddLockers = () => {
   closeMoreActions()
-  uni.navigateTo({
-    url: `/pages/lockers/batch-add?storeId=${currentStore.value?.id}&storeName=${currentStore.value?.name}`
-  })
+  window.location.href = `/admin/lockers/batch-add?storeId=${currentStore.value?.id}&storeName=${currentStore.value?.name}`
 }
 
 // 导出门店数据
@@ -481,9 +462,7 @@ const exportStoreData = async () => {
 // 查看门店二维码
 const viewStoreQRCode = () => {
   closeMoreActions()
-  uni.navigateTo({
-    url: `/pages/stores/qrcode?storeId=${currentStore.value?.id}&storeName=${currentStore.value?.name}`
-  })
+  window.location.href = `/admin/stores/qrcode?storeId=${currentStore.value?.id}&storeName=${currentStore.value?.name}`
 }
 
 // 删除门店
@@ -527,6 +506,29 @@ onMounted(() => {
 .stores-page {
   min-height: 100vh;
   background-color: var(--bg-color);
+}
+
+/* Modal overlay styles for Teleport modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Bottom sheet style for action menu */
+.modal-overlay .action-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 16px 16px 0 0;
 }
 
 .page-header {

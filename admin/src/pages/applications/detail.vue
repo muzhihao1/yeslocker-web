@@ -31,7 +31,7 @@
         <view class="section-title">申请人信息</view>
         <view class="info-card">
           <view class="user-header">
-            <image :src="application.user.avatar || '/static/images/default-avatar.png'" 
+            <image :src="application.user.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGNUY1RjUiLz4KPHN2ZyB4PSI1IiB5PSI1IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+CjxwYXRoIGQ9Ik0xMiAxMmM0IDAgNi0yIDYtNnMtMi02LTYtNi02IDItNiA2IDIgNiA2IDZ6bTAgMmMtNiAwLTEyIDMtMTIgOXYzaDI0di0zYzAtNi02LTktMTItOXoiLz4KPC9zdmc+Cjwvc3ZnPg=='" 
                    class="user-avatar" mode="aspectFill" />
             <view class="user-basic">
               <text class="user-name">{{ application.user.name }}</text>

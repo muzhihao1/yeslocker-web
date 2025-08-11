@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import TabBar from '@/components/layout/TabBar.vue'
 
