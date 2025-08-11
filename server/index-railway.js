@@ -143,8 +143,8 @@ class RailwayServer {
       }
     });
 
-    // Get stores and lockers
-    this.app.get('/stores-lockers', async (req, res) => {
+    // Get stores and lockers (with API prefix)
+    this.app.get('/api/stores-lockers', async (req, res) => {
       try {
         const client = await this.pool.connect();
         
@@ -314,6 +314,165 @@ class RailwayServer {
         res.status(500).json({
           error: 'Internal server error',
           message: '登录失败，请稍后重试'
+        });
+      }
+    });
+
+    // Admin Statistics API
+    this.app.get('/api/admin-statistics', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Get basic statistics
+        const statsQuery = `
+          SELECT 
+            (SELECT COUNT(*) FROM users WHERE status = 'active') as total_users,
+            (SELECT COUNT(*) FROM lockers WHERE status = 'occupied') as occupied_lockers,
+            (SELECT COUNT(*) FROM lockers WHERE status = 'available') as available_lockers,
+            (SELECT COUNT(*) FROM applications WHERE status = 'pending') as pending_applications
+        `;
+        
+        const result = await client.query(statsQuery);
+        const stats = result.rows[0] || {};
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          data: {
+            pending_applications: parseInt(stats.pending_applications) || 0,
+            occupied_lockers: parseInt(stats.occupied_lockers) || 0,
+            active_users: parseInt(stats.total_users) || 0,
+            today_records: 0, // TODO: Add today's records count
+            available_lockers: parseInt(stats.available_lockers) || 0
+          }
+        });
+      } catch (error) {
+        console.error('Get admin statistics error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取统计数据失败'
+        });
+      }
+    });
+
+    // Admin Applications API
+    this.app.get('/api/admin-approval', async (req, res) => {
+      try {
+        const { page = 1, pageSize = 20, status, storeId } = req.query;
+        const offset = (page - 1) * pageSize;
+        
+        const client = await this.pool.connect();
+        
+        let whereClause = 'WHERE 1=1';
+        const params = [pageSize, offset];
+        let paramIndex = 2;
+        
+        if (status && status !== 'all') {
+          paramIndex++;
+          whereClause += ` AND a.status = $${paramIndex}`;
+          params.push(status);
+        }
+        
+        if (storeId) {
+          paramIndex++;
+          whereClause += ` AND a.store_id = $${paramIndex}`;
+          params.push(storeId);
+        }
+        
+        const applicationsQuery = `
+          SELECT 
+            a.id, a.status, a.remark, a.created_at,
+            u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url,
+            s.id as store_id, s.name as store_name,
+            l.id as locker_id, l.number as locker_number
+          FROM applications a
+          LEFT JOIN users u ON a.user_id = u.id
+          LEFT JOIN stores s ON a.store_id = s.id
+          LEFT JOIN lockers l ON a.locker_id = l.id
+          ${whereClause}
+          ORDER BY a.created_at DESC
+          LIMIT $1 OFFSET $2
+        `;
+        
+        const result = await client.query(applicationsQuery, params);
+        client.release();
+        
+        const applications = result.rows.map(row => ({
+          id: row.id,
+          status: row.status,
+          remark: row.remark,
+          created_at: row.created_at,
+          user: {
+            id: row.user_id,
+            name: row.user_name,
+            phone: row.user_phone,
+            avatar: row.avatar_url
+          },
+          store: {
+            id: row.store_id,
+            name: row.store_name
+          },
+          locker: {
+            id: row.locker_id,
+            number: row.locker_number
+          }
+        }));
+        
+        res.json({
+          success: true,
+          data: applications
+        });
+      } catch (error) {
+        console.error('Get applications error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取申请列表失败'
+        });
+      }
+    });
+
+    // Admin Approval Action API
+    this.app.post('/api/admin-approval', async (req, res) => {
+      try {
+        const { application_id, action, admin_id, reject_reason } = req.body;
+        
+        if (!application_id || !action) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields',
+            message: '缺少必需参数'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        if (action === 'approve') {
+          await client.query(
+            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2 WHERE id = $3',
+            ['approved', admin_id, application_id]
+          );
+        } else if (action === 'reject') {
+          await client.query(
+            'UPDATE applications SET status = $1, reject_reason = $2, approved_at = NOW(), approved_by = $3 WHERE id = $4',
+            ['rejected', reject_reason, admin_id, application_id]
+          );
+        }
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          message: action === 'approve' ? '审核通过' : '已拒绝'
+        });
+      } catch (error) {
+        console.error('Admin approval error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '审核操作失败'
         });
       }
     });
