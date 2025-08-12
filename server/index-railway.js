@@ -212,6 +212,18 @@ class RailwayServer {
           ON CONFLICT (id) DO NOTHING
         `);
         
+        // Insert locker_records data to fix admin-records API 500 error
+        await client.query(`
+          INSERT INTO locker_records (id, user_id, locker_id, action, notes, created_at) VALUES 
+          ('50000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'assigned', '分配杆柜A-001给李四', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+          ('50000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'store', '存放台球杆', CURRENT_TIMESTAMP - INTERVAL '2 days' + INTERVAL '1 hour'),
+          ('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000101', 'assigned', '分配杆柜B-101给孙七', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+          ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000101', 'store', '存放比赛用杆', CURRENT_TIMESTAMP - INTERVAL '1 day' + INTERVAL '30 minutes'),
+          ('50000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'store', '临时存放周末球杆', CURRENT_TIMESTAMP - INTERVAL '3 hours'),
+          ('50000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'retrieve', '取回球杆', CURRENT_TIMESTAMP - INTERVAL '1 hour')
+          ON CONFLICT (id) DO NOTHING
+        `);
+        
         client.release();
         
         // Get final counts
@@ -726,7 +738,7 @@ class RailwayServer {
         
         let query = `
           SELECT 
-            lr.id, lr.action, lr.created_at, lr.remark,
+            lr.id, lr.action, lr.created_at, lr.notes as remark,
             u.id as user_id, u.name as user_name, u.phone as user_phone,
             l.id as locker_id, l.number as locker_number,
             s.id as store_id, s.name as store_name
