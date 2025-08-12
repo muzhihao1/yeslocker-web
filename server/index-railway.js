@@ -808,6 +808,238 @@ class RailwayServer {
       }
     });
 
+    // Admin Users API - Get users list
+    this.app.get('/api/admin-users', authenticateToken, async (req, res) => {
+      try {
+        const { page = 1, limit = 20, search, store_id, status } = req.query;
+        const offset = (page - 1) * limit;
+        
+        const client = await this.pool.connect();
+        
+        let query = `
+          SELECT 
+            u.id, u.phone, u.name, u.avatar_url, u.status, u.created_at,
+            s.id as store_id, s.name as store_name,
+            COUNT(l.id) as locker_count
+          FROM users u
+          LEFT JOIN stores s ON u.store_id = s.id
+          LEFT JOIN lockers l ON l.current_user_id = u.id
+        `;
+        
+        const params = [];
+        const conditions = [];
+        let paramIndex = 0;
+        
+        if (search) {
+          paramIndex++;
+          conditions.push(`(u.name ILIKE $${paramIndex} OR u.phone ILIKE $${paramIndex})`);
+          params.push(`%${search}%`);
+        }
+        
+        if (store_id) {
+          paramIndex++;
+          conditions.push(`u.store_id = $${paramIndex}`);
+          params.push(store_id);
+        }
+        
+        if (status) {
+          paramIndex++;
+          conditions.push(`u.status = $${paramIndex}`);
+          params.push(status);
+        }
+        
+        if (conditions.length > 0) {
+          query += ' WHERE ' + conditions.join(' AND ');
+        }
+        
+        query += ` GROUP BY u.id, u.phone, u.name, u.avatar_url, u.status, u.created_at, s.id, s.name`;
+        query += ` ORDER BY u.created_at DESC LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+        
+        const result = await client.query(query, params);
+        client.release();
+        
+        const users = result.rows.map(row => ({
+          id: row.id,
+          phone: row.phone,
+          name: row.name,
+          avatar_url: row.avatar_url,
+          status: row.status,
+          created_at: row.created_at,
+          store: {
+            id: row.store_id,
+            name: row.store_name
+          },
+          locker_count: parseInt(row.locker_count) || 0
+        }));
+        
+        res.json({
+          success: true,
+          data: {
+            list: users,
+            total: users.length,
+            page: parseInt(page),
+            limit: parseInt(limit)
+          }
+        });
+        
+      } catch (error) {
+        console.error('Get admin users error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取用户列表失败'
+        });
+      }
+    });
+
+    // Admin Lockers API - Create new locker
+    this.app.post('/api/admin-lockers', authenticateToken, async (req, res) => {
+      try {
+        const { store_id, number, remark } = req.body;
+        
+        if (!store_id || !number) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields',
+            message: '门店和杆柜编号为必填项'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if locker number already exists in the store
+          const existingLocker = await client.query(
+            'SELECT id FROM lockers WHERE store_id = $1 AND number = $2',
+            [store_id, number]
+          );
+          
+          if (existingLocker.rows.length > 0) {
+            client.release();
+            return res.status(409).json({
+              success: false,
+              error: 'Locker number exists',
+              message: '该门店已存在相同编号的杆柜'
+            });
+          }
+          
+          // Insert new locker
+          const insertQuery = `
+            INSERT INTO lockers (id, store_id, number, status, remark, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, 'available', $3, NOW(), NOW())
+            RETURNING id, store_id, number, status, remark, created_at
+          `;
+          
+          const result = await client.query(insertQuery, [store_id, number, remark || null]);
+          const newLocker = result.rows[0];
+          
+          client.release();
+          
+          console.log(`✅ 新建杆柜成功: ${number} (门店ID: ${store_id})`);
+          
+          res.json({
+            success: true,
+            message: '杆柜创建成功',
+            data: {
+              id: newLocker.id,
+              store_id: newLocker.store_id,
+              number: newLocker.number,
+              status: newLocker.status,
+              remark: newLocker.remark,
+              created_at: newLocker.created_at
+            }
+          });
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Create locker error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '创建杆柜失败'
+        });
+      }
+    });
+
+    // Admin Lockers API - Update locker status
+    this.app.put('/api/admin-lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status, remark } = req.body;
+        
+        if (!id || !status) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields',
+            message: '杆柜ID和状态为必填项'
+          });
+        }
+        
+        // Validate status
+        const validStatuses = ['available', 'occupied', 'maintenance'];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid status',
+            message: '无效的杆柜状态'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Update locker status
+          const updateQuery = `
+            UPDATE lockers 
+            SET status = $1, remark = $2, updated_at = NOW()
+            WHERE id = $3
+            RETURNING id, number, status, remark, store_id
+          `;
+          
+          const result = await client.query(updateQuery, [status, remark || null, id]);
+          
+          if (result.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              success: false,
+              error: 'Locker not found',
+              message: '杆柜不存在'
+            });
+          }
+          
+          const updatedLocker = result.rows[0];
+          client.release();
+          
+          console.log(`✅ 杆柜状态更新成功: ${updatedLocker.number} -> ${status}`);
+          
+          res.json({
+            success: true,
+            message: '杆柜状态更新成功',
+            data: {
+              id: updatedLocker.id,
+              number: updatedLocker.number,
+              status: updatedLocker.status,
+              remark: updatedLocker.remark,
+              store_id: updatedLocker.store_id
+            }
+          });
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Update locker error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '更新杆柜状态失败'
+        });
+      }
+    });
+
     // Admin login
     this.app.post('/api/admin-login', async (req, res) => {
       try {
