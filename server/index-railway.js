@@ -220,27 +220,64 @@ class RailwayServer {
           ORDER BY s.name
         `;
         
-        const result = await client.query(storesQuery);
+        // Get lockers with store information
+        const lockersQuery = `
+          SELECT 
+            l.id, l.number, l.status, l.current_user_id, l.assigned_at,
+            l.created_at, l.updated_at,
+            s.name as store_name, s.id as store_id,
+            u.name as user_name, u.phone as user_phone
+          FROM lockers l
+          JOIN stores s ON l.store_id = s.id
+          LEFT JOIN users u ON l.current_user_id = u.id
+          WHERE s.status = 'active'
+          ORDER BY s.name, l.number
+        `;
+        
+        const [storesResult, lockersResult] = await Promise.all([
+          client.query(storesQuery),
+          client.query(lockersQuery)
+        ]);
+        
         client.release();
+        
+        const stores = storesResult.rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          address: row.address || '',
+          phone: row.phone || '',
+          status: row.status,
+          total_lockers: parseInt(row.total_lockers) || 0,
+          available_lockers: parseInt(row.available_lockers) || 0
+        }));
+        
+        const lockers = lockersResult.rows.map(row => ({
+          id: row.id,
+          number: row.number,
+          status: row.status,
+          store_id: row.store_id,
+          store_name: row.store_name,
+          current_user_id: row.current_user_id,
+          user_name: row.user_name,
+          user_phone: row.user_phone,
+          assigned_at: row.assigned_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        }));
         
         res.json({
           success: true,
-          data: result.rows.map(row => ({
-            id: row.id,
-            name: row.name,
-            address: row.address || '',
-            phone: row.phone || '',
-            status: row.status,
-            total_lockers: parseInt(row.total_lockers) || 0,
-            available_lockers: parseInt(row.available_lockers) || 0
-          }))
+          data: {
+            stores,
+            lockers
+          }
         });
       } catch (error) {
-        console.error('Get stores error:', error);
+        console.error('Get stores and lockers error:', error);
         res.status(500).json({
           success: false,
           error: 'Database error',
-          message: '获取门店信息失败'
+          message: '获取门店和杆柜信息失败'
         });
       }
     });
