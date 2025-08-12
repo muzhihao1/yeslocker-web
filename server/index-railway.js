@@ -141,24 +141,103 @@ class RailwayServer {
       });
     });
 
-    // Debug stores query
-    this.app.get('/api/debug-stores', async (req, res) => {
+    // Initialize database with seed data
+    this.app.post('/api/init-db', async (req, res) => {
       try {
         const client = await this.pool.connect();
         
-        const result = await client.query(`
-          SELECT * FROM stores LIMIT 5
+        // Insert stores data
+        await client.query(`
+          INSERT INTO stores (id, name, address, phone, status) VALUES 
+          ('00000000-0000-0000-0000-000000000001', '旗舰店', '北京市朝阳区望京街道SOHO现代城', '010-12345678', 'active'),
+          ('00000000-0000-0000-0000-000000000002', '分店A', '北京市海淀区中关村大街', '010-87654321', 'active'),
+          ('00000000-0000-0000-0000-000000000003', '分店B', '北京市东城区王府井大街', '010-11223344', 'active')
+          ON CONFLICT (id) DO NOTHING
+        `);
+        
+        // Insert admin data  
+        await client.query(`
+          INSERT INTO admins (id, phone, password, name, role, store_id, status) VALUES 
+          ('10000000-0000-0000-0000-000000000001', '13800000001', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', '超级管理员', 'super_admin', NULL, 'active'),
+          ('10000000-0000-0000-0000-000000000002', '13800000002', '$2b$10$cwuUxomL1KE9dMddgFIeQeonqquzHFy6lABNgwXtuz0lMneoB4FfO', '门店管理员', 'store_admin', '00000000-0000-0000-0000-000000000001', 'active'),
+          ('10000000-0000-0000-0000-000000000003', '13800000003', '$2b$10$qhdsA4CGdRd8uKpxVjln0ODH0JqLWg5R1QWKdP6m4PzyVH0XyPy4y', '门店管理员B', 'store_admin', '00000000-0000-0000-0000-000000000002', 'active')
+          ON CONFLICT (id) DO NOTHING
+        `);
+        
+        // Insert users data
+        await client.query(`
+          INSERT INTO users (id, phone, name, password, avatar_url, store_id, status) VALUES 
+          ('20000000-0000-0000-0000-000000000001', '13800000010', '张三', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000001', 'active'),
+          ('20000000-0000-0000-0000-000000000002', '13800000011', '李四', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000001', 'active'),
+          ('20000000-0000-0000-0000-000000000003', '13800000012', '王五', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000002', 'active'),
+          ('20000000-0000-0000-0000-000000000004', '13800000013', '赵六', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000001', 'active'),
+          ('20000000-0000-0000-0000-000000000005', '13800000014', '孙七', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000002', 'active'),
+          ('20000000-0000-0000-0000-000000000006', '18669203134', '测试用户', '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', NULL, '00000000-0000-0000-0000-000000000001', 'active')
+          ON CONFLICT (id) DO NOTHING
+        `);
+        
+        // Insert lockers data 
+        await client.query(`
+          INSERT INTO lockers (id, store_id, number, status, current_user_id) VALUES 
+          ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'A-001', 'occupied', '20000000-0000-0000-0000-000000000002'),
+          ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'A-002', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'A-003', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'A-004', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'B-001', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', 'B-002', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000001', 'B-003', 'maintenance', NULL),
+          ('30000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000001', 'B-004', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000002', 'A-001', 'occupied', '20000000-0000-0000-0000-000000000005'),
+          ('30000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000002', 'A-002', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000103', '00000000-0000-0000-0000-000000000002', 'A-003', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000104', '00000000-0000-0000-0000-000000000002', 'A-004', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000105', '00000000-0000-0000-0000-000000000002', 'B-001', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000106', '00000000-0000-0000-0000-000000000002', 'B-002', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000003', 'A-001', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000003', 'A-002', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000003', 'A-003', 'available', NULL),
+          ('30000000-0000-0000-0000-000000000204', '00000000-0000-0000-0000-000000000003', 'A-004', 'available', NULL)
+          ON CONFLICT (id) DO NOTHING
+        `);
+        
+        // Insert applications data
+        await client.query(`
+          INSERT INTO applications (id, user_id, store_id, locker_type, purpose, notes, status, assigned_locker_id, approved_by, approved_at) VALUES 
+          ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '标准杆柜', '存放私人球杆', '我是会员，需要长期存放', 'approved', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+          ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', '大型杆柜', '存放多支球杆', '比赛用杆需要专门存放', 'approved', '30000000-0000-0000-0000-000000000101', '10000000-0000-0000-0000-000000000003', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+          ('40000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '标准杆柜', '临时存放', '周末来打球需要存杆', 'pending', NULL, NULL, NULL),
+          ('40000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '标准杆柜', '长期存放', '每天都来打球', 'pending', NULL, NULL, NULL),
+          ('40000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', '标准杆柜', '存放球杆', '申请存放台球杆', 'pending', NULL, NULL, NULL),
+          ('40000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', '豪华杆柜', '存放多支杆', '杆柜已满', 'rejected', NULL, '10000000-0000-0000-0000-000000000003', CURRENT_TIMESTAMP - INTERVAL '3 days')
+          ON CONFLICT (id) DO NOTHING
         `);
         
         client.release();
         
+        // Get final counts
+        const finalResult = await this.pool.connect();
+        const counts = await Promise.all([
+          finalResult.query('SELECT COUNT(*) FROM stores'),
+          finalResult.query('SELECT COUNT(*) FROM admins'),
+          finalResult.query('SELECT COUNT(*) FROM users'),
+          finalResult.query('SELECT COUNT(*) FROM lockers'),
+          finalResult.query('SELECT COUNT(*) FROM applications')
+        ]);
+        finalResult.release();
+        
         res.json({
           success: true,
-          count: result.rows.length,
-          rows: result.rows
+          message: 'Database initialized with seed data',
+          counts: {
+            stores: parseInt(counts[0].rows[0].count),
+            admins: parseInt(counts[1].rows[0].count),
+            users: parseInt(counts[2].rows[0].count),
+            lockers: parseInt(counts[3].rows[0].count),
+            applications: parseInt(counts[4].rows[0].count)
+          }
         });
       } catch (error) {
-        res.json({
+        res.status(500).json({
           success: false,
           error: error.message,
           stack: error.stack
