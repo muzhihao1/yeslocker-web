@@ -1485,23 +1485,33 @@ class RailwayServer {
 
     // SPA fallback - serve index.html for client-side routing
     this.app.get('*', (req, res) => {
+      console.log(`🔍 SPA Fallback: ${req.method} ${req.path}`);
+      
       // Don't serve index.html for API routes
       if (req.path.startsWith('/api/') || req.path.startsWith('/auth-') || 
           req.path.startsWith('/stores-') || req.path.startsWith('/lockers-') ||
           req.path.startsWith('/users/')) {
+        console.log(`⛔ API route blocked: ${req.path}`);
         return res.status(404).json({ error: 'API endpoint not found' });
       }
 
       // Don't serve index.html for static assets (JS, CSS, images, etc.)
       if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+        console.log(`⛔ Static asset blocked: ${req.path}`);
         return res.status(404).json({ error: 'Static asset not found' });
       }
 
       // Serve admin app for admin routes (excluding static assets)
       if (req.path.startsWith('/admin')) {
         const adminIndexPath = path.join(__dirname, '../admin/dist/index.html');
+        console.log(`📱 Admin route detected: ${req.path}`);
+        console.log(`📁 Admin HTML path: ${adminIndexPath}`);
+        console.log(`✅ Admin HTML exists: ${fs.existsSync(adminIndexPath)}`);
         if (fs.existsSync(adminIndexPath)) {
+          console.log(`🎯 Serving admin HTML for: ${req.path}`);
           return res.sendFile(adminIndexPath);
+        } else {
+          console.log(`❌ Admin HTML not found: ${adminIndexPath}`);
         }
       }
 
