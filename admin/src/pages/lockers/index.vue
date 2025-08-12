@@ -77,7 +77,7 @@
       </div>
     </div>
 
-    <!-- 门店-杆柜树形结构 -->
+    <!-- 门店-杆柜树形结构 v2.0 -->
     <div class="store-tree-container">
       <div v-if="storeOptions.length === 0" class="empty-stores">
         <div class="empty-icon">🏪</div>
