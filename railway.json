@@ -3,20 +3,12 @@
   "version": "2025-08-12",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install && npm run build",
-    "watchPatterns": [
-      "server/**",
-      "src/**",
-      "admin/**",
-      "package.json",
-      "railway.json"
-    ]
+    "buildCommand": "npm ci && npm run build:client && cd admin && npm ci && npm run build && cd ../server && npm ci"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "cd server && node index-railway.js",
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10,
-    "sleepBeforeRestart": 1
+    "restartPolicyMaxRetries": 10
   }
 }
