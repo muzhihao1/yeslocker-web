@@ -35,9 +35,13 @@ class RailwayServer {
       this.pool = new Pool({
         connectionString: databaseUrl,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-        max: 10,
+        max: 20,          // 增加最大连接数
+        min: 2,           // 保持最少连接数
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        connectionTimeoutMillis: 5000,  // 减少连接超时
+        acquireTimeoutMillis: 5000,     // 添加获取连接超时
+        statement_timeout: 10000,       // SQL语句超时
+        query_timeout: 10000,           // 查询超时
       });
       console.log('✅ PostgreSQL connection pool initialized');
       this.dbConnected = false; // Will be set to true after successful connection test
@@ -139,6 +143,62 @@ class RailwayServer {
         database_url_exists: !!process.env.DATABASE_URL,
         database_url_prefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'not set'
       });
+    });
+
+    // Performance optimization: Create missing indexes
+    this.app.post('/api/optimize-db', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        console.log('🚀 Starting database performance optimization...');
+        
+        // Create performance indexes for admin-statistics queries
+        const optimizationQueries = [
+          // Critical missing index for users.status
+          'CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)',
+          
+          // Additional performance indexes  
+          'CREATE INDEX IF NOT EXISTS idx_lockers_status ON lockers(status)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_created_at_desc ON locker_records(created_at DESC)',
+          
+          // Composite indexes for common query patterns
+          'CREATE INDEX IF NOT EXISTS idx_applications_status_created ON applications(status, created_at DESC)',
+          'CREATE INDEX IF NOT EXISTS idx_users_status_active ON users(status, created_at DESC) WHERE status = \'active\'',
+          
+          // Analyze tables for query planner
+          'ANALYZE users',
+          'ANALYZE lockers', 
+          'ANALYZE applications',
+          'ANALYZE locker_records'
+        ];
+        
+        const results = [];
+        for (const query of optimizationQueries) {
+          try {
+            await client.query(query);
+            results.push({ query: query.split(' ')[0] + ' ' + query.split(' ')[1], status: 'success' });
+            console.log('✅', query.split(' ')[0], query.split(' ')[1]);
+          } catch (error) {
+            results.push({ query: query.split(' ')[0] + ' ' + query.split(' ')[1], status: 'error', message: error.message });
+            console.log('❌', query.split(' ')[0], query.split(' ')[1], ':', error.message);
+          }
+        }
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          message: 'Database optimization completed',
+          results: results
+        });
+        
+      } catch (error) {
+        console.error('Database optimization error:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
     });
 
     // Initialize database with seed data
@@ -602,46 +662,49 @@ class RailwayServer {
       }
     });
 
-    // Admin Statistics API - Optimized for performance 
+    // Admin Statistics API - Ultra-optimized for performance 
     this.app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
       try {
         const client = await this.pool.connect();
         
-        // Execute all statistics queries in parallel for better performance
-        const [usersResult, lockersResult, applicationsResult, recordsResult] = await Promise.all([
-          client.query("SELECT COUNT(*) as count FROM users WHERE status = 'active'"),
-          client.query("SELECT status, COUNT(*) as count FROM lockers GROUP BY status"),
-          client.query("SELECT COUNT(*) as count FROM applications WHERE status = 'pending'"),
-          client.query(`
-            SELECT COUNT(*) as count FROM locker_records 
-            WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'
-          `)
-        ]);
+        // Single optimized query to get all statistics in one go
+        const combinedQuery = `
+          WITH stats AS (
+            SELECT 
+              (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
+              (SELECT COUNT(*) FROM applications WHERE status = 'pending') as pending_applications,
+              (SELECT COUNT(*) FROM locker_records 
+               WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day') as today_records
+          ),
+          locker_stats AS (
+            SELECT 
+              COALESCE(SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END), 0) as occupied_lockers,
+              COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available_lockers,
+              COALESCE(SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END), 0) as maintenance_lockers
+            FROM lockers
+          )
+          SELECT 
+            s.active_users,
+            s.pending_applications,  
+            s.today_records,
+            ls.occupied_lockers,
+            ls.available_lockers,
+            ls.maintenance_lockers
+          FROM stats s, locker_stats ls
+        `;
         
+        const result = await client.query(combinedQuery);
         client.release();
         
-        // Process locker status counts
-        const lockerStats = {
-          occupied: 0,
-          available: 0,
-          maintenance: 0
-        };
-        
-        lockersResult.rows.forEach(row => {
-          const status = row.status;
-          const count = parseInt(row.count) || 0;
-          if (status in lockerStats) {
-            lockerStats[status] = count;
-          }
-        });
-        
+        // Extract stats from the single query result
+        const row = result.rows[0];
         const stats = {
-          active_users: parseInt(usersResult.rows[0]?.count) || 0,
-          occupied_lockers: lockerStats.occupied,
-          available_lockers: lockerStats.available,
-          maintenance_lockers: lockerStats.maintenance,
-          pending_applications: parseInt(applicationsResult.rows[0]?.count) || 0,
-          today_records: parseInt(recordsResult.rows[0]?.count) || 0
+          active_users: parseInt(row.active_users) || 0,
+          occupied_lockers: parseInt(row.occupied_lockers) || 0,
+          available_lockers: parseInt(row.available_lockers) || 0,
+          maintenance_lockers: parseInt(row.maintenance_lockers) || 0,
+          pending_applications: parseInt(row.pending_applications) || 0,
+          today_records: parseInt(row.today_records) || 0
         };
         
         res.json({
