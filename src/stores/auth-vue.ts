@@ -53,25 +53,37 @@ const SECURITY_CONFIG = {
 } as const
 
 /**
- * 简单加密/解密工具（生产环境应使用更强的加密）
+ * 简单加密/解密工具（支持UTF-8/中文字符，生产环境应使用更强的加密）
  */
 const crypto = {
   encrypt(data: string): string {
-    // 简单的Base64编码 + 时间戳（生产环境应使用AES等）
-    const timestamp = Date.now()
-    const payload = JSON.stringify({ data, timestamp })
-    return btoa(payload)
+    try {
+      // 简单的Base64编码 + 时间戳（生产环境应使用AES等）
+      const timestamp = Date.now()
+      const payload = JSON.stringify({ data, timestamp })
+      
+      // 使用encodeURIComponent + btoa来支持UTF-8字符（包括中文）
+      // encodeURIComponent将中文字符转换为%xx格式，然后btoa进行Base64编码
+      return btoa(encodeURIComponent(payload))
+    } catch (err) {
+      console.error('数据加密失败:', err)
+      // 降级处理：如果加密失败，返回空字符串
+      return ''
+    }
   },
   
   decrypt(encryptedData: string): string | null {
     try {
-      const payload = JSON.parse(atob(encryptedData))
+      // 先用atob解码Base64，然后用decodeURIComponent还原UTF-8字符串
+      const payload = JSON.parse(decodeURIComponent(atob(encryptedData)))
+      
       // 验证数据是否过期（7天）
       if (Date.now() - payload.timestamp > 7 * 24 * 60 * 60 * 1000) {
         return null
       }
       return payload.data
-    } catch {
+    } catch (err) {
+      console.warn('数据解密失败，可能是旧版本数据或已损坏:', err)
       return null
     }
   }
