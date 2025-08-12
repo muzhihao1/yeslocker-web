@@ -265,6 +265,7 @@ class RailwayServer {
         }
 
         const client = await this.pool.connect();
+        let clientReleased = false;
         
         try {
           const userQuery = 'SELECT * FROM users WHERE phone = $1 AND status = $2';
@@ -281,6 +282,7 @@ class RailwayServer {
             const createResult = await client.query(createUserQuery, [phone, `用户${phone.slice(-4)}`]);
             const newUser = createResult.rows[0];
             client.release();
+            clientReleased = true;
             
             console.log(`✅ 新用户自动创建并登录成功: ${newUser.name} (${phone})`);
             
@@ -302,6 +304,7 @@ class RailwayServer {
 
           const user = result.rows[0];
           client.release();
+          clientReleased = true;
 
           // Login with phone number only (verification code removed)
 
@@ -322,7 +325,9 @@ class RailwayServer {
             }
           });
         } catch (dbError) {
-          client.release();
+          if (!clientReleased) {
+            client.release();
+          }
           throw dbError;
         }
       } catch (error) {
