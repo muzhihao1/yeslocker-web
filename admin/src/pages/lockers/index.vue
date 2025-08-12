@@ -54,132 +54,136 @@
       </div>
     </div>
 
-    <!-- 门店管理 -->
-    <div class="store-management">
-      <div class="section-header">
-        <h3 class="section-title">门店管理</h3>
+    <!-- 筛选和操作栏 -->
+    <div class="control-bar">
+      <div class="filter-controls">
+        <select v-model="filterStore" @change="handleStoreChange" class="filter-select">
+          <option value="-1">全部门店</option>
+          <option v-for="(store, index) in storeOptions" :key="store.id" :value="index">
+            {{ store.name }}
+          </option>
+        </select>
+        <select v-model="filterStatus" @change="handleStatusChange" class="filter-select">
+          <option v-for="(status, index) in statusOptions" :key="index" :value="index">
+            {{ status }}
+          </option>
+        </select>
+      </div>
+      <div class="action-controls">
         <button class="btn-add-store" @click="addStore">
           <span class="iconfont icon-plus"></span>
           新增门店
         </button>
       </div>
-      
+    </div>
+
+    <!-- 门店-杆柜树形结构 -->
+    <div class="store-tree-container">
       <div v-if="storeOptions.length === 0" class="empty-stores">
         <div class="empty-icon">🏪</div>
         <span class="empty-text">暂无门店，请先添加门店</span>
       </div>
       
-      <div v-else class="store-grid">
-        <div v-for="store in storeOptions" :key="store.id" class="store-card">
-          <div class="store-header">
-            <h4 class="store-name">{{ store.name }}</h4>
-            <div class="store-actions">
-              <button class="btn-edit" @click="editStore(store)">
-                <span class="iconfont icon-edit"></span>
-              </button>
-              <button class="btn-delete" @click="deleteStoreConfirm(store.id, store.name)">
-                <span class="iconfont icon-delete"></span>
-              </button>
+      <div v-else class="store-tree">
+        <div v-for="store in storeOptions" :key="store.id" class="store-node">
+          <!-- 门店卡片 -->
+          <div class="store-card" :class="{ 'expanded': expandedStores.includes(store.id) }">
+            <div class="store-main" @click="toggleStore(store.id)">
+              <div class="store-expand-icon">
+                <span v-if="expandedStores.includes(store.id)">📂</span>
+                <span v-else>📁</span>
+              </div>
+              <div class="store-info">
+                <h4 class="store-name">{{ store.name }}</h4>
+                <p class="store-address">{{ store.address || '地址未设置' }}</p>
+                <div class="store-stats">
+                  <span class="stat-item">杆柜: {{ getStoreLockerCount(store.id) }}</span>
+                  <span class="stat-item">管理员: {{ store.manager_name || '未设置' }}</span>
+                </div>
+              </div>
+              <div class="store-actions" @click.stop>
+                <button class="btn-edit" @click="editStore(store)">
+                  <span class="iconfont icon-edit"></span>
+                  编辑
+                </button>
+                <button class="btn-delete" @click="deleteStoreConfirm(store.id, store.name)">
+                  <span class="iconfont icon-delete"></span>
+                  删除
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="store-info">
-            <p class="store-address">{{ store.address || '地址未设置' }}</p>
-            <div class="store-stats">
-              <span class="stat-item">杆柜: {{ getStoreLockerCount(store.id) }}</span>
-              <span class="stat-item">管理员: {{ store.manager_name || '未设置' }}</span>
+            
+            <!-- 杆柜列表 -->
+            <div v-if="expandedStores.includes(store.id)" class="store-lockers">
+              <div class="lockers-header">
+                <span class="lockers-title">{{ store.name }} 的杆柜列表</span>
+                <button class="btn-add-locker" @click="addLockerForStore(store.id)">
+                  <span class="iconfont icon-plus"></span>
+                  新增杆柜
+                </button>
+              </div>
+              
+              <div class="lockers-grid">
+                <div v-for="locker in getStoreLockers(store.id)" :key="locker.id" 
+                      class="locker-card" 
+                      :class="`status-${locker.status}`"
+                      @click="goToDetail(locker.id)">
+                  <!-- 杆柜编号和状态 -->
+                  <div class="locker-header">
+                    <span class="locker-number">{{ locker.number }}</span>
+                    <div class="locker-status">
+                      <span class="status-dot"></span>
+                      <span class="status-text">{{ getStatusText(locker.status) }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 使用者信息 -->
+                  <div v-if="locker.user" class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-detail">
+                      <span class="user-name">{{ locker.user.name }}</span>
+                      <span class="user-phone">{{ locker.user.phone }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="empty-user">
+                    <span class="iconfont icon-user"></span>
+                    <span>暂无使用者</span>
+                  </div>
+                  
+                  <!-- 使用信息 -->
+                  <div v-if="locker.status === 'occupied' || locker.status === 'storing'" class="usage-info">
+                    <span class="usage-label">{{ locker.status === 'storing' ? '存杆时间' : '开始使用' }}：</span>
+                    <span class="usage-time">{{ formatDate(locker.last_operation_at, 'datetime') }}</span>
+                  </div>
+                  
+                  <!-- 快捷操作 -->
+                  <div class="locker-actions" @click.stop>
+                    <button v-if="locker.status === 'occupied'" class="btn-action" @click="releaseLocker(locker)">
+                      释放
+                    </button>
+                    <button v-if="locker.status === 'maintenance'" class="btn-action" @click="restoreLocker(locker)">
+                      恢复
+                    </button>
+                    <button v-else-if="locker.status === 'available'" class="btn-action" @click="setMaintenance(locker)">
+                      维护
+                    </button>
+                    <button class="btn-action primary" @click="viewHistory(locker.id)">
+                      历史
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- 该门店暂无杆柜 -->
+                <div v-if="getStoreLockers(store.id).length === 0" class="empty-lockers">
+                  <span class="empty-text">该门店暂无杆柜</span>
+                  <button class="btn-add-first-locker" @click="addLockerForStore(store.id)">
+                    新增第一个杆柜
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 筛选栏 -->
-    <div class="filter-bar">
-      <select v-model="filterStore" @change="handleStoreChange" class="filter-select">
-        <option value="-1">全部门店</option>
-        <option v-for="(store, index) in storeOptions" :key="store.id" :value="index">
-          {{ store.name }}
-        </option>
-      </select>
-      <select v-model="filterStatus" @change="handleStatusChange" class="filter-select">
-        <option v-for="(status, index) in statusOptions" :key="index" :value="index">
-          {{ status }}
-        </option>
-      </select>
-    </div>
-
-    <!-- 杆柜列表 -->
-    <div class="lockers-list">
-      <div v-if="loading && lockers.length === 0" class="loading-container">
-        <div class="loading-spinner"></div>
-        <span class="loading-text">加载中...</span>
-      </div>
-      
-      <div v-else-if="lockers.length === 0" class="empty-container">
-        <div class="empty-icon">📦</div>
-        <span class="empty-text">暂无杆柜数据</span>
-      </div>
-
-      <div v-else class="locker-grid">
-        <div v-for="locker in lockers" :key="locker.id" 
-              class="locker-card" 
-              :class="`status-${locker.status}`"
-              @click="goToDetail(locker.id)">
-          <!-- 杆柜编号和状态 -->
-          <div class="locker-header">
-            <span class="locker-number">{{ locker.number }}</span>
-            <div class="locker-status">
-              <span class="status-dot"></span>
-              <span class="status-text">{{ getStatusText(locker.status) }}</span>
-            </div>
-          </div>
-          
-          <!-- 门店信息 -->
-          <div class="store-info">
-            <span class="iconfont icon-store"></span>
-            <span class="store-name">{{ locker.store_name }}</span>
-          </div>
-          
-          <!-- 使用者信息 -->
-          <div v-if="locker.user" class="user-info">
-            <div class="user-avatar">👤</div>
-            <div class="user-detail">
-              <span class="user-name">{{ locker.user.name }}</span>
-              <span class="user-phone">{{ locker.user.phone }}</span>
-            </div>
-          </div>
-          <div v-else class="empty-user">
-            <span class="iconfont icon-user"></span>
-            <span>暂无使用者</span>
-          </div>
-          
-          <!-- 使用信息 -->
-          <div v-if="locker.status === 'occupied' || locker.status === 'storing'" class="usage-info">
-            <span class="usage-label">{{ locker.status === 'storing' ? '存杆时间' : '开始使用' }}：</span>
-            <span class="usage-time">{{ formatDate(locker.last_operation_at, 'datetime') }}</span>
-          </div>
-          
-          <!-- 快捷操作 -->
-          <div class="locker-actions" @click.stop>
-            <button v-if="locker.status === 'occupied'" class="btn-action" @click="releaseLocker(locker)">
-              释放
-            </button>
-            <button v-if="locker.status === 'maintenance'" class="btn-action" @click="restoreLocker(locker)">
-              恢复
-            </button>
-            <button v-else-if="locker.status === 'available'" class="btn-action" @click="setMaintenance(locker)">
-              维护
-            </button>
-            <button class="btn-action primary" @click="viewHistory(locker.id)">
-              历史
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 加载更多 -->
-      <div v-if="hasMore && !loading" class="load-more">
-        <span>上拉加载更多</span>
       </div>
     </div>
 
@@ -298,6 +302,7 @@ interface Store {
   contact_phone?: string
   business_hours?: string
   remark?: string
+  phone?: string  // 兼容旧字段名
 }
 
 
@@ -345,6 +350,33 @@ const storeForm = ref({
   remark: ''
 })
 
+// 树形结构状态
+const expandedStores = ref<string[]>([])
+
+// 展开/收起门店
+const toggleStore = (storeId: string) => {
+  const index = expandedStores.value.indexOf(storeId)
+  if (index > -1) {
+    expandedStores.value.splice(index, 1)
+  } else {
+    expandedStores.value.push(storeId)
+  }
+}
+
+// 获取指定门店的杆柜
+const getStoreLockers = (storeId: string) => {
+  return allLockers.value.filter(locker => locker.store_id === storeId)
+}
+
+// 为指定门店新增杆柜
+const addLockerForStore = (storeId: string) => {
+  const store = storeOptions.value.find(s => s.id === storeId)
+  if (store) {
+    newLocker.value.storeIndex = storeOptions.value.indexOf(store)
+    isAddLockerOpen.value = true
+  }
+}
+
 // 获取状态文本
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
@@ -356,49 +388,30 @@ const getStatusText = (status: string) => {
   return statusMap[status] || status
 }
 
+// 原始数据存储
+const allLockers = ref<Locker[]>([])
+
 // 获取杆柜列表
 const getLockers = async (isRefresh = false) => {
   if (loading.value) return
   
-  if (isRefresh) {
-    page.value = 1
-    hasMore.value = true
-  }
-  
   loading.value = true
   
   try {
-    const params: any = {
-      page: page.value,
-      pageSize
-    }
-    
-    // 添加筛选条件
-    if (filterStore.value > -1 && storeOptions.value[filterStore.value]) {
-      params.storeId = storeOptions.value[filterStore.value].id
-    }
-    
-    if (filterStatus.value > 0) {
-      const statusMap = ['', 'available', 'occupied', 'storing', 'maintenance']
-      params.status = statusMap[filterStatus.value]
-    }
-    
     const response = await adminApi.getStoresAndLockers()
     
-    if (isRefresh) {
-      lockers.value = response.data?.lockers || []
-    } else {
-      lockers.value.push(...(response.data?.lockers || []))
-    }
+    // 存储所有原始数据
+    allLockers.value = response.data?.lockers || []
+    
+    // 应用筛选
+    applyFilters()
     
     // 更新统计数据
     if (response.data?.stats) {
       stats.value = response.data.stats
     }
     
-    totalCount.value = response.data?.total || 0
-    hasMore.value = (response.data?.lockers?.length || 0) === pageSize
-    page.value++
+    totalCount.value = lockers.value.length
   } catch (error) {
     console.error('获取杆柜列表失败:', error)
     showToast('获取数据失败')
@@ -406,6 +419,27 @@ const getLockers = async (isRefresh = false) => {
     loading.value = false
     refreshing.value = false
   }
+}
+
+// 应用筛选条件
+const applyFilters = () => {
+  let filtered = [...allLockers.value]
+  
+  // 门店筛选
+  if (filterStore.value > -1 && storeOptions.value[filterStore.value]) {
+    const selectedStoreId = storeOptions.value[filterStore.value].id
+    filtered = filtered.filter(locker => locker.store_id === selectedStoreId)
+  }
+  
+  // 状态筛选
+  if (filterStatus.value > 0) {
+    const statusMap = ['', 'available', 'occupied', 'storing', 'maintenance']
+    const selectedStatus = statusMap[filterStatus.value]
+    filtered = filtered.filter(locker => locker.status === selectedStatus)
+  }
+  
+  lockers.value = filtered
+  totalCount.value = filtered.length
 }
 
 // 获取门店列表
@@ -420,12 +454,12 @@ const getStores = async () => {
 
 // 处理门店筛选
 const handleStoreChange = () => {
-  getLockers(true)
+  applyFilters()
 }
 
 // 处理状态筛选
 const handleStatusChange = () => {
-  getLockers(true)
+  applyFilters()
 }
 
 // 下拉刷新
@@ -597,9 +631,10 @@ const addStore = () => {
 
 // 打开编辑门店表单
 const editStore = (store: Store) => {
+  console.log('编辑门店:', store)
   editingStore.value = store
   storeForm.value = {
-    name: store.name,
+    name: store.name || '',
     code: store.code || '',
     address: store.address || '',
     manager_name: store.manager_name || '',
@@ -608,6 +643,7 @@ const editStore = (store: Store) => {
     remark: store.remark || ''
   }
   isStoreFormOpen.value = true
+  console.log('表单数据:', storeForm.value)
 }
 
 // 关闭门店表单
@@ -695,13 +731,224 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
   background-color: var(--bg-color);
 }
 
-/* 门店管理样式 */
-.store-management {
-  background-color: var(--bg-color-white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-light);
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-lg);
+/* 控制栏样式 */
+.control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 16px;
+}
+
+.action-controls {
+  display: flex;
+  gap: 16px;
+}
+
+/* 树形结构样式 */
+.store-tree-container {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 16px;
+}
+
+.store-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.store-node {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 300ms;
+}
+
+.store-node:hover {
+  border-color: #1B5E20;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.store-card {
+  background-color: #ffffff;
+}
+
+.store-card.expanded {
+  background-color: #f5f5f5;
+}
+
+.store-main {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 300ms;
+}
+
+.store-main:hover {
+  background-color: #fafafa;
+}
+
+.store-expand-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.store-info {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.store-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #212121;
+  margin: 0 0 8px 0;
+}
+
+.store-address {
+  font-size: 14px;
+  color: #757575;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.store-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-item {
+  font-size: 12px;
+  color: #212121;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.store-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 300ms;
+  font-weight: 500;
+}
+
+.btn-edit {
+  background-color: #2196F3;
+  color: #ffffff;
+}
+
+.btn-edit:hover {
+  opacity: 0.9;
+}
+
+.btn-delete {
+  background-color: #F44336;
+  color: #ffffff;
+}
+
+.btn-delete:hover {
+  opacity: 0.9;
+}
+
+/* 杆柜列表样式 */
+.store-lockers {
+  border-top: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  padding: 16px;
+}
+
+.lockers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.lockers-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212121;
+}
+
+.btn-add-locker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: #4CAF50;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 300ms;
+  font-weight: 500;
+}
+
+.btn-add-locker:hover {
+  opacity: 0.9;
+}
+
+.lockers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.empty-lockers {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #757575;
+  text-align: center;
+}
+
+.empty-lockers .empty-text {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.btn-add-first-locker {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 300ms;
+  font-weight: 500;
+}
+
+.btn-add-first-locker:hover {
+  opacity: 0.9;
 }
 
 .section-header {
@@ -845,10 +1092,10 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
 .add-store-form {
   width: 500px;
   max-width: 90vw;
-  background-color: var(--bg-color-white);
-  border-radius: var(--border-radius-lg);
+  background-color: #ffffff;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: var(--box-shadow-heavy);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Modal overlay styles for Teleport modals */
