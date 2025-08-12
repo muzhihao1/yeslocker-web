@@ -79,11 +79,23 @@ class RailwayServer {
       this.app.use(express.static(distPath));
     }
 
-    // Serve admin static files
-    const adminDistPath = path.join(__dirname, '../admin/dist');
-    if (fs.existsSync(adminDistPath)) {
-      console.log(`📁 Serving admin files from: ${adminDistPath}`);
-      this.app.use('/admin', express.static(adminDistPath));
+    // Serve admin static assets only (not HTML files)
+    const adminAssetsPath = path.join(__dirname, '../admin/dist');
+    if (fs.existsSync(adminAssetsPath)) {
+      console.log(`📁 Serving admin assets from: ${adminAssetsPath}`);
+      // Serve only assets, not HTML files to avoid conflicts with SPA routing
+      this.app.use('/admin/assets', express.static(path.join(adminAssetsPath, 'assets')));
+      
+      // Serve other static files (like images) but exclude index.html
+      this.app.use('/admin', express.static(adminAssetsPath, {
+        index: false, // Don't serve index.html automatically
+        setHeaders: (res, path) => {
+          // Block HTML files from being served by static middleware
+          if (path.endsWith('.html')) {
+            res.status(404).end();
+          }
+        }
+      }));
     }
   }
 
