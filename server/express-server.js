@@ -899,6 +899,95 @@ app.delete('/api/admin/stores/:id', authenticateToken, async (req, res) => {
   }
 })
 
+// Update Store endpoint
+app.patch('/api/admin/stores/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, address, manager_name, contact_phone, business_hours, remark, is_active } = req.body
+    
+    // Check if store exists
+    const existingStore = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM stores WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (!existingStore) {
+      return res.status(404).json({
+        success: false,
+        message: '门店不存在'
+      })
+    }
+    
+    const currentTime = new Date().toISOString()
+    
+    // Build update query dynamically
+    const updates = []
+    const values = []
+    
+    if (name !== undefined) {
+      updates.push('name = ?')
+      values.push(name)
+    }
+    if (address !== undefined) {
+      updates.push('address = ?')
+      values.push(address)
+    }
+    if (manager_name !== undefined) {
+      updates.push('manager_name = ?')
+      values.push(manager_name)
+    }
+    if (contact_phone !== undefined) {
+      updates.push('phone = ?')
+      values.push(contact_phone)
+    }
+    if (business_hours !== undefined) {
+      updates.push('business_hours = ?')
+      values.push(business_hours)
+    }
+    if (remark !== undefined) {
+      updates.push('remark = ?')
+      values.push(remark)
+    }
+    if (is_active !== undefined) {
+      updates.push('is_active = ?')
+      values.push(is_active ? 1 : 0)
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供要更新的字段'
+      })
+    }
+    
+    updates.push('updated_at = ?')
+    values.push(currentTime, id)
+    
+    const query = `UPDATE stores SET ${updates.join(', ')} WHERE id = ?`
+    
+    await new Promise((resolve, reject) => {
+      db.run(query, values, function(err) {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+    
+    res.json({
+      success: true,
+      message: '门店更新成功'
+    })
+    
+  } catch (error) {
+    console.error('更新门店错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
 // Get Store Statistics endpoint
 app.get('/api/admin/stores/:id/stats', authenticateToken, async (req, res) => {
   try {
@@ -1107,35 +1196,42 @@ app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
       })
     })
     
-    const totalLockers = await new Promise((resolve, reject) => {
-      let query = 'SELECT COUNT(*) as count FROM lockers'
+    // Get locker statistics using JOIN to ensure data consistency
+    const lockerStats = await new Promise((resolve, reject) => {
+      let query = `
+        SELECT 
+          COUNT(*) as total_lockers,
+          COUNT(CASE WHEN l.status = 'available' THEN 1 END) as available_lockers,
+          COUNT(CASE WHEN l.status = 'occupied' THEN 1 END) as occupied_lockers,
+          COUNT(CASE WHEN l.status = 'storing' THEN 1 END) as storing_lockers,
+          COUNT(CASE WHEN l.status = 'maintenance' THEN 1 END) as maintenance_lockers
+        FROM lockers l
+        JOIN stores s ON l.store_id = s.id
+      `
       const params = []
       
       if (store_id) {
-        query += ' WHERE store_id = ?'
+        query += ' WHERE l.store_id = ?'
         params.push(store_id)
       }
       
       db.get(query, params, (err, row) => {
         if (err) reject(err)
-        else resolve(row.count)
+        else resolve(row || {
+          total_lockers: 0,
+          available_lockers: 0,
+          occupied_lockers: 0,
+          storing_lockers: 0,
+          maintenance_lockers: 0
+        })
       })
     })
     
-    const occupiedLockers = await new Promise((resolve, reject) => {
-      let query = 'SELECT COUNT(*) as count FROM lockers WHERE status = "occupied"'
-      const params = []
-      
-      if (store_id) {
-        query += ' AND store_id = ?'
-        params.push(store_id)
-      }
-      
-      db.get(query, params, (err, row) => {
-        if (err) reject(err)
-        else resolve(row.count)
-      })
-    })
+    const totalLockers = lockerStats.total_lockers || 0
+    const occupiedLockers = lockerStats.occupied_lockers || 0
+    const availableLockers = lockerStats.available_lockers || 0
+    const storingLockers = lockerStats.storing_lockers || 0
+    const maintenanceLockers = lockerStats.maintenance_lockers || 0
     
     const pendingApplications = await new Promise((resolve, reject) => {
       let query = 'SELECT COUNT(*) as count FROM applications WHERE status = "pending"'
@@ -1164,8 +1260,10 @@ app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
         },
         lockers: {
           total: totalLockers,
+          available: availableLockers,
           occupied: occupiedLockers,
-          available: totalLockers - occupiedLockers
+          storing: storingLockers,
+          maintenance: maintenanceLockers
         },
         applications: {
           pending: pendingApplications
