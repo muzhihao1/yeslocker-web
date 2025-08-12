@@ -268,13 +268,13 @@ const getStores = async () => {
   
   try {
     const response = await adminApi.getStoresAndLockers()
-    stores.value = response.stores || []
+    stores.value = response.data?.stores || []
     
     // 获取每个门店的杆柜统计
     for (const store of stores.value) {
       const stats = await adminApi.getStatistics({ store_id: store.id })
-      if (stats.stores) {
-        Object.assign(store, stats.stores)
+      if (stats.data?.stores) {
+        Object.assign(store, stats.data.stores)
       }
     }
   } catch (error) {

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -83,6 +84,30 @@ class RailwayServer {
   }
 
   setupRoutes() {
+    // JWT Authentication Middleware
+    const authenticateToken = (req, res, next) => {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ 
+          success: false, 
+          message: '缺少访问令牌' 
+        });
+      }
+      
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+          return res.status(403).json({ 
+            success: false, 
+            message: '无效的访问令牌' 
+          });
+        }
+        req.user = user;
+        next();
+      });
+    };
+
     // Health check
     this.app.get('/health', (req, res) => {
       res.json({
@@ -128,26 +153,57 @@ class RailwayServer {
       
       try {
         const client = await this.pool.connect();
-        const result = await client.query('SELECT version()');
+        
+        // Test basic connection
+        const versionResult = await client.query('SELECT version()');
+        
+        // Check if required tables exist
+        const tablesResult = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name IN ('admins', 'stores', 'lockers', 'users', 'applications', 'locker_records')
+          ORDER BY table_name
+        `);
+        
+        // Count data in key tables
+        const tableStats = {};
+        const requiredTables = ['admins', 'stores', 'lockers', 'users', 'applications'];
+        
+        for (const tableName of requiredTables) {
+          try {
+            const countResult = await client.query(`SELECT COUNT(*) as count FROM ${tableName}`);
+            tableStats[tableName] = parseInt(countResult.rows[0].count);
+          } catch (tableError) {
+            tableStats[tableName] = `Error: ${tableError.message}`;
+          }
+        }
+        
         client.release();
         
         res.json({
           success: true,
           message: 'Database connection successful',
-          version: result.rows[0].version
+          version: versionResult.rows[0].version,
+          tables: {
+            existing: tablesResult.rows.map(row => row.table_name),
+            counts: tableStats,
+            missing: requiredTables.filter(table => !tablesResult.rows.find(row => row.table_name === table))
+          }
         });
       } catch (error) {
         console.error('Database test error:', error);
         res.status(500).json({
           success: false,
           error: 'Database connection failed',
-          message: error.message
+          message: error.message,
+          details: error.stack
         });
       }
     });
 
     // Get stores and lockers (with API prefix)
-    this.app.get('/api/stores-lockers', async (req, res) => {
+    this.app.get('/api/stores-lockers', authenticateToken, async (req, res) => {
       try {
         const client = await this.pool.connect();
         
@@ -343,7 +399,7 @@ class RailwayServer {
     });
 
     // Admin Statistics API - Optimized for performance 
-    this.app.get('/api/admin-statistics', async (req, res) => {
+    this.app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
       try {
         const client = await this.pool.connect();
         
@@ -400,7 +456,7 @@ class RailwayServer {
     });
 
     // Admin Applications API
-    this.app.get('/api/admin-approval', async (req, res) => {
+    this.app.get('/api/admin-approval', authenticateToken, async (req, res) => {
       try {
         const { page = 1, pageSize = 20, status, storeId } = req.query;
         const offset = (page - 1) * pageSize;
@@ -477,7 +533,7 @@ class RailwayServer {
     });
 
     // Admin Approval Action API
-    this.app.post('/api/admin-approval', async (req, res) => {
+    this.app.post('/api/admin-approval', authenticateToken, async (req, res) => {
       try {
         const { application_id, action, admin_id, reject_reason } = req.body;
         
@@ -518,30 +574,6 @@ class RailwayServer {
         });
       }
     });
-
-    // JWT Authentication Middleware
-    const authenticateToken = (req, res, next) => {
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
-      
-      if (!token) {
-        return res.status(401).json({ 
-          success: false, 
-          message: '缺少访问令牌' 
-        });
-      }
-      
-      jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-          return res.status(403).json({ 
-            success: false, 
-            message: '无效的访问令牌' 
-          });
-        }
-        req.user = user;
-        next();
-      });
-    };
 
     // Admin Records API - Fixed missing endpoint
     this.app.get('/api/admin-records', authenticateToken, async (req, res) => {
@@ -653,7 +685,7 @@ class RailwayServer {
           const adminQuery = 'SELECT * FROM admins WHERE phone = $1 AND status = $2';
           const result = await client.query(adminQuery, [phone, 'active']);
           
-          if (result.rows.length === 0 || password !== 'admin123') {
+          if (result.rows.length === 0) {
             client.release();
             return res.status(401).json({
               error: 'Invalid credentials',
@@ -661,10 +693,46 @@ class RailwayServer {
             });
           }
 
+          // Password verification - development mode with fallback
           const admin = result.rows[0];
+          let passwordMatch = false;
+          
+          if (admin.password) {
+            // Try bcrypt first (production)
+            try {
+              passwordMatch = await bcrypt.compare(password, admin.password);
+            } catch (bcryptError) {
+              // If bcrypt fails, check for plain text password (development)
+              passwordMatch = password === admin.password;
+            }
+          } else {
+            // Fallback for development - allow 'admin123'
+            passwordMatch = password === 'admin123';
+          }
+
+          if (!passwordMatch) {
+            client.release();
+            return res.status(401).json({
+              error: 'Invalid credentials', 
+              message: '账号或密码错误'
+            });
+          }
+
           client.release();
 
           console.log(`✅ 管理员登录成功: ${admin.name} (${phone})`);
+
+          // Generate real JWT token
+          const token = jwt.sign(
+            { 
+              adminId: admin.id, 
+              phone: admin.phone, 
+              name: admin.name,
+              role: admin.role 
+            },
+            JWT_SECRET,
+            { expiresIn: '8h' }
+          );
 
           res.json({
             success: true,
@@ -676,7 +744,7 @@ class RailwayServer {
                 role: admin.role,
                 permissions: ['all']
               },
-              token: 'admin_token_' + admin.id
+              token: token
             }
           });
         } catch (dbError) {
