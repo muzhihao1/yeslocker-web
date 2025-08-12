@@ -16,6 +16,9 @@
     "db:init:pg": "node database/init-pg.js",
     "db:reset": "node database/init-sqlite.js reset",
     "db:check": "node database/init-sqlite.js check",
+    "db:optimize": "node database/apply-performance-indexes.js",
+    "db:enhance": "node database/apply-enhanced-constraints.js",
+    "db:enhance:dry": "node database/apply-enhanced-constraints.js --dry-run",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:restart": "pm2 restart ecosystem.config.js",
@@ -23,14 +26,18 @@
     "pm2:monit": "pm2 monit"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
     "@supabase/supabase-js": "^2.38.0",
-    "dotenv": "^16.0.3",
-    "pg": "^8.11.3",
     "bcrypt": "^5.1.1",
-    "sqlite3": "^5.1.6",
-    "jsonwebtoken": "^9.0.2"
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.0.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
