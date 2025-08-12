@@ -280,18 +280,18 @@ const getLockers = async (isRefresh = false) => {
     const response = await adminApi.getStoresAndLockers()
     
     if (isRefresh) {
-      lockers.value = response.lockers || []
+      lockers.value = response.data?.lockers || []
     } else {
-      lockers.value.push(...(response.lockers || []))
+      lockers.value.push(...(response.data?.lockers || []))
     }
     
     // 更新统计数据
-    if (response.stats) {
-      stats.value = response.stats
+    if (response.data?.stats) {
+      stats.value = response.data.stats
     }
     
-    totalCount.value = response.total || 0
-    hasMore.value = (response.lockers?.length || 0) === pageSize
+    totalCount.value = response.data?.total || 0
+    hasMore.value = (response.data?.lockers?.length || 0) === pageSize
     page.value++
   } catch (error) {
     console.error('获取杆柜列表失败:', error)
@@ -306,7 +306,7 @@ const getLockers = async (isRefresh = false) => {
 const getStores = async () => {
   try {
     const response = await adminApi.getStoresAndLockers()
-    storeOptions.value = response.stores || []
+    storeOptions.value = response.data?.stores || []
   } catch (error) {
     console.error('获取门店列表失败:', error)
   }

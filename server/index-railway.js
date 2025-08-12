@@ -1,9 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development-only';
 
 /**
  * YesLocker Railway Deployment Server
@@ -339,35 +342,53 @@ class RailwayServer {
       }
     });
 
-    // Admin Statistics API
+    // Admin Statistics API - Optimized for performance 
     this.app.get('/api/admin-statistics', async (req, res) => {
       try {
         const client = await this.pool.connect();
         
-        // Get basic statistics
-        const statsQuery = `
-          SELECT 
-            (SELECT COUNT(*) FROM users WHERE status = 'active') as total_users,
-            (SELECT COUNT(*) FROM lockers WHERE status = 'occupied') as occupied_lockers,
-            (SELECT COUNT(*) FROM lockers WHERE status = 'available') as available_lockers,
-            (SELECT COUNT(*) FROM applications WHERE status = 'pending') as pending_applications
-        `;
-        
-        const result = await client.query(statsQuery);
-        const stats = result.rows[0] || {};
+        // Execute all statistics queries in parallel for better performance
+        const [usersResult, lockersResult, applicationsResult, recordsResult] = await Promise.all([
+          client.query("SELECT COUNT(*) as count FROM users WHERE status = 'active'"),
+          client.query("SELECT status, COUNT(*) as count FROM lockers GROUP BY status"),
+          client.query("SELECT COUNT(*) as count FROM applications WHERE status = 'pending'"),
+          client.query(`
+            SELECT COUNT(*) as count FROM locker_records 
+            WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'
+          `)
+        ]);
         
         client.release();
         
-        res.json({
-          success: true,
-          data: {
-            pending_applications: parseInt(stats.pending_applications) || 0,
-            occupied_lockers: parseInt(stats.occupied_lockers) || 0,
-            active_users: parseInt(stats.total_users) || 0,
-            today_records: 0, // TODO: Add today's records count
-            available_lockers: parseInt(stats.available_lockers) || 0
+        // Process locker status counts
+        const lockerStats = {
+          occupied: 0,
+          available: 0,
+          maintenance: 0
+        };
+        
+        lockersResult.rows.forEach(row => {
+          const status = row.status;
+          const count = parseInt(row.count) || 0;
+          if (status in lockerStats) {
+            lockerStats[status] = count;
           }
         });
+        
+        const stats = {
+          active_users: parseInt(usersResult.rows[0]?.count) || 0,
+          occupied_lockers: lockerStats.occupied,
+          available_lockers: lockerStats.available,
+          maintenance_lockers: lockerStats.maintenance,
+          pending_applications: parseInt(applicationsResult.rows[0]?.count) || 0,
+          today_records: parseInt(recordsResult.rows[0]?.count) || 0
+        };
+        
+        res.json({
+          success: true,
+          data: stats
+        });
+        
       } catch (error) {
         console.error('Get admin statistics error:', error);
         res.status(500).json({
@@ -494,6 +515,122 @@ class RailwayServer {
           success: false,
           error: 'Database error',
           message: '审核操作失败'
+        });
+      }
+    });
+
+    // JWT Authentication Middleware
+    const authenticateToken = (req, res, next) => {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ 
+          success: false, 
+          message: '缺少访问令牌' 
+        });
+      }
+      
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+          return res.status(403).json({ 
+            success: false, 
+            message: '无效的访问令牌' 
+          });
+        }
+        req.user = user;
+        next();
+      });
+    };
+
+    // Admin Records API - Fixed missing endpoint
+    this.app.get('/api/admin-records', authenticateToken, async (req, res) => {
+      try {
+        const { user_id, store_id, action_type, page = 1, limit = 20 } = req.query;
+        const offset = (page - 1) * limit;
+        
+        const client = await this.pool.connect();
+        
+        let query = `
+          SELECT 
+            lr.id, lr.action, lr.created_at, lr.remark,
+            u.id as user_id, u.name as user_name, u.phone as user_phone,
+            l.id as locker_id, l.number as locker_number,
+            s.id as store_id, s.name as store_name
+          FROM locker_records lr
+          JOIN users u ON lr.user_id = u.id
+          LEFT JOIN lockers l ON lr.locker_id = l.id
+          LEFT JOIN stores s ON l.store_id = s.id
+        `;
+        
+        const params = [];
+        const conditions = [];
+        let paramIndex = 0;
+        
+        if (user_id) {
+          paramIndex++;
+          conditions.push(`lr.user_id = $${paramIndex}`);
+          params.push(user_id);
+        }
+        
+        if (store_id) {
+          paramIndex++;
+          conditions.push(`s.id = $${paramIndex}`);
+          params.push(store_id);
+        }
+        
+        if (action_type) {
+          paramIndex++;
+          conditions.push(`lr.action = $${paramIndex}`);
+          params.push(action_type);
+        }
+        
+        if (conditions.length > 0) {
+          query += ' WHERE ' + conditions.join(' AND ');
+        }
+        
+        query += ` ORDER BY lr.created_at DESC LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+        
+        const result = await client.query(query, params);
+        client.release();
+        
+        const records = result.rows.map(row => ({
+          id: row.id,
+          action: row.action,
+          created_at: row.created_at,
+          remark: row.remark,
+          user: {
+            id: row.user_id,
+            name: row.user_name,
+            phone: row.user_phone
+          },
+          locker: {
+            id: row.locker_id,
+            number: row.locker_number
+          },
+          store: {
+            id: row.store_id,
+            name: row.store_name
+          }
+        }));
+        
+        res.json({
+          success: true,
+          data: {
+            list: records,
+            total: records.length,
+            page: parseInt(page),
+            limit: parseInt(limit)
+          }
+        });
+        
+      } catch (error) {
+        console.error('Get admin records error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取操作记录失败'
         });
       }
     });
