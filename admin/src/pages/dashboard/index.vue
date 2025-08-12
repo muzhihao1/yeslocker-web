@@ -174,7 +174,17 @@ const loadDashboardData = async () => {
     })
     
     if (recordsResponse.success) {
-      recentActivities.value = recordsResponse.data.records || []
+      // 转换数据格式以匹配前端显示逻辑
+      const rawRecords = recordsResponse.data.list || []
+      recentActivities.value = rawRecords.map((record: any) => ({
+        id: record.id,
+        type: record.action, // assigned, store, retrieve等
+        description: `${record.user.name} ${getActionText(record.action)}${record.locker.number ? ' ('+record.locker.number+')' : ''}`,
+        created_at: record.created_at,
+        user: record.user,
+        locker: record.locker,
+        store: record.store
+      }))
     }
 
   } catch (error) {
@@ -196,13 +206,25 @@ const handleLogout = () => {
   }
 }
 
+const getActionText = (action: string) => {
+  const actionTexts: Record<string, string> = {
+    'assigned': '被分配杆柜',
+    'store': '存放球杆',
+    'retrieve': '取回球杆',
+    'released': '释放杆柜'
+  }
+  return actionTexts[action] || action
+}
+
 const getActivityIcon = (type: string) => {
   const icons: Record<string, string> = {
+    'assigned': '🔑',
+    'store': '📥',
+    'retrieve': '📤', 
+    'released': '🔓',
     'apply': '📝',
     'approve': '✅',
     'reject': '❌',
-    'store': '📥',
-    'retrieve': '📤',
     'login': '🔑'
   }
   return icons[type] || '📋'
