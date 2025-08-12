@@ -141,6 +141,31 @@ class RailwayServer {
       });
     });
 
+    // Debug stores query
+    this.app.get('/api/debug-stores', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        const result = await client.query(`
+          SELECT * FROM stores LIMIT 5
+        `);
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          count: result.rows.length,
+          rows: result.rows
+        });
+      } catch (error) {
+        res.json({
+          success: false,
+          error: error.message,
+          stack: error.stack
+        });
+      }
+    });
+
     // Database test with null safety
     this.app.get('/api/db-test', async (req, res) => {
       if (!this.pool) {
