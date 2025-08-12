@@ -105,7 +105,16 @@ class RailwayServer {
       const authHeader = req.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
       
+      console.log('🔐 JWT认证调试:', {
+        hasAuthHeader: !!authHeader,
+        tokenExists: !!token,
+        tokenPrefix: token ? token.substring(0, 20) + '...' : null,
+        secretExists: !!JWT_SECRET,
+        secretPrefix: JWT_SECRET ? JWT_SECRET.substring(0, 10) + '...' : null
+      });
+      
       if (!token) {
+        console.log('❌ JWT认证失败: 缺少token');
         return res.status(401).json({ 
           success: false, 
           message: '缺少访问令牌' 
@@ -114,11 +123,22 @@ class RailwayServer {
       
       jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
+          console.log('❌ JWT验证失败:', {
+            error: err.name,
+            message: err.message,
+            tokenValid: false
+          });
           return res.status(403).json({ 
             success: false, 
-            message: '无效的访问令牌' 
+            message: '无效的访问令牌',
+            debug: process.env.NODE_ENV === 'development' ? err.message : undefined
           });
         }
+        console.log('✅ JWT验证成功:', {
+          adminId: user.adminId,
+          name: user.name,
+          role: user.role
+        });
         req.user = user;
         next();
       });
