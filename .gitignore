@@ -50,6 +50,14 @@ Thumbs.db
 server/data.json
 server/logs/
 
+# Database files
+server/database/*.db
+server/database/*.sqlite
+server/database/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
 # PM2
 .pm2/
 
@@ -65,6 +73,8 @@ supabase/.branches/
 locker-assignment-flow-test-report-*.json
 yeslocker-e2e-test-report-*.json
 *-test-report-*.json
+api_test_results.md
+*_test_results.md
 
 # Temporary files and deployment artifacts
 *.tmp
