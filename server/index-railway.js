@@ -492,11 +492,21 @@ class RailwayServer {
           updated_at: row.updated_at
         }));
         
+        // 计算统计数据
+        const stats = {
+          available: lockers.filter(l => l.status === 'available').length,
+          occupied: lockers.filter(l => l.status === 'occupied').length,
+          maintenance: lockers.filter(l => l.status === 'maintenance').length,
+          storing: lockers.filter(l => l.status === 'storing').length
+        };
+        
         res.json({
           success: true,
           data: {
             stores,
-            lockers
+            lockers,
+            total: lockers.length,
+            stats: stats
           }
         });
       } catch (error) {
@@ -1264,14 +1274,14 @@ class RailwayServer {
             });
           }
           
-          // Insert new locker
+          // Insert new locker (PostgreSQL表只有 id, store_id, number, status, current_user_id, assigned_at, created_at, updated_at)
           const insertQuery = `
-            INSERT INTO lockers (id, store_id, number, status, remark, created_at, updated_at)
-            VALUES (gen_random_uuid(), $1, $2, 'available', $3, NOW(), NOW())
-            RETURNING id, store_id, number, status, remark, created_at
+            INSERT INTO lockers (id, store_id, number, status, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, 'available', NOW(), NOW())
+            RETURNING id, store_id, number, status, created_at, updated_at
           `;
           
-          const result = await client.query(insertQuery, [store_id, number, remark || null]);
+          const result = await client.query(insertQuery, [store_id, number]);
           const newLocker = result.rows[0];
           
           client.release();
@@ -1286,8 +1296,8 @@ class RailwayServer {
               store_id: newLocker.store_id,
               number: newLocker.number,
               status: newLocker.status,
-              remark: newLocker.remark,
-              created_at: newLocker.created_at
+              created_at: newLocker.created_at,
+              updated_at: newLocker.updated_at
             }
           });
         } catch (dbError) {
@@ -1308,7 +1318,7 @@ class RailwayServer {
     this.app.put('/api/admin-lockers/:id', authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
-        const { status, remark } = req.body;
+        const { status } = req.body;
         
         if (!id || !status) {
           return res.status(400).json({
@@ -1331,15 +1341,15 @@ class RailwayServer {
         const client = await this.pool.connect();
         
         try {
-          // Update locker status
+          // Update locker status (PostgreSQL表没有remark字段)
           const updateQuery = `
             UPDATE lockers 
-            SET status = $1, remark = $2, updated_at = NOW()
-            WHERE id = $3
-            RETURNING id, number, status, remark, store_id
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, number, status, store_id, updated_at
           `;
           
-          const result = await client.query(updateQuery, [status, remark || null, id]);
+          const result = await client.query(updateQuery, [status, id]);
           
           if (result.rows.length === 0) {
             client.release();
@@ -1362,8 +1372,8 @@ class RailwayServer {
               id: updatedLocker.id,
               number: updatedLocker.number,
               status: updatedLocker.status,
-              remark: updatedLocker.remark,
-              store_id: updatedLocker.store_id
+              store_id: updatedLocker.store_id,
+              updated_at: updatedLocker.updated_at
             }
           });
         } catch (dbError) {
