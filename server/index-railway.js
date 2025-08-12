@@ -276,10 +276,10 @@ class RailwayServer {
             console.log(`🔧 Auto-creating user for phone: ${phone}`);
             const createUserQuery = `
               INSERT INTO users (id, phone, name, password, status, store_id, created_at) 
-              VALUES (gen_random_uuid(), $1, $2, '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC', 'active', '00000000-0000-0000-0000-000000000001', NOW()) 
+              VALUES (gen_random_uuid(), $1, $2, $3, 'active', '00000000-0000-0000-0000-000000000001', NOW()) 
               RETURNING *
             `;
-            const createResult = await client.query(createUserQuery, [phone, `用户${phone.slice(-4)}`]);
+            const createResult = await client.query(createUserQuery, [phone, `用户${phone.slice(-4)}`, '$2b$10$UXCLfYlgC5NFLu/PwOWg5uzQBv36q5EntaA2Gx8/i1LoHnNq01teC']);
             const newUser = createResult.rows[0];
             client.release();
             clientReleased = true;
