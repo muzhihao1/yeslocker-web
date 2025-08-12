@@ -637,6 +637,28 @@ async function handleAdminLogin(req, res) {
   }
 }
 
+// Auth Logout
+app.post('/auth/logout', async (req, res) => {
+  try {
+    // 用户退出登录 - 主要是清理服务器端状态（如果有的话）
+    // 在这个简单实现中，JWT token是无状态的，主要清理由客户端处理
+    
+    console.log('用户退出登录请求');
+    
+    return res.json({
+      success: true,
+      message: '退出登录成功'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: '退出登录失败'
+    });
+  }
+});
+
 // Get Stores
 app.get('/stores-lockers', async (req, res) => {
   try {
