@@ -257,6 +257,57 @@ class RailwayServer {
       }
     });
 
+    // Insert locker_records data specifically 
+    this.app.post('/api/init-locker-records', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Check if locker_records already has data
+        const existingResult = await client.query('SELECT COUNT(*) FROM locker_records');
+        const existingCount = parseInt(existingResult.rows[0].count);
+        
+        if (existingCount > 0) {
+          client.release();
+          return res.json({
+            success: true,
+            message: `locker_records表已有${existingCount}条记录`,
+            existing_count: existingCount
+          });
+        }
+        
+        // Insert locker_records data
+        await client.query(`
+          INSERT INTO locker_records (id, user_id, locker_id, action, notes, created_at) VALUES 
+          ('50000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'assigned', '分配杆柜A-001给李四', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+          ('50000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'store', '存放台球杆', CURRENT_TIMESTAMP - INTERVAL '2 days' + INTERVAL '1 hour'),
+          ('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000101', 'assigned', '分配杆柜B-101给孙七', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+          ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000101', 'store', '存放比赛用杆', CURRENT_TIMESTAMP - INTERVAL '1 day' + INTERVAL '30 minutes'),
+          ('50000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'store', '临时存放周末球杆', CURRENT_TIMESTAMP - INTERVAL '3 hours'),
+          ('50000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'retrieve', '取回球杆', CURRENT_TIMESTAMP - INTERVAL '1 hour')
+        `);
+        
+        // Verify insertion
+        const newCountResult = await client.query('SELECT COUNT(*) FROM locker_records');
+        const newCount = parseInt(newCountResult.rows[0].count);
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          message: 'locker_records数据插入成功',
+          inserted_count: newCount
+        });
+        
+      } catch (error) {
+        console.error('Insert locker_records error:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+          stack: error.stack
+        });
+      }
+    });
+
     // Database test with null safety
     this.app.get('/api/db-test', async (req, res) => {
       if (!this.pool) {
