@@ -292,6 +292,12 @@ interface Locker {
 interface Store {
   id: string
   name: string
+  code?: string
+  address?: string
+  manager_name?: string
+  contact_phone?: string
+  business_hours?: string
+  remark?: string
 }
 
 
@@ -368,7 +374,7 @@ const getLockers = async (isRefresh = false) => {
     }
     
     // 添加筛选条件
-    if (filterStore.value >= 0 && storeOptions.value[filterStore.value]) {
+    if (filterStore.value > -1 && storeOptions.value[filterStore.value]) {
       params.storeId = storeOptions.value[filterStore.value].id
     }
     
@@ -597,7 +603,7 @@ const editStore = (store: Store) => {
     code: store.code || '',
     address: store.address || '',
     manager_name: store.manager_name || '',
-    contact_phone: store.phone || '',
+    contact_phone: store.contact_phone || '',
     business_hours: store.business_hours || '09:00 - 22:00',
     remark: store.remark || ''
   }
@@ -1316,6 +1322,7 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
     
     .form-item {
       margin-bottom: var(--spacing-lg);
+      position: relative;
       
       .form-label {
         display: block;
@@ -1323,6 +1330,10 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
         color: var(--text-primary);
         margin-bottom: var(--spacing-sm);
         font-weight: 500;
+        position: relative;
+        z-index: 2;
+        background-color: var(--bg-color-white);
+        padding-bottom: 4px;
       }
       
       .form-input {
