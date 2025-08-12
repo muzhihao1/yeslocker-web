@@ -1,5 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
+const { body, param, query, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: __dirname + '/.env' });
 
@@ -13,12 +19,118 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_S
 // Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Middleware
+// JWT configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+
+// Salt rounds for bcrypt
+const BCRYPT_SALT_ROUNDS = 12;
+
+// Validation error handler middleware
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      message: '输入数据不符合要求',
+      details: errors.array()
+    });
+  }
+  next();
+};
+
+// Security middleware stack
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "https:"],
+      "connect-src": ["'self'", "https:"],
+      "font-src": ["'self'"],
+      "object-src": ["'none'"],
+      "media-src": ["'self'"],
+      "frame-src": ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests',
+    message: '请求过于频繁，请稍后重试'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for test data endpoints in development
+    return process.env.NODE_ENV !== 'production' && req.path.includes('/api/test-data');
+  }
+});
+
+// Stricter rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // Limit auth attempts to 10 per window
+  message: {
+    error: 'Too many authentication attempts',
+    message: '登录尝试过于频繁，请稍后重试'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+});
+
+// Apply global rate limiting
+app.use(limiter);
+
+// Compression middleware
+app.use(compression());
+
+// Basic middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
 
 // Auth Register
-app.post('/auth-register', async (req, res) => {
+app.post('/auth-register', 
+  authLimiter,
+  [
+    body('phone')
+      .isMobilePhone('zh-CN')
+      .withMessage('请输入有效的中国手机号码')
+      .isLength({ min: 11, max: 11 })
+      .withMessage('手机号必须为11位数字'),
+    body('name')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('姓名长度必须在1-50字符之间')
+      .matches(/^[\u4e00-\u9fa5a-zA-Z0-9\s]+$/)
+      .withMessage('姓名只能包含中文、英文、数字和空格'),
+    body('store_id')
+      .isNumeric()
+      .withMessage('门店ID必须为数字')
+      .isIn(['1', '2', '3'])
+      .withMessage('选择的门店无效'),
+    body('avatar_url')
+      .optional()
+      .isURL()
+      .withMessage('头像链接格式不正确')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
   try {
     const { phone, name, avatar_url, store_id } = req.body;
 
@@ -45,7 +157,9 @@ app.post('/auth-register', async (req, res) => {
       // 模拟检查手机号是否已注册（使用内存存储）
       if (!global.registeredUsers) {
         global.registeredUsers = new Map();
+        console.log('🔧 初始化全局用户存储');
       }
+      console.log(`📝 注册用户检查 - 手机号: ${phone}, 当前已注册用户数: ${global.registeredUsers.size}`);
       
       if (global.registeredUsers.has(phone)) {
         return res.status(409).json({ 
@@ -77,8 +191,22 @@ app.post('/auth-register', async (req, res) => {
 
       // 存储到内存中
       global.registeredUsers.set(phone, user);
+      console.log(`✅ 用户注册成功 - 手机号: ${phone}, 用户ID: ${user.id}, 存储后用户总数: ${global.registeredUsers.size}`);
 
       const storeName = store_id === '1' ? '旗舰店' : store_id === '2' ? '分店A' : '分店B';
+
+      // Generate secure JWT token
+      const token = jwt.sign(
+        { 
+          user_id: user.id, 
+          phone: user.phone,
+          name: user.name,
+          store_id: user.store_id,
+          type: 'user'
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
 
       return res.json({
         success: true,
@@ -87,7 +215,8 @@ app.post('/auth-register', async (req, res) => {
           user_id: user.id,
           phone: user.phone,
           name: user.name,
-          store: storeName
+          store: storeName,
+          token: token
         }
       });
     }
@@ -143,6 +272,19 @@ app.post('/auth-register', async (req, res) => {
       });
     }
 
+    // Generate secure JWT token
+    const token = jwt.sign(
+      { 
+        user_id: user.id, 
+        phone: user.phone,
+        name: user.name,
+        store_id: user.store_id,
+        type: 'user'
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
     return res.json({
       success: true,
       message: '注册成功',
@@ -150,7 +292,8 @@ app.post('/auth-register', async (req, res) => {
         user_id: user.id,
         phone: user.phone,
         name: user.name,
-        store: store.name
+        store: store.name,
+        token: token
       }
     });
 
@@ -164,7 +307,17 @@ app.post('/auth-register', async (req, res) => {
 });
 
 // Auth Login
-app.post('/auth-login', async (req, res) => {
+app.post('/auth-login', 
+  authLimiter,
+  [
+    body('phone')
+      .isMobilePhone('zh-CN')
+      .withMessage('请输入有效的中国手机号码')
+      .isLength({ min: 11, max: 11 })
+      .withMessage('手机号必须为11位数字')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
   try {
     const { phone } = req.body;
 
@@ -180,15 +333,22 @@ app.post('/auth-login', async (req, res) => {
     if (useTestMode) {
       if (!global.registeredUsers) {
         global.registeredUsers = new Map();
+        console.log('⚠️ 登录时用户存储未初始化，已重新创建');
       }
+      
+      console.log(`🔍 用户登录尝试 - 手机号: ${phone}, 当前存储用户数: ${global.registeredUsers.size}`);
+      console.log(`📋 当前存储的手机号:`, Array.from(global.registeredUsers.keys()));
 
       const user = global.registeredUsers.get(phone);
       if (!user) {
+        console.log(`❌ 用户未找到 - 手机号: ${phone}`);
         return res.status(404).json({
           error: 'User not found',
           message: '用户不存在，请先注册'
         });
       }
+      
+      console.log(`✅ 找到用户 - 手机号: ${phone}, 用户ID: ${user.id}`);
 
       if (user.status !== 'active') {
         return res.status(403).json({
@@ -198,6 +358,19 @@ app.post('/auth-login', async (req, res) => {
       }
 
       const storeName = user.store_id === '1' ? '旗舰店' : user.store_id === '2' ? '分店A' : '分店B';
+
+      // Generate secure JWT token
+      const token = jwt.sign(
+        { 
+          user_id: user.id, 
+          phone: user.phone,
+          name: user.name,
+          store_id: user.store_id,
+          type: 'user'
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
 
       return res.json({
         success: true,
@@ -211,7 +384,7 @@ app.post('/auth-login', async (req, res) => {
             store_id: user.store_id,
             store_name: storeName
           },
-          token: Buffer.from(JSON.stringify({ user_id: user.id, phone: user.phone })).toString('base64')
+          token: token
         }
       });
     }
@@ -238,7 +411,19 @@ app.post('/auth-login', async (req, res) => {
       });
     }
 
-    // 简化版：直接返回用户信息作为登录成功
+    // Generate secure JWT token
+    const token = jwt.sign(
+      { 
+        user_id: user.id, 
+        phone: user.phone,
+        name: user.name,
+        store_id: user.store_id,
+        type: 'user'
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
     return res.json({
       success: true,
       message: '登录成功',
@@ -251,8 +436,7 @@ app.post('/auth-login', async (req, res) => {
           store_id: user.store_id,
           store_name: user.stores?.name
         },
-        // 生成简单的token（生产环境需要使用JWT）
-        token: Buffer.from(JSON.stringify({ user_id: user.id, phone: user.phone })).toString('base64')
+        token: token
       }
     });
 
@@ -265,9 +449,24 @@ app.post('/auth-login', async (req, res) => {
   }
 });
 
+// Admin Login validation middleware
+const adminLoginValidation = [
+  body('phone')
+    .isMobilePhone('zh-CN')
+    .withMessage('请输入有效的中国手机号码')
+    .isLength({ min: 11, max: 11 })
+    .withMessage('手机号必须为11位数字'),
+  body('password')
+    .isLength({ min: 6, max: 100 })
+    .withMessage('密码长度必须在6-100字符之间')
+    .matches(/^(?=.*[a-zA-Z])(?=.*\d)/)
+    .withMessage('密码必须包含至少一个字母和一个数字'),
+  handleValidationErrors
+];
+
 // Admin Login (with both /admin-login and /api/admin-login endpoints)
-app.post('/admin-login', handleAdminLogin);
-app.post('/api/admin-login', handleAdminLogin);
+app.post('/admin-login', authLimiter, adminLoginValidation, handleAdminLogin);
+app.post('/api/admin-login', authLimiter, adminLoginValidation, handleAdminLogin);
 
 async function handleAdminLogin(req, res) {
   try {
@@ -284,29 +483,34 @@ async function handleAdminLogin(req, res) {
     const useTestMode = true; // TODO: 改为 process.env.NODE_ENV !== 'production'
     
     if (useTestMode) {
-      // 测试管理员数据
-      const testAdmins = [
-        {
-          id: 'admin_1',
-          phone: '13800000001',
-          password: 'admin123',
-          name: '超级管理员',
-          role: 'super_admin',
-          store_id: null,
-          store_name: null,
-          status: 'active'
-        },
-        {
-          id: 'admin_2',
-          phone: '13800000002',
-          password: 'admin123',
-          name: '门店管理员',
-          role: 'store_admin',
-          store_id: '1',
-          store_name: '旗舰店',
-          status: 'active'
-        }
-      ];
+      // Initialize test admin data with hashed passwords (for demo: password is 'admin123')
+      if (!global.testAdmins) {
+        global.testAdmins = [
+          {
+            id: 'admin_1',
+            phone: '13800000001',
+            password: '$2b$12$cSvp445OWFrd6iZuY3lMyOBX2wtJZdgrK.GYUkBGDTMsgNrXLLHkW', // 'admin123'
+            name: '超级管理员',
+            role: 'super_admin',
+            store_id: null,
+            store_name: null,
+            status: 'active'
+          },
+          {
+            id: 'admin_2',
+            phone: '13800000002', 
+            password: '$2b$12$cSvp445OWFrd6iZuY3lMyOBX2wtJZdgrK.GYUkBGDTMsgNrXLLHkW', // 'admin123'
+            name: '门店管理员',
+            role: 'store_admin',
+            store_id: '1',
+            store_name: '旗舰店',
+            status: 'active'
+          }
+        ];
+        console.log('✅ 初始化测试管理员账户，密码: admin123');
+      }
+      
+      const testAdmins = global.testAdmins;
 
       // 查找匹配的管理员
       const admin = testAdmins.find(a => a.phone === phone);
@@ -317,8 +521,9 @@ async function handleAdminLogin(req, res) {
         });
       }
 
-      // 验证密码
-      if (admin.password !== password) {
+      // 验证密码 - 使用bcrypt进行安全比较
+      const isValidPassword = await bcrypt.compare(password, admin.password);
+      if (!isValidPassword) {
         return res.status(401).json({
           error: 'Invalid credentials',
           message: '密码错误'
@@ -332,6 +537,20 @@ async function handleAdminLogin(req, res) {
         });
       }
 
+      // Generate secure JWT token for admin
+      const token = jwt.sign(
+        { 
+          admin_id: admin.id,
+          phone: admin.phone,
+          name: admin.name,
+          role: admin.role,
+          store_id: admin.store_id,
+          type: 'admin'
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
       return res.json({
         success: true,
         message: '登录成功',
@@ -344,7 +563,7 @@ async function handleAdminLogin(req, res) {
             store_id: admin.store_id,
             store_name: admin.store_name
           },
-          token: Buffer.from(JSON.stringify({ admin_id: admin.id, role: admin.role })).toString('base64')
+          token: token
         }
       });
     }
@@ -363,8 +582,9 @@ async function handleAdminLogin(req, res) {
       });
     }
 
-    // 简化版：直接比较密码（生产环境需要加密）
-    if (admin.password !== password) {
+    // 使用bcrypt验证密码
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    if (!isValidPassword) {
       return res.status(401).json({
         error: 'Invalid credentials',
         message: '手机号或密码错误'
@@ -378,6 +598,20 @@ async function handleAdminLogin(req, res) {
       });
     }
 
+    // Generate secure JWT token for admin
+    const token = jwt.sign(
+      { 
+        admin_id: admin.id,
+        phone: admin.phone,
+        name: admin.name,
+        role: admin.role,
+        store_id: admin.store_id,
+        type: 'admin'
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
     return res.json({
       success: true,
       message: '登录成功',
@@ -390,7 +624,7 @@ async function handleAdminLogin(req, res) {
           store_id: admin.store_id,
           store_name: admin.stores?.name
         },
-        token: Buffer.from(JSON.stringify({ admin_id: admin.id, role: admin.role })).toString('base64')
+        token: token
       }
     });
 
@@ -502,17 +736,32 @@ function verifyAdminToken(req, res) {
 
   const token = authHeader.substring(7);
   try {
-    // 在测试模式下验证测试token
-    const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-    if (!decoded.admin_id || !decoded.role) {
-      throw new Error('Invalid token structure');
+    // 使用JWT验证token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // 验证是否为管理员token
+    if (!decoded.admin_id || !decoded.role || decoded.type !== 'admin') {
+      throw new Error('Invalid admin token');
     }
+    
     return decoded;
   } catch (error) {
-    return res.status(401).json({
-      error: 'Invalid token',
-      message: '无效的身份验证令牌'
-    });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Token expired',
+        message: '身份验证令牌已过期，请重新登录'
+      });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: '无效的身份验证令牌'
+      });
+    } else {
+      return res.status(401).json({
+        error: 'Authentication failed',
+        message: '身份验证失败'
+      });
+    }
   }
 }
 
@@ -1237,8 +1486,9 @@ app.get('/lockers/:storeId', async (req, res) => {
 });
 
 // Apply for Locker
-app.post('/lockers-apply', async (req, res) => {
+app.post('/lockers-apply', async (req, res, next) => {
   try {
+    console.log(`🔧 杆柜申请请求:`, { store_id: req.body.store_id, locker_id: req.body.locker_id, user_id: req.body.user_id });
     const { store_id, locker_id, user_id, reason } = req.body;
 
     // Validate required fields
@@ -1278,10 +1528,8 @@ app.post('/lockers-apply', async (req, res) => {
 
   } catch (error) {
     console.error('Apply locker error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: '申请提交失败'
-    });
+    // Pass error to global error handler
+    next(error);
   }
 });
 
@@ -1584,9 +1832,81 @@ app.get('/api/test-data-status', (req, res) => {
   }
 });
 
+// Database health monitoring endpoint
+app.get('/health/database', async (req, res) => {
+  try {
+    const DatabaseUtils = require('./database/db-utils');
+    const health = await DatabaseUtils.getHealthStatus();
+    
+    res.status(health.status === 'healthy' ? 200 : 503).json({
+      success: health.status === 'healthy',
+      data: health
+    });
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      error: 'Database health check failed',
+      message: error.message
+    });
+  }
+});
+
+// Server health check endpoint
+app.get('/health', (req, res) => {
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+  
+  res.json({
+    success: true,
+    data: {
+      status: 'healthy',
+      uptime: `${Math.floor(uptime)}s`,
+      memory: {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`
+      },
+      timestamp: new Date().toISOString(),
+      nodeVersion: process.version
+    }
+  });
+});
+
+// Global error handling middleware (must be after all routes and middleware)
+app.use((err, req, res, next) => {
+  console.error('🚨 全局错误处理器捕获错误:', {
+    error: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+
+  // Don't send stack traces in production
+  const isDev = process.env.NODE_ENV !== 'production';
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: 'Internal server error',
+    message: '服务器内部错误，请稍后重试',
+    ...(isDev && { details: err.message, stack: err.stack })
+  });
+});
+
+// 404 handler for unmatched routes
+app.use('*', (req, res) => {
+  console.log(`⚠️ 404 - 路径未找到: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    error: 'Not found',
+    message: '请求的资源不存在'
+  });
+});
+
 // Initialize server start time
 global.serverStartTime = new Date().toISOString();
 
 app.listen(port, () => {
   console.log(`YesLocker API server running at http://localhost:${port}`);
+  console.log(`✅ 全局错误处理中间件已激活`);
 });
