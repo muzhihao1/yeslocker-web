@@ -447,7 +447,7 @@ const confirmAddLocker = async () => {
   try {
     // TODO: 实现新增杆柜的API
     await request.post('/admin-lockers', {
-      storeId: storeOptions.value[newLocker.value.storeIndex].id,
+      store_id: storeOptions.value[newLocker.value.storeIndex].id,
       number: newLocker.value.number,
       remark: newLocker.value.remark
     })
