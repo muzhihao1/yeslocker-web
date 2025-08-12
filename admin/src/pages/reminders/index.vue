@@ -1,48 +1,48 @@
 <template>
-  <view class="reminders-container">
-    <view class="page-header">
-      <view class="title">提醒管理</view>
+  <div class="reminders-container">
+    <div class="page-header">
+      <div class="title">提醒管理</div>
       <button class="btn btn-primary" @click="addReminder">新增提醒</button>
-    </view>
+    </div>
     
-    <view class="stats-section">
-      <view class="stat-card">
-        <view class="stat-number">{{ stats.total }}</view>
-        <view class="stat-label">总提醒数</view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-number">{{ stats.active }}</view>
-        <view class="stat-label">启用中</view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-number">{{ stats.today }}</view>
-        <view class="stat-label">今日发送</view>
-      </view>
-    </view>
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-number">{{ stats.total }}</div>
+        <div class="stat-label">总提醒数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ stats.active }}</div>
+        <div class="stat-label">启用中</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ stats.today }}</div>
+        <div class="stat-label">今日发送</div>
+      </div>
+    </div>
     
-    <view class="reminders-list">
-      <view 
+    <div class="reminders-list">
+      <div 
         class="reminder-item" 
         v-for="reminder in remindersList" 
         :key="reminder.id"
       >
-        <view class="reminder-header">
-          <view class="reminder-title">{{ reminder.title }}</view>
-          <view class="reminder-status" :class="`status-${reminder.status}`">
+        <div class="reminder-header">
+          <div class="reminder-title">{{ reminder.title }}</div>
+          <div class="reminder-status" :class="`status-${reminder.status}`">
             {{ getStatusText(reminder.status) }}
-          </view>
-        </view>
+          </div>
+        </div>
         
-        <view class="reminder-content">
-          <text class="reminder-desc">{{ reminder.description }}</text>
-          <view class="reminder-meta">
-            <text class="meta-item">类型: {{ reminder.type }}</text>
-            <text class="meta-item">频率: {{ reminder.frequency }}</text>
-            <text class="meta-item">下次执行: {{ reminder.nextRun }}</text>
-          </view>
-        </view>
+        <div class="reminder-content">
+          <span class="reminder-desc">{{ reminder.description }}</span>
+          <div class="reminder-meta">
+            <span class="meta-item">类型: {{ reminder.type }}</span>
+            <span class="meta-item">频率: {{ reminder.frequency }}</span>
+            <span class="meta-item">下次执行: {{ reminder.nextRun }}</span>
+          </div>
+        </div>
         
-        <view class="reminder-actions">
+        <div class="reminder-actions">
           <button class="btn-small btn-secondary" @click="editReminder(reminder)">编辑</button>
           <button 
             class="btn-small" 
@@ -52,14 +52,14 @@
             {{ reminder.status === 'active' ? '暂停' : '启用' }}
           </button>
           <button class="btn-small btn-danger" @click="deleteReminder(reminder)">删除</button>
-        </view>
-      </view>
-    </view>
+        </div>
+      </div>
+    </div>
     
-    <view class="empty-state" v-if="remindersList.length === 0">
-      <text>暂无提醒规则</text>
-    </view>
-  </view>
+    <div class="empty-state" v-if="remindersList.length === 0">
+      <span>暂无提醒规则</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -129,26 +129,13 @@ const getStatusText = (status: string) => {
 }
 
 const addReminder = () => {
-  uni.showToast({
-    title: '新增提醒功能开发中',
-    icon: 'none'
-  })
+  alert('新增提醒功能开发中')
 }
 
 const editReminder = (reminder: any) => {
-  uni.showModal({
-    title: '编辑提醒',
-    content: `编辑提醒: ${reminder.title}`,
-    showCancel: true,
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({
-          title: '编辑功能开发中',
-          icon: 'none'
-        })
-      }
-    }
-  })
+  if (confirm(`编辑提醒: ${reminder.title}`)) {
+    alert('编辑功能开发中')
+  }
 }
 
 const toggleStatus = (reminder: any) => {
@@ -156,34 +143,21 @@ const toggleStatus = (reminder: any) => {
   reminder.status = newStatus
   reminder.nextRun = newStatus === 'active' ? '持续运行' : '已暂停'
   
-  uni.showToast({
-    title: `提醒已${newStatus === 'active' ? '启用' : '暂停'}`,
-    icon: 'success'
-  })
+  alert(`提醒已${newStatus === 'active' ? '启用' : '暂停'}`)
 }
 
 const deleteReminder = (reminder: any) => {
-  uni.showModal({
-    title: '确认删除',
-    content: `确定要删除提醒 "${reminder.title}" 吗？`,
-    showCancel: true,
-    success: (res) => {
-      if (res.confirm) {
-        const index = remindersList.value.findIndex(item => item.id === reminder.id)
-        if (index > -1) {
-          remindersList.value.splice(index, 1)
-          stats.value.total--
-          if (reminder.status === 'active') {
-            stats.value.active--
-          }
-          uni.showToast({
-            title: '删除成功',
-            icon: 'success'
-          })
-        }
+  if (confirm(`确定要删除提醒 "${reminder.title}" 吗？`)) {
+    const index = remindersList.value.findIndex(item => item.id === reminder.id)
+    if (index > -1) {
+      remindersList.value.splice(index, 1)
+      stats.value.total--
+      if (reminder.status === 'active') {
+        stats.value.active--
       }
+      alert('删除成功')
     }
-  })
+  }
 }
 
 onMounted(() => {

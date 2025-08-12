@@ -655,6 +655,508 @@ app.post('/api/admin/applications/:applicationId/action', authenticateToken, asy
   }
 });
 
+// ==================== MISSING ADMIN API ENDPOINTS ====================
+
+// Admin Applications endpoint (aliased for frontend compatibility)
+app.get('/api/admin-approval', authenticateToken, async (req, res) => {
+  // Forward to existing endpoint
+  req.url = '/api/admin/applications'
+  return app._router.handle(req, res)
+})
+
+// Store and Locker Management endpoint
+app.get('/api/stores-lockers', authenticateToken, async (req, res) => {
+  try {
+    const { store_id } = req.query
+    
+    let storesQuery = 'SELECT * FROM stores ORDER BY name'
+    let lockersQuery = `
+      SELECT l.*, s.name as store_name 
+      FROM lockers l 
+      JOIN stores s ON l.store_id = s.id
+    `
+    
+    const storeParams = []
+    const lockerParams = []
+    
+    if (store_id) {
+      storesQuery += ' WHERE id = ?'
+      lockersQuery += ' WHERE l.store_id = ?'
+      storeParams.push(store_id)
+      lockerParams.push(store_id)
+    }
+    
+    lockersQuery += ' ORDER BY s.name, l.number'
+    
+    // Get stores
+    const stores = await new Promise((resolve, reject) => {
+      db.all(storesQuery, storeParams, (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+    
+    // Get lockers
+    const lockers = await new Promise((resolve, reject) => {
+      db.all(lockersQuery, lockerParams, (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+    
+    res.json({
+      success: true,
+      data: {
+        stores,
+        lockers
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取门店杆柜错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Create Store endpoint
+app.post('/api/stores-lockers', authenticateToken, async (req, res) => {
+  try {
+    const { name, code, address, manager_name, contact_phone, business_hours, remark } = req.body
+    
+    if (!name || !address || !code) {
+      return res.status(400).json({
+        success: false,
+        message: '门店名称、编码和地址为必填项'
+      })
+    }
+    
+    // Check if store code already exists
+    const existingStore = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM stores WHERE code = ?', [code], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (existingStore) {
+      return res.status(400).json({
+        success: false,
+        message: '门店编码已存在'
+      })
+    }
+    
+    const storeId = `store_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const currentTime = new Date().toISOString()
+    
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO stores (id, name, code, address, manager_name, phone, business_hours, remark, is_active, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [storeId, name, code, address, manager_name || '', contact_phone || '', business_hours || '09:00 - 22:00', remark || '', 1, currentTime, currentTime],
+        function(err) {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+    
+    res.json({
+      success: true,
+      message: '门店创建成功',
+      data: { 
+        id: storeId, 
+        name, 
+        code, 
+        address, 
+        manager_name, 
+        contact_phone, 
+        business_hours, 
+        remark,
+        is_active: true
+      }
+    })
+    
+  } catch (error) {
+    console.error('创建门店错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Update Store endpoint
+app.patch('/api/admin/stores/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, address, manager_name, contact_phone, business_hours, remark, is_active } = req.body
+    
+    if (!name || !address) {
+      return res.status(400).json({
+        success: false,
+        message: '门店名称和地址为必填项'
+      })
+    }
+    
+    const currentTime = new Date().toISOString()
+    
+    await new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE stores SET name = ?, address = ?, manager_name = ?, phone = ?, business_hours = ?, remark = ?, is_active = ?, updated_at = ?
+         WHERE id = ?`,
+        [name, address, manager_name || '', contact_phone || '', business_hours || '09:00 - 22:00', remark || '', is_active !== undefined ? is_active : 1, currentTime, id],
+        function(err) {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+    
+    res.json({
+      success: true,
+      message: '门店更新成功'
+    })
+    
+  } catch (error) {
+    console.error('更新门店错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Delete Store endpoint
+app.delete('/api/admin/stores/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Check if store has lockers
+    const lockerCount = await new Promise((resolve, reject) => {
+      db.get('SELECT COUNT(*) as count FROM lockers WHERE store_id = ?', [id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    if (lockerCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '该门店下还有杆柜，无法删除'
+      })
+    }
+    
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM stores WHERE id = ?', [id], function(err) {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+    
+    res.json({
+      success: true,
+      message: '门店删除成功'
+    })
+    
+  } catch (error) {
+    console.error('删除门店错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Get Store Statistics endpoint
+app.get('/api/admin/stores/:id/stats', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    const stats = await new Promise((resolve, reject) => {
+      db.get(`
+        SELECT 
+          COUNT(l.id) as total_lockers,
+          COUNT(CASE WHEN l.status = 'available' THEN 1 END) as available_lockers,
+          COUNT(CASE WHEN l.status = 'occupied' THEN 1 END) as occupied_lockers,
+          COUNT(CASE WHEN l.status = 'maintenance' THEN 1 END) as maintenance_lockers
+        FROM lockers l 
+        WHERE l.store_id = ?
+      `, [id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row || {})
+      })
+    })
+    
+    res.json({
+      success: true,
+      data: {
+        total_lockers: stats.total_lockers || 0,
+        available_lockers: stats.available_lockers || 0,
+        occupied_lockers: stats.occupied_lockers || 0,
+        maintenance_lockers: stats.maintenance_lockers || 0
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取门店统计错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Admin Store Creation endpoint (alias for /api/stores-lockers)
+app.post('/api/admin/stores', authenticateToken, async (req, res) => {
+  // Redirect to the main store creation endpoint
+  req.url = '/api/stores-lockers'
+  return app._router.handle(req, res)
+})
+
+// Admin Users endpoint
+app.get('/api/admin-users', authenticateToken, async (req, res) => {
+  try {
+    const { store_id, status, page = 1, limit = 20 } = req.query
+    const offset = (page - 1) * limit
+    
+    let query = `
+      SELECT u.*, s.name as store_name,
+        COUNT(lr.id) as total_operations,
+        COUNT(CASE WHEN l.current_user_id = u.id THEN 1 END) as current_lockers
+      FROM users u 
+      LEFT JOIN stores s ON u.store_id = s.id
+      LEFT JOIN locker_records lr ON lr.user_id = u.id
+      LEFT JOIN lockers l ON l.current_user_id = u.id
+    `
+    
+    const params = []
+    const conditions = []
+    
+    if (store_id) {
+      conditions.push('u.store_id = ?')
+      params.push(store_id)
+    }
+    
+    if (status) {
+      conditions.push('u.status = ?')
+      params.push(status)
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ')
+    }
+    
+    query += ' GROUP BY u.id ORDER BY u.created_at DESC LIMIT ? OFFSET ?'
+    params.push(parseInt(limit), parseInt(offset))
+    
+    const users = await new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+    
+    // Format response data
+    const formattedUsers = users.map(user => ({
+      ...user,
+      isActive: user.status === 'active',
+      disabled: user.status === 'disabled',
+      lockerCount: user.current_lockers || 0,
+      totalOperations: user.total_operations || 0,
+      lastActiveAt: user.last_active_at
+    }))
+    
+    res.json({
+      success: true,
+      data: {
+        list: formattedUsers,
+        total: formattedUsers.length
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取用户列表错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Admin Records endpoint
+app.get('/api/admin-records', authenticateToken, async (req, res) => {
+  try {
+    const { user_id, store_id, action_type, page = 1, limit = 20 } = req.query
+    const offset = (page - 1) * limit
+    
+    let query = `
+      SELECT lr.*, u.name as user_name, u.phone as user_phone,
+        l.number as locker_number, s.name as store_name
+      FROM locker_records lr
+      JOIN users u ON lr.user_id = u.id
+      LEFT JOIN lockers l ON lr.locker_id = l.id
+      LEFT JOIN stores s ON l.store_id = s.id
+    `
+    
+    const params = []
+    const conditions = []
+    
+    if (user_id) {
+      conditions.push('lr.user_id = ?')
+      params.push(user_id)
+    }
+    
+    if (store_id) {
+      conditions.push('s.id = ?')
+      params.push(store_id)
+    }
+    
+    if (action_type) {
+      conditions.push('lr.action = ?')
+      params.push(action_type)
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ')
+    }
+    
+    query += ' ORDER BY lr.created_at DESC LIMIT ? OFFSET ?'
+    params.push(parseInt(limit), parseInt(offset))
+    
+    const records = await new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+    
+    res.json({
+      success: true,
+      data: {
+        list: records,
+        total: records.length
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取操作记录错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Admin Statistics endpoint
+app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
+  try {
+    const { store_id, date_range } = req.query
+    
+    // Get basic statistics
+    const totalUsers = await new Promise((resolve, reject) => {
+      let query = 'SELECT COUNT(*) as count FROM users'
+      const params = []
+      
+      if (store_id) {
+        query += ' WHERE store_id = ?'
+        params.push(store_id)
+      }
+      
+      db.get(query, params, (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    const totalStores = await new Promise((resolve, reject) => {
+      db.get('SELECT COUNT(*) as count FROM stores', (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    const totalLockers = await new Promise((resolve, reject) => {
+      let query = 'SELECT COUNT(*) as count FROM lockers'
+      const params = []
+      
+      if (store_id) {
+        query += ' WHERE store_id = ?'
+        params.push(store_id)
+      }
+      
+      db.get(query, params, (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    const occupiedLockers = await new Promise((resolve, reject) => {
+      let query = 'SELECT COUNT(*) as count FROM lockers WHERE status = "occupied"'
+      const params = []
+      
+      if (store_id) {
+        query += ' AND store_id = ?'
+        params.push(store_id)
+      }
+      
+      db.get(query, params, (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    const pendingApplications = await new Promise((resolve, reject) => {
+      let query = 'SELECT COUNT(*) as count FROM applications WHERE status = "pending"'
+      const params = []
+      
+      if (store_id) {
+        query += ' AND store_id = ?'
+        params.push(store_id)
+      }
+      
+      db.get(query, params, (err, row) => {
+        if (err) reject(err)
+        else resolve(row.count)
+      })
+    })
+    
+    res.json({
+      success: true,
+      data: {
+        users: {
+          total: totalUsers,
+          active: totalUsers // Simplified for now
+        },
+        stores: {
+          total: totalStores
+        },
+        lockers: {
+          total: totalLockers,
+          occupied: occupiedLockers,
+          available: totalLockers - occupiedLockers
+        },
+        applications: {
+          pending: pendingApplications
+        },
+        today: {
+          operations: 0, // TODO: Calculate today's operations
+          revenue: 0 // TODO: Calculate if revenue tracking is needed
+        }
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取统计数据错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
 // Initialize database and start server
 const initServer = async () => {
   try {

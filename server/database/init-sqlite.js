@@ -61,6 +61,29 @@ async function initDatabase() {
                     
                     console.log(`📊 数据库初始化完成! 门店数量: ${rows[0].count}`);
                     
+                    // Run schema migrations for stores table to add missing columns
+                    const migrateStoresTable = () => {
+                        const addColumns = [
+                            { name: 'code', type: 'TEXT UNIQUE' },
+                            { name: 'manager_name', type: 'TEXT' },
+                            { name: 'business_hours', type: 'TEXT DEFAULT \'09:00 - 22:00\'' },
+                            { name: 'remark', type: 'TEXT' },
+                            { name: 'is_active', type: 'INTEGER DEFAULT 1' }
+                        ];
+                        
+                        addColumns.forEach(column => {
+                            db.run(`ALTER TABLE stores ADD COLUMN ${column.name} ${column.type}`, (err) => {
+                                if (err && !err.message.includes('duplicate column name')) {
+                                    console.log(`⚠️ 跳过列添加 (可能已存在): ${column.name}`);
+                                } else if (!err) {
+                                    console.log(`✅ 添加列: stores.${column.name}`);
+                                }
+                            });
+                        });
+                    };
+                    
+                    migrateStoresTable();
+                    
                     // 显示统计信息
                     const tables = ['stores', 'users', 'admins', 'lockers', 'applications', 'locker_records', 'reminders'];
                     let completed = 0;

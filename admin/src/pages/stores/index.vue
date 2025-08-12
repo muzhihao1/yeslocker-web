@@ -129,6 +129,7 @@
             <span class="form-title">{{ isEdit ? '编辑门店' : '新增门店' }}</span>
             <span class="iconfont icon-close" @click="closeStoreForm"></span>
           </div>
+          <div class="form-body">
             <div class="form-item">
               <span class="form-label required">门店名称</span>
               <input v-model="formData.name" class="form-input" placeholder="请输入门店名称" />
@@ -266,13 +267,15 @@ const getStores = async () => {
   loading.value = true
   
   try {
-    const response = await adminApi.get('/stores-lockers')
+    const response = await adminApi.getStoresAndLockers()
     stores.value = response.stores || []
     
     // 获取每个门店的杆柜统计
     for (const store of stores.value) {
-      const stats = await adminApi.get(`/admin/stores/${store.id}/stats`)
-      Object.assign(store, stats.data)
+      const stats = await adminApi.getStatistics({ store_id: store.id })
+      if (stats.stores) {
+        Object.assign(store, stats.stores)
+      }
     }
   } catch (error) {
     console.error('获取门店列表失败:', error)
@@ -369,10 +372,10 @@ const confirmStoreForm = async () => {
     }
     
     if (isEdit.value && currentStore.value) {
-      await adminApi.patch(`/admin/stores/${currentStore.value.id}`, data)
+      await adminApi.updateStore(currentStore.value.id, data)
       showToast('编辑成功')
     } else {
-      await adminApi.post('/admin/stores', data)
+      await adminApi.createStore(data)
       showToast('新增成功')
     }
     
@@ -404,7 +407,7 @@ const toggleStoreStatus = async (store: Store) => {
   
   if (result.confirm) {
     try {
-      await adminApi.patch(`/admin/stores/${store.id}`, {
+      await adminApi.updateStore(store.id, {
         is_active: !store.is_active
       })
       
@@ -484,7 +487,7 @@ const deleteStore = async () => {
   
   if (result.confirm) {
     try {
-      await adminApi.delete(`/admin/stores/${currentStore.value.id}`)
+      await adminApi.deleteStore(currentStore.value.id)
       showToast('删除成功')
       getStores()
     } catch (error) {

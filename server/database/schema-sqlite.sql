@@ -5,8 +5,13 @@
 CREATE TABLE IF NOT EXISTS stores (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name TEXT NOT NULL,
+    code TEXT UNIQUE,
     address TEXT,
+    manager_name TEXT,
     phone TEXT,
+    business_hours TEXT DEFAULT '09:00 - 22:00',
+    remark TEXT,
+    is_active INTEGER DEFAULT 1,
     status TEXT DEFAULT 'active',
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))

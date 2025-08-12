@@ -191,10 +191,32 @@ export const adminApi = {
   // 创建门店
   createStore: (data: {
     name: string
+    code: string
     address: string
-    phone?: string
+    manager_name?: string
+    contact_phone?: string
+    business_hours?: string
+    remark?: string
   }) => {
     return apiClient.post('/stores-lockers', data)
+  },
+
+  // 更新门店
+  updateStore: (id: string, data: {
+    name?: string
+    address?: string
+    manager_name?: string
+    contact_phone?: string
+    business_hours?: string
+    remark?: string
+    is_active?: boolean
+  }) => {
+    return apiClient.patch(`/admin/stores/${id}`, data)
+  },
+
+  // 删除门店
+  deleteStore: (id: string) => {
+    return apiClient.delete(`/admin/stores/${id}`)
   },
   
   // 获取用户列表

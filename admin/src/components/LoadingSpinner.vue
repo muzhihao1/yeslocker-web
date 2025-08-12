@@ -1,8 +1,8 @@
 <template>
-  <view class="loading-spinner-container">
-    <view class="loading-spinner"></view>
-    <text v-if="text" class="loading-text">{{ text }}</text>
-  </view>
+  <div class="loading-spinner-container">
+    <div class="loading-spinner"></div>
+    <span v-if="text" class="loading-text">{{ text }}</span>
+  </div>
 </template>
 
 <script setup lang="ts">
