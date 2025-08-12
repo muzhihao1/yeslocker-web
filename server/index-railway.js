@@ -514,50 +514,46 @@ class RailwayServer {
       try {
         const { name, code, address, manager_name, contact_phone, business_hours, remark } = req.body;
         
-        if (!name || !code || !address) {
+        if (!name || !address) {
           return res.status(400).json({
             success: false,
             error: 'Missing required fields',
-            message: '门店名称、编号和地址为必填项'
+            message: '门店名称和地址为必填项'
           });
         }
         
         const client = await this.pool.connect();
         
         try {
-          // Check if store code already exists
-          const existingStore = await client.query('SELECT id FROM stores WHERE code = $1', [code]);
+          // Check if store name already exists
+          const existingStore = await client.query('SELECT id FROM stores WHERE name = $1', [name]);
           
           if (existingStore.rows.length > 0) {
             client.release();
             return res.status(409).json({
               success: false,
-              error: 'Store code exists',
-              message: '门店编号已存在'
+              error: 'Store name exists',
+              message: '门店名称已存在'
             });
           }
           
-          // Insert new store
+          // Insert new store with actual table structure
           const insertQuery = `
-            INSERT INTO stores (id, name, code, address, manager_name, phone, business_hours, remark, status, created_at, updated_at)
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW())
-            RETURNING id, name, code, address, manager_name, phone, business_hours, remark, status
+            INSERT INTO stores (id, name, address, phone, status)
+            VALUES (gen_random_uuid(), $1, $2, $3, 'active')
+            RETURNING id, name, address, phone, status
           `;
           
           const result = await client.query(insertQuery, [
             name, 
-            code, 
             address, 
-            manager_name || '', 
-            contact_phone || '', 
-            business_hours || '09:00 - 22:00', 
-            remark || ''
+            contact_phone || ''
           ]);
           const newStore = result.rows[0];
           
           client.release();
           
-          console.log(`✅ 新建门店成功: ${name} (${code})`);
+          console.log(`✅ 新建门店成功: ${name}`);
           
           res.json({
             success: true,
@@ -565,12 +561,8 @@ class RailwayServer {
             data: {
               id: newStore.id,
               name: newStore.name,
-              code: newStore.code,
               address: newStore.address,
-              manager_name: newStore.manager_name,
               phone: newStore.phone,
-              business_hours: newStore.business_hours,
-              remark: newStore.remark,
               status: newStore.status
             }
           });
@@ -592,7 +584,7 @@ class RailwayServer {
     this.app.patch('/api/admin/stores/:id', authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, address, manager_name, contact_phone, business_hours, remark, is_active } = req.body;
+        const { name, address, contact_phone, is_active } = req.body;
         
         const client = await this.pool.connect();
         
@@ -609,7 +601,7 @@ class RailwayServer {
             });
           }
           
-          // Build update query dynamically
+          // Build update query dynamically for actual table fields
           const updates = [];
           const values = [];
           let paramIndex = 0;
@@ -626,28 +618,10 @@ class RailwayServer {
             values.push(address);
           }
           
-          if (manager_name !== undefined) {
-            paramIndex++;
-            updates.push(`manager_name = $${paramIndex}`);
-            values.push(manager_name || '');
-          }
-          
           if (contact_phone !== undefined) {
             paramIndex++;
             updates.push(`phone = $${paramIndex}`);
             values.push(contact_phone || '');
-          }
-          
-          if (business_hours !== undefined) {
-            paramIndex++;
-            updates.push(`business_hours = $${paramIndex}`);
-            values.push(business_hours || '09:00 - 22:00');
-          }
-          
-          if (remark !== undefined) {
-            paramIndex++;
-            updates.push(`remark = $${paramIndex}`);
-            values.push(remark || '');
           }
           
           if (is_active !== undefined) {
@@ -656,10 +630,14 @@ class RailwayServer {
             values.push(is_active ? 'active' : 'inactive');
           }
           
-          // Add updated_at timestamp
-          paramIndex++;
-          updates.push(`updated_at = $${paramIndex}`);
-          values.push(new Date());
+          if (updates.length === 0) {
+            client.release();
+            return res.status(400).json({
+              success: false,
+              error: 'No fields to update',
+              message: '没有需要更新的字段'
+            });
+          }
           
           // Add WHERE clause parameter
           paramIndex++;
