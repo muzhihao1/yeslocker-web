@@ -509,6 +509,242 @@ class RailwayServer {
       }
     });
 
+    // Create Store endpoint (POST /api/stores-lockers)
+    this.app.post('/api/stores-lockers', authenticateToken, async (req, res) => {
+      try {
+        const { name, code, address, manager_name, contact_phone, business_hours, remark } = req.body;
+        
+        if (!name || !code || !address) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields',
+            message: '门店名称、编号和地址为必填项'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if store code already exists
+          const existingStore = await client.query('SELECT id FROM stores WHERE code = $1', [code]);
+          
+          if (existingStore.rows.length > 0) {
+            client.release();
+            return res.status(409).json({
+              success: false,
+              error: 'Store code exists',
+              message: '门店编号已存在'
+            });
+          }
+          
+          // Insert new store
+          const insertQuery = `
+            INSERT INTO stores (id, name, code, address, manager_name, phone, business_hours, remark, status, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW())
+            RETURNING id, name, code, address, manager_name, phone, business_hours, remark, status
+          `;
+          
+          const result = await client.query(insertQuery, [
+            name, 
+            code, 
+            address, 
+            manager_name || '', 
+            contact_phone || '', 
+            business_hours || '09:00 - 22:00', 
+            remark || ''
+          ]);
+          const newStore = result.rows[0];
+          
+          client.release();
+          
+          console.log(`✅ 新建门店成功: ${name} (${code})`);
+          
+          res.json({
+            success: true,
+            message: '门店创建成功',
+            data: {
+              id: newStore.id,
+              name: newStore.name,
+              code: newStore.code,
+              address: newStore.address,
+              manager_name: newStore.manager_name,
+              phone: newStore.phone,
+              business_hours: newStore.business_hours,
+              remark: newStore.remark,
+              status: newStore.status
+            }
+          });
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Create store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '创建门店失败'
+        });
+      }
+    });
+
+    // Update Store endpoint (PATCH /api/admin/stores/:id)
+    this.app.patch('/api/admin/stores/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, address, manager_name, contact_phone, business_hours, remark, is_active } = req.body;
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if store exists
+          const existingStore = await client.query('SELECT * FROM stores WHERE id = $1', [id]);
+          
+          if (existingStore.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              success: false,
+              error: 'Store not found',
+              message: '门店不存在'
+            });
+          }
+          
+          // Build update query dynamically
+          const updates = [];
+          const values = [];
+          let paramIndex = 0;
+          
+          if (name !== undefined) {
+            paramIndex++;
+            updates.push(`name = $${paramIndex}`);
+            values.push(name);
+          }
+          
+          if (address !== undefined) {
+            paramIndex++;
+            updates.push(`address = $${paramIndex}`);
+            values.push(address);
+          }
+          
+          if (manager_name !== undefined) {
+            paramIndex++;
+            updates.push(`manager_name = $${paramIndex}`);
+            values.push(manager_name || '');
+          }
+          
+          if (contact_phone !== undefined) {
+            paramIndex++;
+            updates.push(`phone = $${paramIndex}`);
+            values.push(contact_phone || '');
+          }
+          
+          if (business_hours !== undefined) {
+            paramIndex++;
+            updates.push(`business_hours = $${paramIndex}`);
+            values.push(business_hours || '09:00 - 22:00');
+          }
+          
+          if (remark !== undefined) {
+            paramIndex++;
+            updates.push(`remark = $${paramIndex}`);
+            values.push(remark || '');
+          }
+          
+          if (is_active !== undefined) {
+            paramIndex++;
+            updates.push(`status = $${paramIndex}`);
+            values.push(is_active ? 'active' : 'inactive');
+          }
+          
+          // Add updated_at timestamp
+          paramIndex++;
+          updates.push(`updated_at = $${paramIndex}`);
+          values.push(new Date());
+          
+          // Add WHERE clause parameter
+          paramIndex++;
+          values.push(id);
+          
+          const query = `UPDATE stores SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
+          
+          await client.query(query, values);
+          client.release();
+          
+          console.log(`✅ 门店更新成功: ID ${id}`);
+          
+          res.json({
+            success: true,
+            message: '门店更新成功'
+          });
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Update store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '更新门店失败'
+        });
+      }
+    });
+
+    // Delete Store endpoint (DELETE /api/admin/stores/:id)
+    this.app.delete('/api/admin/stores/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if store has associated lockers
+          const lockersCheck = await client.query('SELECT COUNT(*) as count FROM lockers WHERE store_id = $1', [id]);
+          const lockerCount = parseInt(lockersCheck.rows[0].count);
+          
+          if (lockerCount > 0) {
+            client.release();
+            return res.status(400).json({
+              success: false,
+              error: 'Store has lockers',
+              message: `无法删除门店，该门店下还有${lockerCount}个杆柜`
+            });
+          }
+          
+          // Delete store
+          const result = await client.query('DELETE FROM stores WHERE id = $1', [id]);
+          
+          if (result.rowCount === 0) {
+            client.release();
+            return res.status(404).json({
+              success: false,
+              error: 'Store not found',
+              message: '门店不存在'
+            });
+          }
+          
+          client.release();
+          
+          console.log(`✅ 门店删除成功: ID ${id}`);
+          
+          res.json({
+            success: true,
+            message: '门店删除成功'
+          });
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Delete store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '删除门店失败'
+        });
+      }
+    });
+
     // User registration
     this.app.post('/auth-register', async (req, res) => {
       try {
