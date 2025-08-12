@@ -704,11 +704,40 @@ app.get('/api/stores-lockers', authenticateToken, async (req, res) => {
       })
     })
     
+    // Calculate statistics from lockers data
+    const stats = lockers.reduce((acc, locker) => {
+      switch (locker.status) {
+        case 'available':
+          acc.available++
+          break
+        case 'occupied':
+          acc.occupied++
+          break
+        case 'storing':
+          acc.storing++
+          break
+        case 'maintenance':
+          acc.maintenance++
+          break
+        default:
+          // Handle unknown status as available
+          acc.available++
+      }
+      return acc
+    }, {
+      available: 0,
+      occupied: 0,
+      storing: 0,
+      maintenance: 0
+    })
+    
     res.json({
       success: true,
       data: {
         stores,
-        lockers
+        lockers,
+        stats,
+        total: lockers.length
       }
     })
     
@@ -1150,6 +1179,88 @@ app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('获取统计数据错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Create New Locker endpoint
+app.post('/api/admin-lockers', authenticateToken, async (req, res) => {
+  try {
+    const { store_id, number, remark } = req.body
+    
+    if (!store_id || !number) {
+      return res.status(400).json({
+        success: false,
+        message: '门店ID和杆柜编号为必填项'
+      })
+    }
+    
+    // Validate store exists
+    const store = await new Promise((resolve, reject) => {
+      db.get('SELECT id, name FROM stores WHERE id = ?', [store_id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (!store) {
+      return res.status(400).json({
+        success: false,
+        message: '选择的门店不存在'
+      })
+    }
+    
+    // Check if locker number already exists in this store
+    const existingLocker = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM lockers WHERE store_id = ? AND number = ?', [store_id, number], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (existingLocker) {
+      return res.status(400).json({
+        success: false,
+        message: '该门店中已存在相同编号的杆柜'
+      })
+    }
+    
+    const lockerId = `locker_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const currentTime = new Date().toISOString()
+    
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO lockers (id, store_id, number, status, remark, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [lockerId, store_id, number, 'available', remark || '', currentTime, currentTime],
+        function(err) {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+    
+    console.log(`✅ 新增杆柜成功: ${store.name} - ${number}`)
+    
+    res.json({
+      success: true,
+      message: '杆柜新增成功',
+      data: { 
+        id: lockerId, 
+        store_id, 
+        store_name: store.name,
+        number, 
+        status: 'available',
+        remark: remark || '',
+        created_at: currentTime
+      }
+    })
+    
+  } catch (error) {
+    console.error('新增杆柜错误:', error)
     res.status(500).json({
       success: false,
       message: '服务器内部错误'
