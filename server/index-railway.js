@@ -1492,7 +1492,12 @@ class RailwayServer {
         return res.status(404).json({ error: 'API endpoint not found' });
       }
 
-      // Serve admin app for admin routes
+      // Don't serve index.html for static assets (JS, CSS, images, etc.)
+      if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+        return res.status(404).json({ error: 'Static asset not found' });
+      }
+
+      // Serve admin app for admin routes (excluding static assets)
       if (req.path.startsWith('/admin')) {
         const adminIndexPath = path.join(__dirname, '../admin/dist/index.html');
         if (fs.existsSync(adminIndexPath)) {
