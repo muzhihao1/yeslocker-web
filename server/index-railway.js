@@ -1495,6 +1495,44 @@ class RailwayServer {
       }
     });
 
+    // Debug endpoint to check file structure
+    this.app.get('/debug/files', (req, res) => {
+      const fs = require('fs');
+      const path = require('path');
+      
+      try {
+        const serverDir = __dirname;
+        const adminDistPath = path.join(__dirname, '../admin/dist');
+        const adminAssetsPath = path.join(__dirname, '../admin/dist/assets');
+        const mainDistPath = path.join(__dirname, '../dist');
+        
+        const result = {
+          serverDir,
+          paths: {
+            adminDist: {
+              path: adminDistPath,
+              exists: fs.existsSync(adminDistPath),
+              contents: fs.existsSync(adminDistPath) ? fs.readdirSync(adminDistPath) : null
+            },
+            adminAssets: {
+              path: adminAssetsPath,
+              exists: fs.existsSync(adminAssetsPath),
+              contents: fs.existsSync(adminAssetsPath) ? fs.readdirSync(adminAssetsPath) : null
+            },
+            mainDist: {
+              path: mainDistPath,
+              exists: fs.existsSync(mainDistPath),
+              contents: fs.existsSync(mainDistPath) ? fs.readdirSync(mainDistPath) : null
+            }
+          }
+        };
+        
+        res.json(result);
+      } catch (error) {
+        res.json({ error: error.message });
+      }
+    });
+
     // SPA fallback - serve index.html for client-side routing
     this.app.get('*', (req, res) => {
       console.log(`🔍 SPA Fallback: ${req.method} ${req.path}`);
