@@ -1152,7 +1152,7 @@ class RailwayServer {
           FROM applications a
           LEFT JOIN users u ON a.user_id = u.id
           LEFT JOIN stores s ON a.store_id = s.id
-          LEFT JOIN lockers l ON a.locker_id = l.id
+          LEFT JOIN lockers l ON a.assigned_locker_id = l.id
           ${whereClause}
           ORDER BY a.created_at DESC
           LIMIT $1 OFFSET $2
