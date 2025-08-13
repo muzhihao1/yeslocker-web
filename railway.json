@@ -1,12 +1,11 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "version": "2025-08-13-procfile",
+  "version": "2025-08-13-dockerfile",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm install && npm run build:client && cd admin && npm install && npm run build && cd ../server && npm install"
+    "builder": "DOCKERFILE",
+    "dockerfile": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "node server/index-railway.js",
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
