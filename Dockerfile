@@ -24,5 +24,5 @@ RUN npm run build:client && \
 # Expose port (Railway automatically sets PORT env var)
 EXPOSE 3000
 
-# Start the application (Railway best practice: simple CMD)
-CMD ["node", "server/index-railway.js"]
+# Start the application with diagnostic startup script
+CMD ["node", "start.js"]
