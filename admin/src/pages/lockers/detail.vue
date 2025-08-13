@@ -1,65 +1,82 @@
 <template>
   <div class="locker-detail-container">
     <div class="page-header">
+      <button class="btn-back" @click="goBack">← 返回列表</button>
       <div class="title">杆柜详情</div>
     </div>
     
-    <div class="detail-content">
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
+    </div>
+    
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="error-container">
+      <div class="error-icon">⚠️</div>
+      <div class="error-message">{{ error }}</div>
+      <button class="btn btn-primary" @click="goBack">返回列表</button>
+    </div>
+    
+    <!-- 正常显示 -->
+    <div v-else-if="lockerInfo" class="detail-content">
       <div class="info-section">
         <div class="section-title">基本信息</div>
         <div class="info-item">
           <span class="label">杆柜编号:</span>
-          <span class="value">{{ lockerInfo.code }}</span>
+          <span class="value">{{ lockerInfo.number }}</span>
         </div>
         <div class="info-item">
           <span class="label">所属门店:</span>
-          <span class="value">{{ lockerInfo.storeName }}</span>
+          <span class="value">{{ lockerInfo.store?.name || '未知门店' }}</span>
         </div>
         <div class="info-item">
           <span class="label">状态:</span>
           <span class="value" :class="statusClass">{{ statusText }}</span>
         </div>
+        <div class="info-item">
+          <span class="label">创建时间:</span>
+          <span class="value">{{ formatDate(lockerInfo.created_at) }}</span>
+        </div>
       </div>
       
-      <div class="info-section" v-if="lockerInfo.currentUser">
+      <div class="info-section" v-if="lockerInfo.current_user_id">
         <div class="section-title">使用信息</div>
         <div class="info-item">
-          <span class="label">用户姓名:</span>
-          <span class="value">{{ lockerInfo.currentUser.name }}</span>
+          <span class="label">用户ID:</span>
+          <span class="value">{{ lockerInfo.current_user_id }}</span>
         </div>
         <div class="info-item">
-          <span class="label">手机号:</span>
-          <span class="value">{{ lockerInfo.currentUser.phone }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">开始时间:</span>
-          <span class="value">{{ lockerInfo.startTime }}</span>
+          <span class="label">分配时间:</span>
+          <span class="value">{{ formatDate(lockerInfo.assigned_at) }}</span>
         </div>
       </div>
     </div>
     
-    <div class="action-buttons">
-      <button class="btn btn-primary" @click="handleEdit">编辑信息</button>
+    <div v-if="lockerInfo && !loading && !error" class="action-buttons">
       <button class="btn btn-secondary" @click="handleViewHistory">查看历史</button>
+      <button class="btn btn-primary" @click="goBack">返回列表</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { adminApi } from '../../services/api'
 
-const lockerInfo = ref({
-  code: 'L001',
-  storeName: '旗舰店',
-  status: 'occupied',
-  currentUser: {
-    name: '张三',
-    phone: '13800000003'
-  },
-  startTime: '2025-08-04 10:00:00'
-})
+// 路由相关
+const route = useRoute()
+const router = useRouter()
 
+// 响应式数据
+const lockerInfo = ref(null)
+const loading = ref(true)
+const error = ref('')
+
+// 计算属性
 const statusText = computed(() => {
+  if (!lockerInfo.value) return ''
   const statusMap = {
     available: '空闲',
     occupied: '使用中',
@@ -69,19 +86,81 @@ const statusText = computed(() => {
 })
 
 const statusClass = computed(() => {
+  if (!lockerInfo.value) return ''
   return `status-${lockerInfo.value.status}`
 })
 
-const handleEdit = () => {
-  alert('编辑功能开发中')
+// 格式化日期
+const formatDate = (dateString: string) => {
+  if (!dateString) return '未知'
+  try {
+    return new Date(dateString).toLocaleString('zh-CN')
+  } catch {
+    return '格式错误'
+  }
 }
 
+// 获取杆柜详情
+const fetchLockerDetail = async () => {
+  const lockerId = route.query.id as string
+  
+  if (!lockerId) {
+    error.value = '缺少杆柜ID参数'
+    loading.value = false
+    return
+  }
+
+  try {
+    loading.value = true
+    error.value = ''
+    
+    // 这里需要调用获取单个杆柜的API
+    // 由于目前API可能没有单独的获取杆柜详情接口，我们先用获取门店杆柜的方式
+    const response = await adminApi.getStoresLockers()
+    
+    // 从所有杆柜中找到目标杆柜
+    let targetLocker = null
+    if (response.data && response.data.stores) {
+      for (const store of response.data.stores) {
+        if (store.lockers) {
+          targetLocker = store.lockers.find(locker => locker.id === lockerId)
+          if (targetLocker) {
+            // 添加门店信息
+            targetLocker.store = { name: store.name }
+            break
+          }
+        }
+      }
+    }
+
+    if (targetLocker) {
+      lockerInfo.value = targetLocker
+    } else {
+      error.value = '杆柜不存在或已被删除'
+    }
+  } catch (err: any) {
+    console.error('获取杆柜详情失败:', err)
+    error.value = err?.message || '获取杆柜详情失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+// 返回列表页面
+const goBack = () => {
+  router.push('/lockers')
+}
+
+// 查看历史记录
 const handleViewHistory = () => {
-  alert('历史记录功能开发中')
+  if (lockerInfo.value) {
+    router.push(`/records?lockerId=${lockerInfo.value.id}`)
+  }
 }
 
+// 组件挂载时获取数据
 onMounted(() => {
-  // 获取杆柜详情数据
+  fetchLockerDetail()
 })
 </script>
 
@@ -93,13 +172,77 @@ onMounted(() => {
 }
 
 .page-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
   margin-bottom: 20px;
+}
+
+.btn-back {
+  padding: 8px 16px;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-back:hover {
+  background-color: #555;
 }
 
 .title {
   font-size: 24px;
   font-weight: bold;
   color: #333;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1B5E20;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 24px;
 }
 
 .detail-content {
