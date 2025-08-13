@@ -468,6 +468,49 @@ class RailwayServer {
       }
     });
 
+    // Public endpoint for getting stores (no authentication required for user applications)
+    this.app.get('/stores-lockers', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Get stores with basic info and available locker count
+        const storesQuery = `
+          SELECT 
+            s.id, s.name, s.address, s.phone, s.status,
+            COUNT(CASE WHEN l.status = 'available' THEN 1 END) as available_lockers
+          FROM stores s
+          LEFT JOIN lockers l ON s.id = l.store_id
+          WHERE s.status = 'active'
+          GROUP BY s.id, s.name, s.address, s.phone, s.status
+          ORDER BY s.name
+        `;
+        
+        const storesResult = await client.query(storesQuery);
+        client.release();
+        
+        const stores = storesResult.rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          address: row.address || '',
+          phone: row.phone || '',
+          status: row.status,
+          available_lockers: parseInt(row.available_lockers) || 0
+        }));
+        
+        res.json({
+          success: true,
+          data: stores
+        });
+      } catch (error) {
+        console.error('Get stores error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取门店信息失败'
+        });
+      }
+    });
+
     // Get stores and lockers (with API prefix)
     this.app.get('/api/stores-lockers', authenticateToken, async (req, res) => {
       try {
