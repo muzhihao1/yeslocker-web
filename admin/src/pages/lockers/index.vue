@@ -778,16 +778,33 @@ const deleteStoreOnly = async (storeId: string, storeName: string) => {
     console.error('删除门店失败:', error)
     
     // 改进错误处理
-    if (error?.response?.status === 400) {
-      const errorMessage = error?.response?.data?.message || error?.message || '删除失败'
+    const status = error?.response?.status
+    const errorMessage = error?.response?.data?.message || error?.message || '删除失败'
+    
+    if (status === 400) {
       showModal({
         title: '删除失败',
         content: `删除门店"${storeName}"失败：\n\n${errorMessage}\n\n请确保门店下没有关联的杆柜或其他数据。`,
         showCancel: false,
         confirmText: '我知道了'
       })
+    } else if (status === 404) {
+      showModal({
+        title: '门店不存在',
+        content: `门店"${storeName}"不存在或已被删除。\n\n可能原因：\n• 门店已被其他管理员删除\n• 数据不同步，请刷新页面重试`,
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+      // 自动刷新数据
+      getStores()
+      getLockers(true)
     } else {
-      showToast('删除失败，请重试')
+      showModal({
+        title: '删除失败',
+        content: `删除门店"${storeName}"时发生错误：\n\n${errorMessage}\n\n错误代码: ${status || '未知'}\n\n请检查网络连接或联系系统管理员。`,
+        showCancel: false,
+        confirmText: '我知道了'
+      })
     }
   }
 }
