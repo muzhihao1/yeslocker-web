@@ -1366,6 +1366,135 @@ app.post('/api/admin-lockers', authenticateToken, async (req, res) => {
   }
 })
 
+// Update Locker endpoint
+app.patch('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { number, status, current_user_id } = req.body
+    
+    // Check if locker exists
+    const locker = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM lockers WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (!locker) {
+      return res.status(404).json({
+        success: false,
+        message: '杆柜不存在'
+      })
+    }
+    
+    const updateFields = []
+    const updateValues = []
+    
+    if (number !== undefined) {
+      updateFields.push('number = ?')
+      updateValues.push(number)
+    }
+    
+    if (status !== undefined) {
+      updateFields.push('status = ?')
+      updateValues.push(status)
+    }
+    
+    if (current_user_id !== undefined) {
+      updateFields.push('current_user_id = ?')
+      updateValues.push(current_user_id)
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供要更新的字段'
+      })
+    }
+    
+    updateFields.push('updated_at = ?')
+    updateValues.push(new Date().toISOString())
+    updateValues.push(id)
+    
+    await new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE lockers SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues,
+        function(err) {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+    
+    console.log(`✅ 更新杆柜成功: ${id}`)
+    
+    res.json({
+      success: true,
+      message: '杆柜更新成功'
+    })
+    
+  } catch (error) {
+    console.error('更新杆柜错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
+// Delete Locker endpoint
+app.delete('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Check if locker exists
+    const locker = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM lockers WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+    
+    if (!locker) {
+      return res.status(404).json({
+        success: false,
+        message: '杆柜不存在'
+      })
+    }
+    
+    // Check if locker is currently in use
+    if (locker.current_user_id) {
+      return res.status(400).json({
+        success: false,
+        message: '该杆柜正在使用中，无法删除'
+      })
+    }
+    
+    // Delete the locker
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM lockers WHERE id = ?', [id], function(err) {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+    
+    console.log(`✅ 删除杆柜成功: ${locker.number} (${id})`)
+    
+    res.json({
+      success: true,
+      message: '杆柜删除成功'
+    })
+    
+  } catch (error) {
+    console.error('删除杆柜错误:', error)
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    })
+  }
+})
+
 // Initialize database and start server
 const initServer = async () => {
   try {
