@@ -240,7 +240,7 @@
             </div>
             <div class="form-item">
               <span class="form-label">门店编码 *</span>
-              <input v-model="storeForm.code" class="form-input" placeholder="请输入门店编码" :disabled="editingStore !== null" />
+              <input v-model="storeForm.code" class="form-input" placeholder="请输入门店编码" />
             </div>
             <div class="form-item">
               <span class="form-label">门店地址 *</span>
@@ -676,6 +676,7 @@ const confirmStoreAction = async () => {
       // 编辑门店
       await adminApi.updateStore(editingStore.value.id, {
         name: storeForm.value.name,
+        code: storeForm.value.code,
         address: storeForm.value.address,
         manager_name: storeForm.value.manager_name,
         contact_phone: storeForm.value.contact_phone,
@@ -1746,36 +1747,39 @@ const deleteLockerOnly = async (locker: Locker) => {
       }
       
       .form-input {
-        width: 100%;
-        padding: var(--spacing-lg) var(--spacing-md);
-        background-color: var(--bg-color-white);
-        border: 2px solid #e2e8f0;
-        border-radius: var(--border-radius-lg);
-        font-size: var(--font-size-md);
-        color: var(--text-primary);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        position: relative;
+        width: 100% !important;
+        padding: 14px 12px !important;
+        background-color: #ffffff !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        color: #1a202c !important;
+        font-family: inherit !important;
+        line-height: 1.5 !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+        position: relative !important;
+        outline: none !important;
         
         &:focus {
-          outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1);
-          transform: translateY(-1px);
-          background-color: #fefffe;
+          outline: none !important;
+          border-color: #1B5E20 !important;
+          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+          transform: translateY(-1px) !important;
+          background-color: #fefffe !important;
         }
         
         &:hover:not(:focus):not(:disabled) {
-          border-color: #cbd5e1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
         }
         
         &:disabled {
-          background-color: #f8fafc;
-          color: var(--text-disabled);
-          cursor: not-allowed;
-          opacity: 0.6;
-          border-color: #e2e8f0;
+          background-color: #f8fafc !important;
+          color: #9ca3af !important;
+          cursor: not-allowed !important;
+          opacity: 0.6 !important;
+          border-color: #e2e8f0 !important;
         }
         
         &::placeholder {
@@ -1809,31 +1813,31 @@ const deleteLockerOnly = async (locker: Locker) => {
       }
       
       .form-textarea {
-        width: 100%;
-        min-height: 100px;
-        padding: var(--spacing-lg) var(--spacing-md);
-        background-color: var(--bg-color-white);
-        border: 2px solid #e2e8f0;
-        border-radius: var(--border-radius-lg);
-        font-size: var(--font-size-md);
-        color: var(--text-primary);
-        resize: vertical;
-        font-family: inherit;
-        line-height: 1.6;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        width: 100% !important;
+        min-height: 100px !important;
+        padding: 14px 12px !important;
+        background-color: #ffffff !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        color: #1a202c !important;
+        font-family: inherit !important;
+        line-height: 1.5 !important;
+        resize: vertical !important;
+        outline: none !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
         
         &:focus {
-          outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1);
-          transform: translateY(-1px);
-          background-color: #fefffe;
+          outline: none !important;
+          border-color: #1B5E20 !important;
+          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+          background-color: #fefffe !important;
         }
         
         &:hover:not(:focus) {
-          border-color: #cbd5e1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
         }
         
         &::placeholder {
