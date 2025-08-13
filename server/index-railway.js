@@ -1501,6 +1501,106 @@ class RailwayServer {
       }
     });
 
+    // Release Locker endpoint - 释放杆柜
+    this.app.post('/api/admin/lockers/release', authenticateToken, async (req, res) => {
+      try {
+        const { lockerId } = req.body;
+        
+        if (!lockerId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing locker ID',
+            message: '缺少杆柜ID'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if locker exists and is occupied
+          const lockerQuery = 'SELECT * FROM lockers WHERE id = $1';
+          const lockerResult = await client.query(lockerQuery, [lockerId]);
+          
+          if (lockerResult.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              success: false,
+              error: 'Locker not found',
+              message: '杆柜不存在'
+            });
+          }
+          
+          const locker = lockerResult.rows[0];
+          
+          if (locker.status !== 'occupied' || !locker.current_user_id) {
+            client.release();
+            return res.status(400).json({
+              success: false,
+              error: 'Locker not occupied',
+              message: '该杆柜当前没有被使用'
+            });
+          }
+          
+          // Begin transaction
+          await client.query('BEGIN');
+          
+          try {
+            // Update locker to release it
+            const updateQuery = `
+              UPDATE lockers 
+              SET status = $1, current_user_id = NULL, assigned_at = NULL, updated_at = CURRENT_TIMESTAMP
+              WHERE id = $2
+            `;
+            await client.query(updateQuery, ['available', lockerId]);
+            
+            // Create locker record for the release action
+            const recordQuery = `
+              INSERT INTO locker_records (user_id, locker_id, action, notes, created_at)
+              VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+            `;
+            await client.query(recordQuery, [
+              locker.current_user_id,
+              lockerId,
+              'released',
+              '管理员释放杆柜'
+            ]);
+            
+            // Commit transaction
+            await client.query('COMMIT');
+            
+            client.release();
+            
+            console.log(`✅ 杆柜释放成功: ${locker.number} (${lockerId})`);
+            
+            res.json({
+              success: true,
+              message: '杆柜释放成功',
+              data: {
+                id: locker.id,
+                number: locker.number,
+                status: 'available'
+              }
+            });
+            
+          } catch (transactionError) {
+            await client.query('ROLLBACK');
+            throw transactionError;
+          }
+          
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Release locker error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '释放杆柜失败'
+        });
+      }
+    });
+
     // Admin login
     this.app.post('/api/admin-login', async (req, res) => {
       try {
