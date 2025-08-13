@@ -228,45 +228,107 @@
     <!-- 新增/编辑门店弹窗 -->
     <Teleport to="body">
       <div v-if="isStoreFormOpen" class="modal-overlay" @click.self="closeStoreForm">
-        <div class="add-store-form">
+        <div class="modern-store-form">
           <div class="form-header">
-            <span class="form-title">{{ editingStore ? '编辑门店' : '新增门店' }}</span>
-            <span class="iconfont icon-close" @click="closeStoreForm"></span>
+            <div class="header-content">
+              <div class="header-icon">🏪</div>
+              <h2 class="form-title">{{ editingStore ? '编辑门店信息' : '创建新门店' }}</h2>
+            </div>
+            <button class="close-btn" @click="closeStoreForm">✕</button>
           </div>
+          
           <div class="form-body">
-            <div class="form-item">
-              <span class="form-label">门店名称 *</span>
-              <input v-model="storeForm.name" class="form-input" placeholder="请输入门店名称" />
+            <!-- 基本信息卡片 -->
+            <div class="form-card basic-info">
+              <div class="card-header">
+                <span class="card-icon">🏢</span>
+                <h3 class="card-title">基本信息</h3>
+              </div>
+              <div class="card-content">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">🏪</span>
+                    <input v-model="storeForm.name" class="modern-input" placeholder=" " required />
+                    <label class="floating-label">门店名称 *</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">📋</span>
+                    <input v-model="storeForm.code" class="modern-input" placeholder=" " required />
+                    <label class="floating-label">门店编码 *</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">📍</span>
+                    <input v-model="storeForm.address" class="modern-input" placeholder=" " required />
+                    <label class="floating-label">门店地址 *</label>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="form-item">
-              <span class="form-label">门店编码 *</span>
-              <input v-model="storeForm.code" class="form-input" placeholder="请输入门店编码" />
+
+            <!-- 联系管理卡片 -->
+            <div class="form-card contact-info">
+              <div class="card-header">
+                <span class="card-icon">👥</span>
+                <h3 class="card-title">联系管理</h3>
+              </div>
+              <div class="card-content">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input v-model="storeForm.manager_name" class="modern-input" placeholder=" " />
+                    <label class="floating-label">管理员姓名</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">📞</span>
+                    <input v-model="storeForm.contact_phone" class="modern-input" placeholder=" " />
+                    <label class="floating-label">联系电话</label>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="form-item">
-              <span class="form-label">门店地址 *</span>
-              <input v-model="storeForm.address" class="form-input" placeholder="请输入门店地址" />
-            </div>
-            <div class="form-item">
-              <span class="form-label">管理员姓名</span>
-              <input v-model="storeForm.manager_name" class="form-input" placeholder="请输入管理员姓名" />
-            </div>
-            <div class="form-item">
-              <span class="form-label">联系电话</span>
-              <input v-model="storeForm.contact_phone" class="form-input" placeholder="请输入联系电话" />
-            </div>
-            <div class="form-item">
-              <span class="form-label">营业时间</span>
-              <input v-model="storeForm.business_hours" class="form-input" placeholder="如：09:00 - 22:00" />
-            </div>
-            <div class="form-item">
-              <span class="form-label">备注信息</span>
-              <textarea v-model="storeForm.remark" class="form-textarea" placeholder="选填"></textarea>
+
+            <!-- 运营设置卡片 -->
+            <div class="form-card operation-info">
+              <div class="card-header">
+                <span class="card-icon">⚙️</span>
+                <h3 class="card-title">运营设置</h3>
+              </div>
+              <div class="card-content">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <span class="input-icon">⏰</span>
+                    <input v-model="storeForm.business_hours" class="modern-input" placeholder=" " />
+                    <label class="floating-label">营业时间</label>
+                  </div>
+                </div>
+                <div class="form-group full-width">
+                  <div class="textarea-wrapper">
+                    <span class="input-icon">💬</span>
+                    <textarea v-model="storeForm.remark" class="modern-textarea" placeholder=" "></textarea>
+                    <label class="floating-label">备注信息</label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="form-actions">
-            <button class="btn-cancel" @click="closeStoreForm">取消</button>
-            <button class="btn-confirm" @click="confirmStoreAction" :disabled="!storeForm.name || !storeForm.code || !storeForm.address">
-              {{ editingStore ? '更新' : '创建' }}
+          <div class="modern-form-actions">
+            <button class="modern-btn btn-secondary" @click="closeStoreForm">
+              <span class="btn-icon">✕</span>
+              <span class="btn-text">取消</span>
+            </button>
+            <button 
+              class="modern-btn btn-primary" 
+              @click="confirmStoreAction" 
+              :disabled="!storeForm.name || !storeForm.code || !storeForm.address"
+            >
+              <span class="btn-icon">{{ editingStore ? '💾' : '✓' }}</span>
+              <span class="btn-text">{{ editingStore ? '更新门店' : '创建门店' }}</span>
             </button>
           </div>
         </div>
@@ -1252,6 +1314,394 @@ const deleteLockerOnly = async (locker: Locker) => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 现代化表单样式 */
+.modern-store-form {
+  width: 95vw;
+  max-width: 1200px;
+  max-height: 90vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 25px rgba(0, 0, 0, 0.1);
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideIn {
+  0% {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 表单头部 */
+.modern-store-form .form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  font-size: 32px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+.modern-store-form .form-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.close-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* 表单主体 */
+.modern-store-form .form-body {
+  padding: 32px;
+  overflow-y: auto;
+  max-height: calc(90vh - 160px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+  background: #f8fafc;
+}
+
+/* 表单卡片 */
+.form-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+  animation: cardSlideIn 0.4s ease;
+}
+
+@keyframes cardSlideIn {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.form-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* 卡片头部 */
+.card-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.card-icon {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #1a202c;
+}
+
+/* 基本信息卡片样式 */
+.basic-info .card-header {
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+}
+
+/* 联系管理卡片样式 */
+.contact-info .card-header {
+  background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%);
+}
+
+/* 运营设置卡片样式 */
+.operation-info .card-header {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFCC80 100%);
+}
+
+/* 卡片内容 */
+.card-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 表单组 */
+.form-group {
+  position: relative;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* 输入框包装器 */
+.input-wrapper,
+.textarea-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  font-size: 18px;
+  color: #64748b;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+/* 现代化输入框 */
+.modern-input {
+  width: 100%;
+  padding: 16px 16px 16px 52px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  background: white;
+  transition: all 0.3s ease;
+  outline: none;
+  font-family: inherit;
+  color: #1a202c;
+}
+
+.modern-input:focus {
+  border-color: #1B5E20;
+  box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.1);
+  transform: translateY(-1px);
+}
+
+.modern-input:focus + .floating-label,
+.modern-input:not(:placeholder-shown) + .floating-label {
+  transform: translateY(-32px) scale(0.85);
+  color: #1B5E20;
+  font-weight: 600;
+}
+
+.modern-input:focus ~ .input-icon {
+  color: #1B5E20;
+  transform: scale(1.1);
+}
+
+/* 现代化文本框 */
+.modern-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 16px 16px 16px 52px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  background: white;
+  resize: vertical;
+  transition: all 0.3s ease;
+  outline: none;
+  font-family: inherit;
+  color: #1a202c;
+  line-height: 1.5;
+}
+
+.modern-textarea:focus {
+  border-color: #1B5E20;
+  box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.1);
+}
+
+.modern-textarea:focus + .floating-label,
+.modern-textarea:not(:placeholder-shown) + .floating-label {
+  transform: translateY(-32px) scale(0.85);
+  color: #1B5E20;
+  font-weight: 600;
+}
+
+/* 浮动标签 */
+.floating-label {
+  position: absolute;
+  left: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 8px;
+  color: #64748b;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  font-weight: 400;
+}
+
+/* 表单按钮区域 */
+.modern-form-actions {
+  padding: 24px 32px;
+  background: white;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* 现代化按钮 */
+.modern-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.modern-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+}
+
+.modern-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(100, 116, 139, 0.4);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(27, 94, 32, 0.4);
+}
+
+.btn-primary:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
+.btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .modern-store-form {
+    width: 95vw;
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+  
+  .modern-store-form .form-body {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 16px;
+  }
+  
+  .form-card {
+    border-radius: 12px;
+  }
+  
+  .card-content {
+    padding: 16px;
+  }
+  
+  .modern-form-actions {
+    padding: 16px 20px;
+    flex-direction: column-reverse;
+  }
+  
+  .modern-btn {
+    width: 100%;
+  }
 }
 
 /* Modal overlay styles for Teleport modals */
