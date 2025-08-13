@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-console.log('Simple server starting...');
+console.log('Simple server starting... [FORCE REDEPLOY]');
 console.log('PORT:', PORT);
 
 app.get('/', (req, res) => {
