@@ -97,6 +97,13 @@ class RailwayServer {
         }
       }));
     }
+
+    // Serve public static files
+    const publicPath = path.join(__dirname, '../public');
+    if (fs.existsSync(publicPath)) {
+      console.log(`📁 Serving public static files from: ${publicPath}`);
+      this.app.use('/static', express.static(publicPath));
+    }
   }
 
   setupRoutes() {
@@ -1004,7 +1011,7 @@ class RailwayServer {
         
         const applicationsQuery = `
           SELECT 
-            a.id, a.status, a.remark, a.created_at,
+            a.id, a.status, a.rejection_reason as remark, a.created_at,
             u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url,
             s.id as store_id, s.name as store_name,
             l.id as locker_id, l.number as locker_number
