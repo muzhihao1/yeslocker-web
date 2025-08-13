@@ -1,9 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "version": "2025-08-13-no-healthcheck",
+  "version": "2025-08-13-nixpacks-simple",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfile": "Dockerfile"
+    "builder": "NIXPACKS"
   },
   "deploy": {
     "numReplicas": 1,
