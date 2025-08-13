@@ -1119,53 +1119,52 @@ class RailwayServer {
         
         const client = await this.pool.connect();
         
-        try {
-          // First check if applications table exists
-          const tableCheckQuery = `
-            SELECT table_name FROM information_schema.tables 
-            WHERE table_schema = 'public' AND table_name IN ('applications', 'users', 'stores', 'lockers')
-          `;
-          const tableCheck = await client.query(tableCheckQuery);
-          console.log(`📊 数据库表检查结果:`, tableCheck.rows.map(r => r.table_name));
-          
-          let whereClause = 'WHERE 1=1';
-          const params = [parseInt(pageSize), parseInt(offset)];
-          let paramIndex = 2;
-          
-          if (status && status !== 'all') {
-            paramIndex++;
-            whereClause += ` AND a.status = $${paramIndex}`;
-            params.push(status);
-          }
-          
-          if (storeId) {
-            paramIndex++;
-            whereClause += ` AND a.store_id = $${paramIndex}`;
-            params.push(storeId);
-          }
-          
-          const applicationsQuery = `
-            SELECT 
-              a.id, a.status, a.rejection_reason as remark, a.created_at,
-              u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url,
-              s.id as store_id, s.name as store_name,
-              l.id as locker_id, l.number as locker_number
-            FROM applications a
-            LEFT JOIN users u ON a.user_id = u.id
-            LEFT JOIN stores s ON a.store_id = s.id
-            LEFT JOIN lockers l ON a.locker_id = l.id
-            ${whereClause}
-            ORDER BY a.created_at DESC
-            LIMIT $1 OFFSET $2
-          `;
-          
-          console.log(`🔍 执行SQL查询:`, applicationsQuery);
-          console.log(`🎯 查询参数:`, params);
-          
-          const result = await client.query(applicationsQuery, params);
-          console.log(`✅ 查询成功，返回 ${result.rows.length} 条记录`);
-          
-          client.release();
+        // First check if applications table exists
+        const tableCheckQuery = `
+          SELECT table_name FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name IN ('applications', 'users', 'stores', 'lockers')
+        `;
+        const tableCheck = await client.query(tableCheckQuery);
+        console.log(`📊 数据库表检查结果:`, tableCheck.rows.map(r => r.table_name));
+        
+        let whereClause = 'WHERE 1=1';
+        const params = [parseInt(pageSize), parseInt(offset)];
+        let paramIndex = 2;
+        
+        if (status && status !== 'all') {
+          paramIndex++;
+          whereClause += ` AND a.status = $${paramIndex}`;
+          params.push(status);
+        }
+        
+        if (storeId) {
+          paramIndex++;
+          whereClause += ` AND a.store_id = $${paramIndex}`;
+          params.push(storeId);
+        }
+        
+        const applicationsQuery = `
+          SELECT 
+            a.id, a.status, a.rejection_reason as remark, a.created_at,
+            u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url,
+            s.id as store_id, s.name as store_name,
+            l.id as locker_id, l.number as locker_number
+          FROM applications a
+          LEFT JOIN users u ON a.user_id = u.id
+          LEFT JOIN stores s ON a.store_id = s.id
+          LEFT JOIN lockers l ON a.locker_id = l.id
+          ${whereClause}
+          ORDER BY a.created_at DESC
+          LIMIT $1 OFFSET $2
+        `;
+        
+        console.log(`🔍 执行SQL查询:`, applicationsQuery);
+        console.log(`🎯 查询参数:`, params);
+        
+        const result = await client.query(applicationsQuery, params);
+        console.log(`✅ 查询成功，返回 ${result.rows.length} 条记录`);
+        
+        client.release();
         
         const applications = result.rows.map(row => ({
           id: row.id,
