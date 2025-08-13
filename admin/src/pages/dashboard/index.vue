@@ -235,7 +235,17 @@ const formatTime = (timestamp: string) => {
 }
 
 // 页面生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 首先检查认证状态
+  const isAuthenticated = await adminStore.checkAuthStatus()
+  
+  if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login')
+    router.push('/pages/login/index')
+    return
+  }
+  
+  // 认证通过后加载数据
   loadDashboardData()
 })
 

@@ -30,10 +30,32 @@ const generateCacheKey = (config: any) => {
 // 请求拦截器 - 优化版本
 apiClient.interceptors.request.use(
   (config) => {
-    // 添加认证token
+    // 添加认证token并验证有效性
     const token = localStorage.getItem('admin_token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // 验证token是否过期
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const currentTime = Math.floor(Date.now() / 1000)
+        
+        if (payload.exp && payload.exp < currentTime) {
+          // Token已过期，清除并拒绝请求
+          console.log('Token expired in request interceptor, clearing tokens')
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_info')
+          window.location.href = '/pages/login/index'
+          return Promise.reject(new Error('Token expired'))
+        }
+        
+        config.headers.Authorization = `Bearer ${token}`
+      } catch (tokenError) {
+        // Token格式无效，清除并拒绝请求
+        console.log('Invalid token format in request interceptor, clearing tokens')
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('admin_info')
+        window.location.href = '/pages/login/index'
+        return Promise.reject(new Error('Invalid token format'))
+      }
     }
     
     // 为GET请求添加缓存检查
@@ -124,6 +146,16 @@ apiClient.interceptors.response.use(
         case 403:
           errorResponse.code = 'FORBIDDEN'
           errorResponse.message = '权限不足'
+          
+          // 403通常表示token无效或过期，自动清除并重定向
+          console.log('403 Forbidden - clearing tokens and redirecting to login')
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_info')
+          showToast('登录已过期，请重新登录', 'error')
+          
+          setTimeout(() => {
+            window.location.href = '/pages/login/index'
+          }, 1500)
           break
         case 404:
           errorResponse.code = 'NOT_FOUND'

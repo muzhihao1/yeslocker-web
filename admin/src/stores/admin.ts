@@ -89,22 +89,33 @@ export const useAdminStore = defineStore('admin', () => {
       const storedAdminInfoStr = localStorage.getItem('admin_info')
       
       if (storedToken && storedAdminInfoStr) {
-        token.value = storedToken
-        adminInfo.value = JSON.parse(storedAdminInfoStr)
-        
-        // TODO: 验证token是否仍然有效
-        // const isValid = await adminApi.validateToken(storedToken)
-        // if (!isValid) {
-        //   await logout()
-        //   return false
-        // }
-        
-        return true
+        // 验证token是否过期
+        try {
+          const payload = JSON.parse(atob(storedToken.split('.')[1]))
+          const currentTime = Math.floor(Date.now() / 1000)
+          
+          if (payload.exp && payload.exp < currentTime) {
+            console.log('Token expired, logging out automatically')
+            await logout()
+            return false
+          }
+          
+          // Token有效，设置状态
+          token.value = storedToken
+          adminInfo.value = JSON.parse(storedAdminInfoStr)
+          
+          return true
+        } catch (tokenError) {
+          console.log('Invalid token format, logging out')
+          await logout()
+          return false
+        }
       }
       
       return false
     } catch (error) {
       console.error('Check auth status error:', error)
+      await logout()
       return false
     }
   }
@@ -113,6 +124,20 @@ export const useAdminStore = defineStore('admin', () => {
     if (adminInfo.value) {
       adminInfo.value = { ...adminInfo.value, ...newInfo }
       localStorage.setItem('admin_info', JSON.stringify(adminInfo.value))
+    }
+  }
+
+  // 验证当前token是否有效（用于API调用前检查）
+  const validateCurrentToken = () => {
+    if (!token.value) return false
+    
+    try {
+      const payload = JSON.parse(atob(token.value.split('.')[1]))
+      const currentTime = Math.floor(Date.now() / 1000)
+      
+      return payload.exp && payload.exp > currentTime
+    } catch {
+      return false
     }
   }
 
@@ -132,6 +157,7 @@ export const useAdminStore = defineStore('admin', () => {
     login,
     logout,
     checkAuthStatus,
-    updateAdminInfo
+    updateAdminInfo,
+    validateCurrentToken
   }
 })
