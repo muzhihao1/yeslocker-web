@@ -24,5 +24,5 @@ RUN npm run build:client && \
 # Expose port (Railway automatically sets PORT env var)
 EXPOSE 3000
 
-# Start with ultra-simple server for debugging
-CMD ["node", "simple-server.js"]
+# Start the complete YesLocker application
+CMD ["node", "server/index-railway.js"]
