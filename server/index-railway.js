@@ -1236,7 +1236,7 @@ class RailwayServer {
 
         // Create new application
         const insertQuery = `
-          INSERT INTO applications (user_id, store_id, locker_id, rejection_reason, status, created_at)
+          INSERT INTO applications (user_id, store_id, assigned_locker_id, notes, status, created_at)
           VALUES ($1, $2, $3, $4, $5, NOW())
           RETURNING id, status, created_at
         `;
