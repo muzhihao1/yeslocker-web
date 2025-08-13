@@ -218,6 +218,29 @@ export const adminApi = {
   deleteStore: (id: string) => {
     return apiClient.delete(`/admin/stores/${id}`)
   },
+
+  // 创建杆柜
+  createLocker: (data: {
+    store_id: string
+    number: string
+    status?: string
+  }) => {
+    return apiClient.post('/admin/lockers', data)
+  },
+
+  // 更新杆柜
+  updateLocker: (id: string, data: {
+    number?: string
+    status?: string
+    current_user_id?: string | null
+  }) => {
+    return apiClient.patch(`/admin/lockers/${id}`, data)
+  },
+
+  // 删除杆柜
+  deleteLocker: (id: string) => {
+    return apiClient.delete(`/admin/lockers/${id}`)
+  },
   
   // 获取用户列表
   getUsers: (params?: {

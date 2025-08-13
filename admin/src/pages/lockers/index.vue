@@ -704,20 +704,86 @@ const confirmStoreAction = async () => {
 
 // 确认删除门店
 const deleteStoreConfirm = async (storeId: string, storeName: string) => {
-  const result = await showModal({
-    title: '确认删除',
-    content: `确定要删除门店"${storeName}"吗？删除后无法恢复。`
-  })
-  
-  if (result.confirm) {
-    try {
-      await adminApi.deleteStore(storeId)
-      showToast('门店删除成功')
-      getStores() // 重新获取门店列表
-      getLockers(true) // 重新获取杆柜列表
-    } catch (error) {
-      console.error('删除门店失败:', error)
-      showToast('删除失败')
+  try {
+    // 首先检查门店下的杆柜数量
+    const storeLockers = allLockers.value.filter(locker => locker.store_id === storeId)
+    const lockerCount = storeLockers.length
+    
+    if (lockerCount > 0) {
+      // 如果有杆柜，提供更详细的选择
+      const result = await showModal({
+        title: '无法删除门店',
+        content: `门店"${storeName}"下还有${lockerCount}个杆柜，请先删除所有杆柜后再删除门店。\n\n您可以：\n1. 取消删除\n2. 先手动删除所有杆柜\n3. 或点击"强制删除"同时删除门店和所有杆柜`,
+        confirmText: '强制删除',
+        cancelText: '取消'
+      })
+      
+      if (result.confirm) {
+        // 用户选择强制删除，先删除所有杆柜
+        await deleteStoreWithLockers(storeId, storeName, storeLockers)
+      }
+    } else {
+      // 没有杆柜，正常删除流程
+      const result = await showModal({
+        title: '确认删除',
+        content: `确定要删除门店"${storeName}"吗？删除后无法恢复。`
+      })
+      
+      if (result.confirm) {
+        await deleteStoreOnly(storeId, storeName)
+      }
+    }
+  } catch (error) {
+    console.error('删除门店预检查失败:', error)
+    showToast('操作失败，请重试')
+  }
+}
+
+// 删除门店及其所有杆柜
+const deleteStoreWithLockers = async (storeId: string, storeName: string, storeLockers: any[]) => {
+  try {
+    showToast('正在删除杆柜...', 'loading')
+    
+    // 并发删除所有杆柜
+    const deletePromises = storeLockers.map(locker => 
+      adminApi.deleteLocker(locker.id).catch(error => {
+        console.warn(`删除杆柜${locker.number}失败:`, error)
+        return null // 继续删除其他杆柜
+      })
+    )
+    
+    await Promise.allSettled(deletePromises)
+    
+    // 删除门店
+    await deleteStoreOnly(storeId, storeName)
+    
+  } catch (error) {
+    console.error('强制删除门店失败:', error)
+    showToast('删除过程中出现错误，请检查并重试')
+  }
+}
+
+// 仅删除门店
+const deleteStoreOnly = async (storeId: string, storeName: string) => {
+  try {
+    await adminApi.deleteStore(storeId)
+    showToast('门店删除成功')
+    getStores() // 重新获取门店列表
+    getLockers(true) // 重新获取杆柜列表
+  } catch (error: any) {
+    console.error('删除门店失败:', error)
+    
+    // 改进错误处理
+    if (error?.response?.status === 400) {
+      const errorMessage = error?.response?.data?.message || error?.message || '删除失败'
+      showModal({
+        title: '删除失败',
+        content: `删除门店"${storeName}"失败：\n\n${errorMessage}\n\n请确保门店下没有关联的杆柜或其他数据。`,
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+    } else {
+      showToast('删除失败，请重试')
     }
   }
 }
