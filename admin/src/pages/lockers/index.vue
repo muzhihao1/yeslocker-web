@@ -1565,37 +1565,79 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
   }
   
   .form-body {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xxl);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
     
     .form-item {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: var(--spacing-xxl);
       position: relative;
       
       .form-label {
         display: block;
         font-size: var(--font-size-md);
         color: var(--text-primary);
-        margin-bottom: var(--spacing-sm);
-        font-weight: 500;
+        margin-bottom: var(--spacing-md);
+        font-weight: 600;
         position: relative;
         z-index: 2;
-        background-color: var(--bg-color-white);
-        padding-bottom: 4px;
+        background-color: transparent;
+        letter-spacing: 0.3px;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 28px;
+          height: 3px;
+          background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+          border-radius: 1.5px;
+          opacity: 0.8;
+        }
       }
       
       .form-input {
         width: 100%;
-        padding: var(--spacing-md);
+        padding: var(--spacing-lg) var(--spacing-md);
         background-color: var(--bg-color-white);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
+        border: 2px solid #e2e8f0;
+        border-radius: var(--border-radius-lg);
         font-size: var(--font-size-md);
         color: var(--text-primary);
-        transition: border-color var(--animation-duration-normal);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        position: relative;
         
         &:focus {
           outline: none;
           border-color: var(--primary-color);
+          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+          background-color: #fefffe;
+        }
+        
+        &:hover:not(:focus):not(:disabled) {
+          border-color: #cbd5e1;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        &:disabled {
+          background-color: #f8fafc;
+          color: var(--text-disabled);
+          cursor: not-allowed;
+          opacity: 0.6;
+          border-color: #e2e8f0;
+        }
+        
+        &::placeholder {
+          color: #94a3b8;
+          font-size: var(--font-size-sm);
+          font-style: italic;
+          transition: color 0.3s ease;
+        }
+        
+        &:focus::placeholder {
+          color: #cbd5e1;
         }
         
         .iconfont {
@@ -1606,24 +1648,54 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
       
       select.form-input {
         cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right var(--spacing-md) center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        padding-right: calc(var(--spacing-md) + 24px);
+        
+        &:focus {
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231B5E20' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        }
       }
       
       .form-textarea {
         width: 100%;
-        min-height: 80px;
-        padding: var(--spacing-md);
+        min-height: 100px;
+        padding: var(--spacing-lg) var(--spacing-md);
         background-color: var(--bg-color-white);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
+        border: 2px solid #e2e8f0;
+        border-radius: var(--border-radius-lg);
         font-size: var(--font-size-md);
         color: var(--text-primary);
         resize: vertical;
         font-family: inherit;
-        transition: border-color var(--animation-duration-normal);
+        line-height: 1.6;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         
         &:focus {
           outline: none;
           border-color: var(--primary-color);
+          box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.12), 0 4px 14px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+          background-color: #fefffe;
+        }
+        
+        &:hover:not(:focus) {
+          border-color: #cbd5e1;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        &::placeholder {
+          color: #94a3b8;
+          font-size: var(--font-size-sm);
+          font-style: italic;
+          line-height: 1.5;
+        }
+        
+        &:focus::placeholder {
+          color: #cbd5e1;
         }
       }
     }
@@ -1631,42 +1703,65 @@ const deleteStoreConfirm = async (storeId: string, storeName: string) => {
   
   .form-actions {
     display: flex;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-color);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xxl);
+    border-top: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
     
     button {
       flex: 1;
-      padding: var(--spacing-md) var(--spacing-lg);
-      border: none;
-      border-radius: var(--border-radius);
+      padding: var(--spacing-lg) var(--spacing-xl);
+      border: 2px solid transparent;
+      border-radius: var(--border-radius-lg);
       font-size: var(--font-size-md);
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: all var(--animation-duration-normal);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.3px;
+      text-transform: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       
       &.btn-cancel {
         background-color: var(--bg-color-white);
-        border: 1px solid var(--border-color);
+        border-color: #d1d5db;
         color: var(--text-primary);
         
         &:hover {
-          background-color: var(--bg-color-grey);
+          background-color: #f9fafb;
+          border-color: #9ca3af;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+        }
+        
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         }
       }
       
       &.btn-confirm {
-        background-color: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
         color: #fff;
+        border-color: var(--primary-color);
         
-        &:hover {
-          opacity: 0.9;
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+        }
+        
+        &:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(27, 94, 32, 0.2);
         }
         
         &:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
+          background: #d1d5db;
+          border-color: #d1d5db;
+          transform: none;
+          box-shadow: none;
         }
       }
     }
