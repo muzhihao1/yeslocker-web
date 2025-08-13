@@ -170,6 +170,9 @@
                     <button class="btn-action primary" @click="viewHistory(locker.id)">
                       历史
                     </button>
+                    <button class="btn-action danger" @click="deleteLockerConfirm(locker)">
+                      删除
+                    </button>
                   </div>
                 </div>
                 
@@ -779,6 +782,75 @@ const deleteStoreOnly = async (storeId: string, storeName: string) => {
       showModal({
         title: '删除失败',
         content: `删除门店"${storeName}"失败：\n\n${errorMessage}\n\n请确保门店下没有关联的杆柜或其他数据。`,
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+    } else {
+      showToast('删除失败，请重试')
+    }
+  }
+}
+
+// 确认删除杆柜
+const deleteLockerConfirm = async (locker: Locker) => {
+  try {
+    // 检查杆柜状态
+    if (locker.status === 'occupied' || locker.status === 'storing') {
+      showModal({
+        title: '无法删除杆柜',
+        content: `杆柜"${locker.number}"正在使用中，无法删除。\n\n请先释放杆柜后再进行删除操作。`,
+        showCancel: false,
+        confirmText: '我知道了'
+      })
+      return
+    }
+    
+    const result = await showModal({
+      title: '确认删除',
+      content: `确定要删除杆柜"${locker.number}"吗？\n\n删除后无法恢复，请谨慎操作。`,
+      confirmText: '确认删除',
+      cancelText: '取消'
+    })
+    
+    if (result.confirm) {
+      await deleteLockerOnly(locker)
+    }
+  } catch (error) {
+    console.error('删除杆柜预检查失败:', error)
+    showToast('操作失败，请重试')
+  }
+}
+
+// 执行杆柜删除
+const deleteLockerOnly = async (locker: Locker) => {
+  try {
+    await adminApi.deleteLocker(locker.id)
+    showToast('杆柜删除成功')
+    
+    // 更新本地数据
+    const index = allLockers.value.findIndex(l => l.id === locker.id)
+    if (index > -1) {
+      allLockers.value.splice(index, 1)
+    }
+    
+    // 重新应用筛选
+    applyFilters()
+    
+    // 更新统计数据
+    if (locker.status === 'available') {
+      stats.value.available--
+    } else if (locker.status === 'maintenance') {
+      stats.value.maintenance--
+    }
+    
+  } catch (error: any) {
+    console.error('删除杆柜失败:', error)
+    
+    if (error?.status === 400) {
+      const errorMessage = error?.message || '删除失败'
+      showModal({
+        title: '删除失败',
+        content: `删除杆柜"${locker.number}"失败：\n\n${errorMessage}`,
         showCancel: false,
         confirmText: '我知道了'
       })
@@ -1535,6 +1607,17 @@ const deleteStoreOnly = async (storeId: string, storeName: string) => {
         
         &:hover {
           opacity: 0.9;
+        }
+      }
+      
+      &.danger {
+        background-color: var(--error-color);
+        border-color: var(--error-color);
+        color: #fff;
+        
+        &:hover {
+          opacity: 0.9;
+          background-color: #d32f2f;
         }
       }
     }
