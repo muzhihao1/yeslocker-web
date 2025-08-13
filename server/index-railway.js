@@ -633,7 +633,7 @@ class RailwayServer {
     this.app.patch('/api/admin/stores/:id', authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, address, contact_phone, is_active } = req.body;
+        const { name, code, address, contact_phone, is_active, manager_name, business_hours, remark } = req.body;
         
         const client = await this.pool.connect();
         
@@ -671,6 +671,30 @@ class RailwayServer {
             paramIndex++;
             updates.push(`phone = $${paramIndex}`);
             values.push(contact_phone || '');
+          }
+          
+          if (code !== undefined) {
+            paramIndex++;
+            updates.push(`code = $${paramIndex}`);
+            values.push(code);
+          }
+          
+          if (manager_name !== undefined) {
+            paramIndex++;
+            updates.push(`manager_name = $${paramIndex}`);
+            values.push(manager_name || '');
+          }
+          
+          if (business_hours !== undefined) {
+            paramIndex++;
+            updates.push(`business_hours = $${paramIndex}`);
+            values.push(business_hours || '');
+          }
+          
+          if (remark !== undefined) {
+            paramIndex++;
+            updates.push(`remark = $${paramIndex}`);
+            values.push(remark || '');
           }
           
           if (is_active !== undefined) {
