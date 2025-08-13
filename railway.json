@@ -1,6 +1,6 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "version": "2025-08-13-dockerfile",
+  "version": "2025-08-13-no-healthcheck",
   "build": {
     "builder": "DOCKERFILE",
     "dockerfile": "Dockerfile"
@@ -8,8 +8,6 @@
   "deploy": {
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10,
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 30
+    "restartPolicyMaxRetries": 10
   }
 }
