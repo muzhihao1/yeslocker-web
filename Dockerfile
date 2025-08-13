@@ -24,5 +24,5 @@ RUN npm run build:client && \
 # Expose port (Railway automatically sets PORT env var)
 EXPOSE 3000
 
-# Start the application with diagnostic startup script
-CMD ["node", "start.js"]
+# Start with minimal test server to debug deployment
+CMD ["node", "test-minimal.js"]
