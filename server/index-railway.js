@@ -1201,6 +1201,80 @@ class RailwayServer {
       }
     });
 
+    // User Locker Application API
+    this.app.post('/lockers-apply', async (req, res) => {
+      try {
+        const { store_id, locker_id, user_id, reason } = req.body;
+        
+        console.log(`🔧 杆柜申请请求:`, { store_id, locker_id, user_id, reason });
+        
+        // Validate required fields
+        if (!store_id || !locker_id || !user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields',
+            message: '请选择门店和杆柜'
+          });
+        }
+
+        const client = await this.pool.connect();
+        
+        // Check if user has pending applications
+        const existingApp = await client.query(
+          'SELECT id FROM applications WHERE user_id = $1 AND status = $2',
+          [user_id, 'pending']
+        );
+        
+        if (existingApp.rows.length > 0) {
+          client.release();
+          return res.status(409).json({
+            success: false,
+            error: 'Existing application',
+            message: '您已有进行中的申请，请等待审核'
+          });
+        }
+
+        // Create new application
+        const insertQuery = `
+          INSERT INTO applications (user_id, store_id, locker_id, rejection_reason, status, created_at)
+          VALUES ($1, $2, $3, $4, $5, NOW())
+          RETURNING id, status, created_at
+        `;
+        
+        const result = await client.query(insertQuery, [
+          user_id,
+          store_id, 
+          locker_id,
+          reason || '',
+          'pending'
+        ]);
+        
+        client.release();
+        
+        const application = result.rows[0];
+        
+        console.log(`✅ 新申请提交成功: ID ${application.id}, 用户 ${user_id}`);
+        
+        res.json({
+          success: true,
+          message: '申请提交成功，请等待审核',
+          data: {
+            application_id: application.id,
+            status: application.status,
+            created_at: application.created_at
+          }
+        });
+        
+      } catch (error) {
+        console.error('Apply locker error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+          message: '申请提交失败，请重试'
+        });
+      }
+    });
+
     // Admin Approval Action API
     this.app.post('/api/admin-approval', authenticateToken, async (req, res) => {
       try {
