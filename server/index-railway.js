@@ -1422,6 +1422,78 @@ class RailwayServer {
       }
     });
 
+    // Delete Locker endpoint - 删除杆柜
+    this.app.delete('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        
+        if (!id) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing locker ID',
+            message: '缺少杆柜ID'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if locker exists
+          const lockerQuery = 'SELECT * FROM lockers WHERE id = $1';
+          const lockerResult = await client.query(lockerQuery, [id]);
+          
+          if (lockerResult.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              success: false,
+              error: 'Locker not found',
+              message: '杆柜不存在'
+            });
+          }
+          
+          const locker = lockerResult.rows[0];
+          
+          // Check if locker is currently in use
+          if (locker.current_user_id) {
+            client.release();
+            return res.status(400).json({
+              success: false,
+              error: 'Locker in use',
+              message: '该杆柜正在使用中，无法删除'
+            });
+          }
+          
+          // Delete the locker
+          const deleteQuery = 'DELETE FROM lockers WHERE id = $1';
+          await client.query(deleteQuery, [id]);
+          
+          client.release();
+          
+          console.log(`✅ 删除杆柜成功: ${locker.number} (${id})`);
+          
+          res.json({
+            success: true,
+            message: '杆柜删除成功',
+            data: {
+              id: locker.id,
+              number: locker.number
+            }
+          });
+          
+        } catch (dbError) {
+          client.release();
+          throw dbError;
+        }
+      } catch (error) {
+        console.error('Delete locker error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '删除杆柜失败'
+        });
+      }
+    });
+
     // Admin login
     this.app.post('/api/admin-login', async (req, res) => {
       try {
