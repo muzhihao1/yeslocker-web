@@ -511,6 +511,63 @@ class RailwayServer {
       }
     });
 
+    // Public endpoint for getting lockers by store (no authentication required for user applications)
+    this.app.get('/lockers/:storeId', async (req, res) => {
+      try {
+        const { storeId } = req.params;
+        
+        if (!storeId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing store ID',
+            message: '缺少门店ID'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        // Get lockers for the specific store
+        const lockersQuery = `
+          SELECT 
+            l.id, l.number, l.status, l.current_user_id, l.assigned_at,
+            l.created_at, l.updated_at, l.store_id,
+            u.name as user_name, u.phone as user_phone
+          FROM lockers l
+          LEFT JOIN users u ON l.current_user_id = u.id
+          WHERE l.store_id = $1
+          ORDER BY l.number
+        `;
+        
+        const lockersResult = await client.query(lockersQuery, [storeId]);
+        client.release();
+        
+        const lockers = lockersResult.rows.map(row => ({
+          id: row.id,
+          store_id: row.store_id,
+          number: row.number,
+          status: row.status,
+          current_user_id: row.current_user_id,
+          user_name: row.user_name,
+          user_phone: row.user_phone,
+          assigned_at: row.assigned_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        }));
+        
+        res.json({
+          success: true,
+          data: lockers
+        });
+      } catch (error) {
+        console.error('Get lockers by store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取杆柜信息失败'
+        });
+      }
+    });
+
     // Get stores and lockers (with API prefix)
     this.app.get('/api/stores-lockers', authenticateToken, async (req, res) => {
       try {
