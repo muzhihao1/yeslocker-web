@@ -706,8 +706,16 @@ const confirmStoreAction = async () => {
 const deleteStoreConfirm = async (storeId: string, storeName: string) => {
   try {
     // 首先检查门店下的杆柜数量
+    console.log('deleteStoreConfirm调试信息:')
+    console.log('storeId:', storeId)
+    console.log('storeName:', storeName)
+    console.log('allLockers.value:', allLockers.value)
+    console.log('allLockers.value.length:', allLockers.value?.length)
+    
     const storeLockers = allLockers.value.filter(locker => locker.store_id === storeId)
+    console.log('storeLockers:', storeLockers)
     const lockerCount = storeLockers.length
+    console.log('lockerCount:', lockerCount)
     
     if (lockerCount > 0) {
       // 如果有杆柜，提供更详细的选择
