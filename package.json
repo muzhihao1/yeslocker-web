@@ -10,7 +10,7 @@
     "build:admin": "cd admin && npm install && npm run build",
     "build:server": "cd server && npm install",
     "preview": "vite preview",
-    "start": "node simple-server.js",
+    "start": "node server/index-railway.js",
     "dev:admin": "cd admin && npm run dev",
     "dev:server": "cd server && npm run dev",
     "dev:all": "npm run dev:server & npm run dev",
