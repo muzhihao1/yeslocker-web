@@ -1,45 +1,28 @@
-# Multi-stage build for YesLocker
-FROM node:18-alpine AS builder
+# Use the Node.js LTS alpine official image (Railway best practice)
+FROM node:lts-alpine
 
-# Set working directory
+# Create and change to the app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 COPY admin/package*.json ./admin/
 COPY server/package*.json ./server/
 
-# Install all dependencies
-RUN npm install
-RUN cd admin && npm install
-RUN cd server && npm install
+# Install dependencies using npm ci (Railway best practice)
+RUN npm ci && \
+    cd admin && npm ci && \
+    cd ../server && npm ci
 
-# Copy source code
-COPY . .
+# Copy local code to the container image
+COPY . ./
 
-# Build client and admin
-RUN npm run build:client
-RUN cd admin && npm run build
+# Build the applications
+RUN npm run build:client && \
+    cd admin && npm run build
 
-# Production stage
-FROM node:18-alpine AS production
-
-WORKDIR /app
-
-# Copy built files and server
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/admin/dist ./admin/dist
-COPY --from=builder /app/server ./server
-
-# Install production dependencies
-RUN cd server && npm ci --only=production
-
-# Create a health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "http.get('http://localhost:' + (process.env.PORT || 3000) + '/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" || exit 1
-
-# Expose port
+# Expose port (Railway automatically sets PORT env var)
 EXPOSE 3000
 
-# Start the application
+# Start the application (Railway best practice: simple CMD)
 CMD ["node", "server/index-railway.js"]
