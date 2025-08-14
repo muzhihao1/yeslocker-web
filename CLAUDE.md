@@ -337,3 +337,54 @@ yeslocker/
 - **Frontend State**: Pinia stores for reactive state management
 - **Development Database**: SQLite for rapid local development
 - **Production Database**: PostgreSQL with Railway hosting
+
+## Critical System Information
+
+### Production Server Details
+- **Live URL**: https://yeslocker-web-production-314a.up.railway.app
+- **Primary Server File**: `server/index-railway.js` (production main server)
+- **Admin Credentials**: phone: '13800000002', password: 'admin123' (for testing)
+- **Database**: PostgreSQL hosted on Railway with connection pooling
+
+### Common Issues and Solutions
+
+#### Database Foreign Key Problems
+- **Issue**: Applications may show undefined foreign key relationships (user_id, store_id, assigned_locker_id as undefined in admin panel)
+- **Root Cause**: SQL queries using incorrect field names in JOIN operations
+- **Critical Fix**: Always use `assigned_locker_id` not `locker_id` in applications table queries
+- **Example Fix**: `LEFT JOIN lockers l ON a.assigned_locker_id = l.id` (NOT `a.locker_id = l.id`)
+
+#### API Performance Issues
+- **Normal Response Time**: ~1000ms for complex queries
+- **Problem Response Time**: >2000ms indicates database performance issues
+- **Monitoring**: Check server logs for slow queries and connection pool status
+
+#### User Application Submission Flow
+- **Endpoint**: `POST /lockers-apply`
+- **Required Fields**: store_id, locker_id (assigned_locker_id), user_id, reason
+- **Common 500 Errors**: Usually indicate missing foreign key references in database
+- **Common 409 Errors**: User already has pending application (expected behavior)
+
+### Database Schema Critical Notes
+- **applications.assigned_locker_id**: References lockers.id (NOT applications.locker_id)  
+- **Foreign Key Constraints**: All relationships must exist for queries to work properly
+- **Seed Data**: Use `/api/init-db` endpoint to populate initial data if database is empty
+
+### Debugging Tools and Endpoints
+```bash
+# Test application submission
+node test-user-application.js          # Test user application flow
+node test-admin-approval-500.js        # Test admin approval endpoint
+node test-database-data.js             # Verify database foreign key relationships
+
+# Production endpoints for debugging
+POST /api/init-db                      # Initialize database with seed data
+GET /api/admin-approval                # Admin panel applications (requires JWT)
+POST /lockers-apply                    # User application submission
+```
+
+### Environment-Specific Behavior
+- **Development (SQLite)**: File-based database with manual initialization
+- **Production (Railway + PostgreSQL)**: Cloud database with connection pooling
+- **Database Abstraction**: Same codebase supports both environments seamlessly
+- **Railway Auto-Deploy**: Pushes to main branch trigger automatic deployment
