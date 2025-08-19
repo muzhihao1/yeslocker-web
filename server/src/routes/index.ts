@@ -8,8 +8,8 @@ import authRoutes from './auth';
 import userRoutes from './users';
 import storeRoutes from './stores';
 import applicationRoutes from './applications';
-// import lockerRoutes from './lockers';  // Will be added later
-// import recordRoutes from './records';   // Will be added later
+// import lockerRoutes from './lockers';     // Temporarily disabled for testing
+// import recordRoutes from './records';      // Temporarily disabled for testing
 
 import { 
   logRequest,
@@ -94,36 +94,121 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/stores', storeRoutes);
 router.use('/applications', applicationRoutes);
-// router.use('/lockers', lockerRoutes);     // Will be added later
-// router.use('/records', recordRoutes);     // Will be added later
+// router.use('/lockers', lockerRoutes);     // Temporarily disabled for testing
+// router.use('/records', recordRoutes);     // Temporarily disabled for testing
 
 /**
  * Legacy endpoints compatibility (for gradual migration)
  * These map old endpoints to new route structure
  */
 
+// ============= AUTHENTICATION & USER MANAGEMENT =============
+
 // Legacy admin login
 router.post('/admin-login', (req: Request, res: Response) => {
   res.redirect(307, '/api/auth/login');
 });
+
+// Legacy user authentication endpoints
+router.post('/auth-register', (req: Request, res: Response) => {
+  res.redirect(307, '/api/auth/register');
+});
+
+router.post('/auth-login', (req: Request, res: Response) => {
+  res.redirect(307, '/api/auth/login');
+});
+
+// Legacy user check
+router.post('/check-user', (req: Request, res: Response) => {
+  const { phone } = req.body;
+  res.redirect(301, `/api/users/check-phone/${phone}`);
+});
+
+// ============= USER ENDPOINTS =============
+
+// Legacy user endpoints
+router.get('/admin-users', (req: Request, res: Response) => {
+  res.redirect(301, '/api/users');
+});
+
+// User locker and records
+router.get('/users/:userId/locker', (req: Request, res: Response) => {
+  res.redirect(301, `/api/users/${req.params.userId}/locker`);
+});
+
+router.get('/users/:userId/locker-records', (req: Request, res: Response) => {
+  res.redirect(301, `/api/users/${req.params.userId}/records`);
+});
+
+// ============= STORES AND LOCKERS =============
+
+// Legacy store list
+router.get('/stores', (req: Request, res: Response) => {
+  res.redirect(301, '/api/stores/active');
+});
+
+// Legacy stores and lockers combined endpoint
+router.get('/stores-lockers', (req: Request, res: Response) => {
+  res.redirect(301, '/api/stores');
+});
+
+router.post('/stores-lockers', (req: Request, res: Response) => {
+  res.redirect(307, '/api/stores');
+});
+
+// Legacy admin store management
+router.patch('/admin/stores/:id', (req: Request, res: Response) => {
+  res.redirect(307, `/api/stores/${req.params.id}`);
+});
+
+router.delete('/admin/stores/:id', (req: Request, res: Response) => {
+  res.redirect(307, `/api/stores/${req.params.id}`);
+});
+
+// Legacy locker management
+router.get('/lockers/:storeId', (req: Request, res: Response) => {
+  res.redirect(301, `/api/stores/${req.params.storeId}/lockers`);
+});
+
+router.get('/lockers/details/:lockerId', (req: Request, res: Response) => {
+  res.redirect(301, `/api/lockers/${req.params.lockerId}`);
+});
+
+router.get('/lockers/:lockerId/qrcode', (req: Request, res: Response) => {
+  res.redirect(301, `/api/lockers/${req.params.lockerId}/qrcode`);
+});
+
+router.post('/admin/lockers', (req: Request, res: Response) => {
+  res.redirect(307, '/api/lockers');
+});
+
+router.patch('/admin/lockers/:id', (req: Request, res: Response) => {
+  res.redirect(307, `/api/lockers/${req.params.id}`);
+});
+
+router.delete('/admin/lockers/:id', (req: Request, res: Response) => {
+  res.redirect(307, `/api/lockers/${req.params.id}`);
+});
+
+// ============= APPLICATIONS =============
 
 // Legacy locker application endpoint
 router.post('/lockers-apply', (req: Request, res: Response) => {
   res.redirect(307, '/api/applications');
 });
 
-// Legacy admin approval endpoint
+// Legacy admin approval endpoints
 router.get('/admin-approval', (req: Request, res: Response) => {
   res.redirect(301, '/api/applications?status=pending');
 });
 
 // Legacy admin approval action
 router.post('/admin-approval', (req: Request, res: Response) => {
-  const { applicationId, action } = req.body;
+  const { application_id, action } = req.body;
   if (action === 'approve') {
-    res.redirect(307, `/api/applications/${applicationId}/approve`);
+    res.redirect(307, `/api/applications/${application_id}/approve`);
   } else if (action === 'reject') {
-    res.redirect(307, `/api/applications/${applicationId}/reject`);
+    res.redirect(307, `/api/applications/${application_id}/reject`);
   } else {
     res.status(400).json({
       success: false,
@@ -133,20 +218,50 @@ router.post('/admin-approval', (req: Request, res: Response) => {
   }
 });
 
-// Legacy user check
-router.post('/check-user', (req: Request, res: Response) => {
-  const { phone } = req.body;
-  res.redirect(301, `/api/users/check-phone/${phone}`);
+// ============= RECORDS AND OPERATIONS =============
+
+// Legacy operations and records
+router.post('/locker-operations', (req: Request, res: Response) => {
+  res.redirect(307, '/api/records');
 });
 
-// Legacy store list
-router.get('/stores', (req: Request, res: Response) => {
-  res.redirect(301, '/api/stores/active');
+router.get('/admin-records', (req: Request, res: Response) => {
+  res.redirect(301, '/api/records');
 });
+
+// ============= STATISTICS AND REPORTS =============
 
 // Legacy statistics
 router.get('/admin/statistics', (req: Request, res: Response) => {
   res.redirect(301, '/api/applications/statistics');
+});
+
+router.get('/admin-statistics', (req: Request, res: Response) => {
+  res.redirect(301, '/api/applications/statistics');
+});
+
+// Legacy export
+router.get('/admin-export', (req: Request, res: Response) => {
+  res.redirect(301, '/api/records/export');
+});
+
+// ============= REMINDERS =============
+
+// Legacy reminders
+router.post('/admin-reminders', (req: Request, res: Response) => {
+  res.redirect(307, '/api/reminders');
+});
+
+// ============= FILE UPLOADS =============
+
+// Legacy file upload (placeholder - needs implementation)
+router.post('/upload-image', (req: Request, res: Response) => {
+  res.status(501).json({
+    success: false,
+    error: '文件上传功能正在开发中',
+    message: '请使用新的文件上传API端点',
+    redirect: '/api/uploads/image'
+  });
 });
 
 /**

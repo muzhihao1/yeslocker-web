@@ -6,8 +6,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { BaseService, ServiceResponse } from './BaseService';
-import { AdminRepository } from '../models/AdminRepository';
-import { UserRepository } from '../models/UserRepository';
+import { AdminRepository } from '../repositories/AdminRepository';
+import { UserRepository } from '../repositories/UserRepository';
 
 export interface LoginCredentials {
   phone: string;

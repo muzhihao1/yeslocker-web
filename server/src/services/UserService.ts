@@ -4,9 +4,9 @@
  */
 
 import { BaseService, ServiceResponse } from './BaseService';
-import { UserRepository } from '../models/UserRepository';
-import { ApplicationRepository } from '../models/ApplicationRepository';
-import { LockerRecordRepository } from '../models/LockerRecordRepository';
+import { UserRepository } from '../repositories/UserRepository';
+import { ApplicationRepository } from '../repositories/ApplicationRepository';
+import { LockerRecordRepository } from '../repositories/LockerRecordRepository';
 
 export interface CreateUserData {
   phone: string;

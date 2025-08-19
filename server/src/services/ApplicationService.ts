@@ -4,10 +4,10 @@
  */
 
 import { BaseService, ServiceResponse } from './BaseService';
-import { ApplicationRepository } from '../models/ApplicationRepository';
-import { UserRepository } from '../models/UserRepository';
-import { LockerRepository } from '../models/LockerRepository';
-import { StoreRepository } from '../models/StoreRepository';
+import { ApplicationRepository } from '../repositories/ApplicationRepository';
+import { UserRepository } from '../repositories/UserRepository';
+import { LockerRepository } from '../repositories/LockerRepository';
+import { StoreRepository } from '../repositories/StoreRepository';
 
 export interface CreateApplicationData {
   user_id: string;

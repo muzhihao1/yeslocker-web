@@ -18,7 +18,6 @@
     "moduleDetection": "force",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -39,17 +38,21 @@
     }
   },
   "include": [
-    "src/**/*",
-    "**/*.ts",
-    "**/*.js"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "archived-files",
-    "archived-servers"
+    "archived-files/**",
+    "archived-servers/**",
+    "database/**",
+    "public/**",
+    "logs/**",
+    "*.js",
+    "ecosystem.config.js",
+    "index-railway.js"
   ],
   "ts-node": {
     "esm": true,

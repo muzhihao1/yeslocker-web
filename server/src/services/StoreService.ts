@@ -4,9 +4,9 @@
  */
 
 import { BaseService, ServiceResponse } from './BaseService';
-import { StoreRepository } from '../models/StoreRepository';
-import { LockerRepository } from '../models/LockerRepository';
-import { UserRepository } from '../models/UserRepository';
+import { StoreRepository } from '../repositories/StoreRepository';
+import { LockerRepository } from '../repositories/LockerRepository';
+import { UserRepository } from '../repositories/UserRepository';
 
 export interface CreateStoreData {
   name: string;

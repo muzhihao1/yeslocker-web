@@ -4,10 +4,10 @@
  */
 
 import { BaseService, ServiceResponse } from './BaseService';
-import { LockerRepository } from '../models/LockerRepository';
-import { StoreRepository } from '../models/StoreRepository';
-import { LockerRecordRepository } from '../models/LockerRecordRepository';
-import { ApplicationRepository } from '../models/ApplicationRepository';
+import { LockerRepository } from '../repositories/LockerRepository';
+import { StoreRepository } from '../repositories/StoreRepository';
+import { LockerRecordRepository } from '../repositories/LockerRecordRepository';
+import { ApplicationRepository } from '../repositories/ApplicationRepository';
 
 export interface CreateLockerData {
   store_id: string;
