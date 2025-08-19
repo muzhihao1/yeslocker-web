@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 YesLocker (台球杆柜管理小程序) is a comprehensive billiard cue locker digital management system supporting:
 - User-side applications for locker rentals and operations
-- Admin panel for approval workflows and management
+- Admin panel for approval workflows and management  
 - Complete business flow from application to storage operations
 
-The project uses a three-layer architecture with Vue 3 frontend applications, Express.js backend API, and PostgreSQL/SQLite database.
+The project features a **hybrid architecture** supporting both legacy monolithic server files and a modern modular service-controller pattern with TypeScript.
 
 ## Tech Stack
 
@@ -20,11 +20,11 @@ The project uses a three-layer architecture with Vue 3 frontend applications, Ex
 - **State Management**: Pinia stores for both applications
 - **Build Tool**: Vite with TypeScript support
 
-### Backend Stack  
-- **API Server (server/)**: Express.js with middleware architecture
+### Backend Stack (Dual Architecture)
+- **Modern API (server/src/)**: TypeScript + Express.js with service-controller pattern
+- **Legacy API (server/)**: JavaScript Express.js monolithic files
+- **Database**: SQLite (development) / PostgreSQL (production) with Knex.js + Objection.js
 - **Authentication**: JWT with bcrypt password hashing
-- **Database**: SQLite (development) / PostgreSQL (production)
-- **Development**: Local-first with hot reload via nodemon
 - **Deployment**: Railway platform with PostgreSQL
 
 ## Essential Commands
@@ -34,13 +34,31 @@ The project uses a three-layer architecture with Vue 3 frontend applications, Ex
 # Install dependencies for all parts
 npm install                    # Root client dependencies
 cd admin && npm install        # Admin panel dependencies  
-cd ../server && npm install    # Backend server dependencies
+cd server && npm install       # Backend server dependencies
 
 # Database initialization
-npm run db:init               # Initialize SQLite database
+cd server && npm run db:init   # Initialize SQLite database
 ```
 
 ### Development Servers
+
+#### Modern Modular Server (TypeScript)
+```bash
+cd server
+npm run dev                    # Start TypeScript server with hot reload (port 3001)
+npm run build                  # Build TypeScript to JavaScript
+npm run start                  # Run built JavaScript version
+npm run type-check             # Type checking without compilation
+```
+
+#### Legacy Server (JavaScript)
+```bash
+cd server
+npm run dev:legacy             # Start legacy server (index.js)
+npm run dev:railway            # Start Railway production server (index-railway.js)
+```
+
+#### Frontend Development
 ```bash
 # Start user app dev server (port 3000)
 npm run dev
@@ -48,89 +66,103 @@ npm run dev
 # Start admin panel dev server (port 5173)
 npm run dev:admin
 
-# Start backend API server (port 3001) 
-npm run dev:server
-
-# Start all services together
+# Start all services together (legacy server)
 npm run dev:all
 ```
 
 ### Database Operations  
 ```bash
-# SQLite operations (development)
 cd server
-npm run db:init              # Initialize database
-npm run db:reset             # Reset database to clean state
-npm run db:check             # Check database status
-
-# PostgreSQL operations (production)
-npm run db:init:pg           # Initialize PostgreSQL database
+npm run db:init                # Initialize database
+npm run db:reset               # Reset database to clean state
+npm run db:check               # Check database status
+npm run db:optimize            # Apply performance indexes
+npm run db:enhance             # Apply enhanced constraints
 ```
 
 ### Build Commands
 ```bash
-# Build user application
-npm run build:client
-
-# Build admin panel  
-cd admin && npm run build
-
-# Build complete project
+# Build complete project (client + admin + server)
 npm run build
+
+# Build individual components
+npm run build:client           # Build user application
+npm run build:admin            # Build admin panel
+npm run build:server           # Prepare server (install dependencies)
 ```
 
 ### Code Quality
 ```bash
-# Type checking
-npm run type-check
+# TypeScript type checking
+npm run type-check             # Root project
+cd server && npm run type-check # Server TypeScript
 
 # Linting with auto-fix
-npm run lint
+npm run lint                   # Root project linting
 ```
 
 ## Architecture Overview
 
-### Three-Layer Application Architecture
+### Hybrid Backend Architecture
 
-1. **User Frontend Layer** (`src/`)
-   - Vue 3 + Vite + TypeScript application for end users
-   - Features: User registration, locker applications, operation records
-   - Pinia for state management, Vue Router for navigation
-   - API integration through service layers
+The project supports **two parallel backend architectures**:
 
-2. **Admin Frontend Layer** (`admin/`) 
-   - Vue 3 + Vite + TypeScript admin management panel
-   - Features: Dashboard, user management, locker oversight, application approvals
-   - Separate build process and routing from user app
-   - Shared component patterns with user app
+#### 1. Legacy Monolithic Architecture (`server/`)
+- **Main Files**: `index-railway.js` (production), `index.js` (development)
+- **Structure**: Single 2000+ line files containing all business logic
+- **Database**: Direct SQL queries with custom database abstraction
+- **Status**: Production-ready, currently deployed
 
-3. **Backend API Layer** (`server/`)
-   - Express.js REST API server with modular route structure
-   - Authentication: JWT-based with bcrypt password hashing
-   - Database abstraction supporting SQLite (dev) and PostgreSQL (prod)
-   - Middleware: CORS, auth verification, error handling, request logging
+#### 2. Modern Modular Architecture (`server/src/`)
+- **Structure**: Service-Controller pattern with TypeScript
+- **Layers**: Models → Repositories → Services → Controllers → Routes
+- **Database**: Knex.js + Objection.js ORM with connection pooling
+- **Status**: Fully implemented, ready for integration
+
+```
+server/src/
+├── models/              # Objection.js models with relationships
+├── repositories/        # Data access layer with complex queries
+├── services/           # Business logic layer (AuthService, UserService, etc.)
+├── controllers/        # HTTP request handling layer
+├── routes/             # Feature-organized route modules
+├── middleware/         # Authentication, validation, logging
+└── server.ts          # Modern server entry point
+```
 
 ### Database Architecture
 
-- **Development**: SQLite with file-based storage for rapid iteration
+- **Development**: SQLite with file-based storage (`server/database/yeslocker.db`)
 - **Production**: PostgreSQL on Railway with connection pooling
-- **Core Tables**: users, stores, lockers, locker_records, applications, admins
+- **Dual Support**: Both architectures work with same database schemas
 - **Migration System**: Separate initialization scripts for each database type
+
+#### Critical Database Schema Notes
+- **applications.assigned_locker_id**: References lockers.id (NOT applications.locker_id)
+- **Foreign Key Constraints**: All relationships must exist for queries to work properly
+- **Performance Indexes**: Applied via `npm run db:optimize`
+- **Enhanced Constraints**: Applied via `npm run db:enhance`
 
 ### Key Design Patterns
 
-- **Service Layer Pattern**: API communication abstracted through service files
-- **Store Pattern**: Pinia stores for state management with caching strategies  
-- **Modular Routes**: Express routes organized by feature domain
-- **Database Abstraction**: Same codebase works with SQLite/PostgreSQL
-- **Environment-Based Configuration**: Different configs for dev/production
+#### Modern Architecture Patterns
+- **Repository Pattern**: Data access abstraction (`BaseRepository`)
+- **Service Layer Pattern**: Business logic encapsulation (`BaseService`)
+- **Controller Pattern**: HTTP handling with validation (`BaseController`)
+- **Dependency Injection**: Services injected into controllers
+- **Error Handling**: Consistent service responses with proper HTTP status codes
+
+#### Legacy Architecture Patterns
+- **Monolithic Pattern**: All logic in single files
+- **Direct Database Access**: Custom SQL query builders
+- **Middleware Stack**: Express.js middleware for auth and validation
 
 ### Environment Configuration
 
 Development requires multiple environment files:
-- Root `.env.local` - User app configuration
-- `server/.env` - Backend API and database settings
-- `admin/.env` - Admin panel specific settings
+- **Root `.env.local`**: User app configuration
+- **`server/.env`**: Backend API and database settings  
+- **`admin/.env`**: Admin panel specific settings
 
 Key environment variables:
 - `DATABASE_URL` - Database connection (SQLite file or PostgreSQL URL)
@@ -138,128 +170,118 @@ Key environment variables:
 - `PORT` - Server port (default 3001)
 - `NODE_ENV` - Environment mode
 
-## Deployment Strategy
+## Critical System Information
 
-### Railway Platform Deployment
+### Production Server Details
+- **Live URL**: https://yeslocker-web-production-314a.up.railway.app
+- **Current Server**: `server/index-railway.js` (legacy monolithic)
+- **Modern Server**: `server/src/server.ts` (ready for deployment)
+- **Admin Credentials**: phone: '13800000002', password: 'admin123' (testing)
+- **Database**: PostgreSQL hosted on Railway
 
-The project is configured for deployment on Railway with PostgreSQL database.
+### Architecture Migration Status
 
-#### Production Configuration
-- **Frontend Serving**: Express.js serves built static assets
-- **Backend API**: Node.js Express server
-- **Database**: Railway PostgreSQL with automatic backups
-- **Build Process**: Multi-stage build combining user app, admin panel, and server
+#### ✅ Completed (Modern Architecture)
+- Database abstraction layer (Models + Repositories)
+- Service layer (AuthService, UserService, StoreService, ApplicationService, LockerService)
+- Controller layer with validation and error handling
+- Modular route organization by feature domain
+- Authentication middleware with role-based access control
+- TypeScript configuration and build system
 
-#### Railway Configuration (`railway.json`)
-```json
-{
-  "build": {
-    "command": "npm run build && cd admin && npm run build && cd ../server && npm install"
-  },
-  "start": {
-    "command": "cd server && npm run start:railway"
-  },
-  "environment": {
-    "NODE_ENV": "production"
-  }
-}
-```
+#### 🔄 Migration-Ready Components
+- **Authentication**: `/api/auth/*` endpoints ready
+- **User Management**: `/api/users/*` endpoints ready
+- **Store Management**: `/api/stores/*` endpoints ready  
+- **Applications**: `/api/applications/*` endpoints ready
+- **Legacy Compatibility**: Redirect mapping for old endpoints
 
-#### Environment Variables for Production
+#### 📋 Pending Integration
+- Complete transition from legacy to modular endpoints
+- Frontend service layer updates to new API structure
+- Comprehensive testing of modular architecture
+- Production deployment of modern server
+
+### Common Issues and Solutions
+
+#### Database Foreign Key Problems
+- **Issue**: Applications may show undefined foreign key relationships
+- **Root Cause**: SQL queries using incorrect field names in JOIN operations
+- **Critical Fix**: Always use `assigned_locker_id` not `locker_id` in applications table queries
+- **Example**: `LEFT JOIN lockers l ON a.assigned_locker_id = l.id`
+
+#### Architecture Switching
+- **Legacy Server**: Use `npm run dev:legacy` or `npm run start:railway`
+- **Modern Server**: Use `npm run dev` or `npm run start` in server directory
+- **API Endpoints**: Modern server includes legacy compatibility redirects
+
+### Development Workflow
+
+#### Working with Modern Architecture
 ```bash
-# Database
-DATABASE_URL=postgresql://...     # Auto-provided by Railway
-DATABASE_PUBLIC_URL=postgresql://...  # Alternative connection string
+cd server
 
-# Authentication  
-JWT_SECRET=your-production-secret
+# Development with hot reload
+npm run dev
 
-# Server Configuration
-NODE_ENV=production
-PORT=3001                        # Railway will override
+# Type checking during development  
+npm run type-check
 
-# Application URLs
-FRONTEND_URL=https://your-app.railway.app
+# Build for production
+npm run build && npm run start
 ```
 
-### Database Migration Strategy
+#### Working with Legacy Architecture
+```bash
+cd server
 
-The project supports both SQLite (development) and PostgreSQL (production):
+# Development with legacy server
+npm run dev:legacy
 
-- **Development**: File-based SQLite for rapid local development
-- **Production**: PostgreSQL with connection pooling and Railway management
-- **Migration Scripts**: Separate initialization for each database type
-- **Schema Compatibility**: Abstracted queries work with both database systems
+# Production-style testing
+npm run dev:railway
+```
 
-## Development Workflow
+#### Database Development
+```bash
+cd server
 
-### Local Development Setup
+# Check current state
+npm run db:check
 
-1. **Initial Setup**:
-   ```bash
-   # Install all dependencies
-   npm install
-   cd admin && npm install
-   cd ../server && npm install
-   
-   # Initialize database
-   cd server && npm run db:init
-   ```
+# Reset and reinitialize
+npm run db:reset
+npm run db:init
 
-2. **Daily Development**:
-   ```bash
-   # Start all services (recommended)
-   npm run dev:all
-   
-   # OR start individually:
-   npm run dev           # User app (port 3000)
-   npm run dev:admin     # Admin panel (port 5173)  
-   npm run dev:server    # API server (port 3001)
-   ```
-
-3. **Database Operations**:
-   ```bash
-   cd server
-   npm run db:check      # Check current state
-   npm run db:reset      # Reset to clean state
-   npm run db:init       # Reinitialize
-   ```
-
-### Development Features
-
-- **Hot Reload**: All three applications support live reloading
-- **TypeScript**: Full TypeScript support with type checking
-- **API Testing**: Backend server logs all requests for debugging
-- **Database Flexibility**: Switch between SQLite/PostgreSQL easily
-- **Error Handling**: Comprehensive error logging and user feedback
-
-### Code Organization Principles
-
-- **Modular Structure**: Each layer (user app, admin, server) is self-contained
-- **Shared Patterns**: Common patterns between frontend applications
-- **API Consistency**: RESTful endpoints with consistent response formats
-- **Database Abstraction**: Same codebase works with multiple database types
+# Apply performance optimizations
+npm run db:optimize
+npm run db:enhance
+```
 
 ## Code Conventions
 
-### Frontend Conventions (Vue 3 + TypeScript)
-- **Component Files**: PascalCase for Vue components (`LoginForm.vue`, `UserDashboard.vue`)
-- **Composables**: Use prefix `use` for composables (`useAuth.ts`, `useLockers.ts`)
-- **Services**: kebab-case for API service files (`api-service.ts`, `auth-service.ts`)
-- **Pinia Stores**: Clear descriptive names (`useAuthStore`, `useLockerStore`, `useAdminStore`)
-- **Vue Composition API**: Prefer `<script setup>` syntax with TypeScript
-- **Props/Emits**: Define with TypeScript interfaces for type safety
+### Modern Backend (TypeScript)
+- **File Organization**: Feature-based modules (`AuthService.ts`, `UserController.ts`)
+- **Class Names**: PascalCase with descriptive suffixes (`BaseService`, `ApplicationRepository`)
+- **Method Names**: camelCase with action verbs (`createUser`, `authenticateAdmin`)
+- **Error Handling**: Service response pattern with `ServiceResponse<T>` interface
+- **Database**: Objection.js models with TypeScript interfaces
 
-### Backend Conventions (Express.js + Node.js)
-- **Route Files**: Feature-based organization (`auth.js`, `lockers.js`, `admin.js`)
-- **Middleware**: Descriptive names (`authenticateToken`, `validateAdmin`, `logRequests`)
-- **Database**: Use abstracted database layer for SQLite/PostgreSQL compatibility
-- **Error Handling**: Consistent error response format across all endpoints
-- **API Endpoints**: RESTful naming with `/api/` prefix
+### Legacy Backend (JavaScript)
+- **File Structure**: Monolithic with inline functions
+- **Database**: Direct SQL with custom query builders
+- **Error Handling**: Express.js standard error middleware
+- **Routes**: Inline route definitions with middleware
+
+### Frontend Conventions (Vue 3 + TypeScript)
+- **Components**: PascalCase Vue components (`LoginForm.vue`, `UserDashboard.vue`)
+- **Composables**: `use` prefix for composables (`useAuth.ts`, `useLockers.ts`)
+- **Services**: kebab-case API service files (`api-service.ts`, `auth-service.ts`)
+- **Stores**: Descriptive Pinia store names (`useAuthStore`, `useLockerStore`)
 
 ### Database Conventions
-- **Table Names**: Lowercase with underscores (`users`, `locker_records`, `applications`)
-- **Column Names**: snake_case naming (`created_at`, `user_id`, `locker_number`)
+- **Tables**: Lowercase with underscores (`users`, `locker_records`, `applications`)
+- **Columns**: snake_case naming (`created_at`, `user_id`, `locker_number`)
 - **Relationships**: Clear foreign key naming (`user_id`, `store_id`, `admin_id`)
 
 ## Project Structure
@@ -268,58 +290,70 @@ The project supports both SQLite (development) and PostgreSQL (production):
 yeslocker/
 ├── src/                    # User frontend application
 │   ├── components/        # Reusable Vue components
-│   ├── views/            # Page-level Vue components  
+│   ├── pages/            # Page-level Vue components  
 │   ├── stores/           # Pinia state management
 │   ├── services/         # API integration services
-│   ├── router/           # Vue Router configuration
-│   ├── utils/            # Frontend utility functions
-│   └── assets/           # Static assets (images, styles)
+│   └── router/           # Vue Router configuration
 │
 ├── admin/                 # Admin management panel
-│   ├── components/       # Admin-specific components
-│   ├── views/           # Admin page components
-│   ├── stores/          # Admin state management  
-│   ├── services/        # Admin API services
-│   └── styles/          # Admin-specific styles
+│   ├── src/              # Admin-specific components and pages
+│   ├── dist/             # Built admin panel
+│   └── package.json      # Admin dependencies and scripts
 │
-├── server/                # Express.js backend API
-│   ├── routes/          # API route handlers by feature
-│   ├── middleware/      # Custom Express middleware
-│   ├── database/        # Database initialization and queries
-│   ├── utils/           # Backend utility functions
-│   └── config/          # Server configuration files
+├── server/                # Backend API (dual architecture)
+│   ├── src/              # MODERN: Modular TypeScript architecture
+│   │   ├── models/       # Objection.js models
+│   │   ├── repositories/ # Data access layer
+│   │   ├── services/     # Business logic layer
+│   │   ├── controllers/  # HTTP handling layer
+│   │   ├── routes/       # Feature-organized routes
+│   │   ├── middleware/   # Auth, validation, logging
+│   │   └── server.ts     # Modern server entry point
+│   │
+│   ├── database/         # Database initialization and migrations
+│   ├── index-railway.js  # LEGACY: Production monolithic server
+│   ├── index.js          # LEGACY: Development monolithic server
+│   └── package.json      # Backend dependencies (updated for TypeScript)
 │
 ├── public/               # Static assets served directly
-├── dist/                # Built application files
-└── docs/                # Project documentation
+├── dist/                # Built user application
+├── docs/                # Project documentation
+└── tests/               # Testing suites (e2e, integration, unit)
 ```
 
-## Development Configuration
-
-### Port Configuration
+## Port Configuration
 - **User App**: 3000 (Vite dev server)
 - **Admin Panel**: 5173 (Vite dev server)  
-- **Backend API**: 3001 (Express.js server)
+- **Backend API**: 3001 (Express.js server - both architectures)
 - **Database**: SQLite file-based or PostgreSQL
 
-### Key Configuration Files
-- **Root package.json**: Main build scripts and user app dependencies
-- **admin/package.json**: Admin panel specific dependencies and scripts
-- **server/package.json**: Backend dependencies and database scripts
-- **vite.config.ts**: Frontend build configuration
-- **tsconfig.json**: TypeScript compiler configuration
+## Deployment Strategy
 
-### Environment Files
-- **Root .env.local**: User app environment variables
-- **server/.env**: Backend API configuration
-- **Railway deployment**: Uses environment variables for production
+### Railway Production Deployment
+- **Current**: Legacy monolithic server (`index-railway.js`)
+- **Future**: Modern modular server (`src/server.ts`)
+- **Database**: PostgreSQL with automatic backups
+- **Static Files**: Express.js serves built frontend assets
+
+### Environment Variables for Production
+```bash
+# Database
+DATABASE_URL=postgresql://...     # Auto-provided by Railway
+
+# Authentication  
+JWT_SECRET=your-production-secret
+
+# Server Configuration
+NODE_ENV=production
+PORT=3001                        # Railway will override
+```
 
 ## Core Business Features
 
 ### User Application Flow
-1. **Registration**: Phone number + SMS verification 
-2. **Locker Application**: Submit application with store selection
-3. **Approval Process**: Admin review and approval/rejection
+1. **Registration**: Phone number verification
+2. **Locker Application**: Submit application with store/locker selection  
+3. **Admin Approval**: Admin review and approval/rejection workflow
 4. **Locker Operations**: Check-in/check-out billiard cues
 5. **Record Keeping**: Track usage history and payments
 
@@ -327,64 +361,86 @@ yeslocker/
 1. **Dashboard**: Overview statistics and recent activities
 2. **User Management**: View and manage user accounts
 3. **Locker Management**: Configure and monitor locker availability
-4. **Application Review**: Approve/reject user applications
-5. **Operations Monitoring**: Track usage patterns and revenue
+4. **Application Review**: Approve/reject user applications with workflow
+5. **Operations Monitoring**: Track usage patterns and system health
 
-### Technical Implementation
-- **Authentication**: JWT-based with phone verification
-- **Database Design**: Normalized schema with proper relationships
-- **API Architecture**: RESTful endpoints with consistent error handling
-- **Frontend State**: Pinia stores for reactive state management
-- **Development Database**: SQLite for rapid local development
-- **Production Database**: PostgreSQL with Railway hosting
+## API Architecture
 
-## Critical System Information
-
-### Production Server Details
-- **Live URL**: https://yeslocker-web-production-314a.up.railway.app
-- **Primary Server File**: `server/index-railway.js` (production main server)
-- **Admin Credentials**: phone: '13800000002', password: 'admin123' (for testing)
-- **Database**: PostgreSQL hosted on Railway with connection pooling
-
-### Common Issues and Solutions
-
-#### Database Foreign Key Problems
-- **Issue**: Applications may show undefined foreign key relationships (user_id, store_id, assigned_locker_id as undefined in admin panel)
-- **Root Cause**: SQL queries using incorrect field names in JOIN operations
-- **Critical Fix**: Always use `assigned_locker_id` not `locker_id` in applications table queries
-- **Example Fix**: `LEFT JOIN lockers l ON a.assigned_locker_id = l.id` (NOT `a.locker_id = l.id`)
-
-#### API Performance Issues
-- **Normal Response Time**: ~1000ms for complex queries
-- **Problem Response Time**: >2000ms indicates database performance issues
-- **Monitoring**: Check server logs for slow queries and connection pool status
-
-#### User Application Submission Flow
-- **Endpoint**: `POST /lockers-apply`
-- **Required Fields**: store_id, locker_id (assigned_locker_id), user_id, reason
-- **Common 500 Errors**: Usually indicate missing foreign key references in database
-- **Common 409 Errors**: User already has pending application (expected behavior)
-
-### Database Schema Critical Notes
-- **applications.assigned_locker_id**: References lockers.id (NOT applications.locker_id)  
-- **Foreign Key Constraints**: All relationships must exist for queries to work properly
-- **Seed Data**: Use `/api/init-db` endpoint to populate initial data if database is empty
-
-### Debugging Tools and Endpoints
-```bash
-# Test application submission
-node test-user-application.js          # Test user application flow
-node test-admin-approval-500.js        # Test admin approval endpoint
-node test-database-data.js             # Verify database foreign key relationships
-
-# Production endpoints for debugging
-POST /api/init-db                      # Initialize database with seed data
-GET /api/admin-approval                # Admin panel applications (requires JWT)
-POST /lockers-apply                    # User application submission
+### Modern API Endpoints (TypeScript)
+```
+/api/auth/*          # Authentication (login, logout, token management)
+/api/users/*         # User management (CRUD, statistics, profiles)  
+/api/stores/*        # Store management (locations, capacity analysis)
+/api/applications/*  # Application workflow (submit, approve, reject)
+/api/lockers/*       # Locker management (availability, operations)
+/api/records/*       # Usage records (check-in/out, history)
 ```
 
-### Environment-Specific Behavior
-- **Development (SQLite)**: File-based database with manual initialization
-- **Production (Railway + PostgreSQL)**: Cloud database with connection pooling
-- **Database Abstraction**: Same codebase supports both environments seamlessly
-- **Railway Auto-Deploy**: Pushes to main branch trigger automatic deployment
+### Legacy API Endpoints (JavaScript)
+```
+/admin-login         # Admin authentication
+/lockers-apply       # User application submission
+/admin-approval      # Application management
+/check-user          # User verification
+/stores              # Store listing
+```
+
+### API Response Format (Modern)
+```typescript
+interface ServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  details?: any;
+  statusCode?: number;
+  timestamp: string;
+}
+```
+
+## Testing Strategy
+
+### Available Test Suites
+```bash
+# End-to-end testing
+cd tests/e2e && node test-complete-business-flow.js
+
+# Load testing
+cd tests/load-testing && node stress-test-suite.js
+
+# Edge case testing
+cd tests/edge-cases && node comprehensive-edge-case-runner.js
+
+# Legacy debugging
+cd tests/debug && node test-admin-approval-500.js
+```
+
+### Testing Database Issues
+```bash
+# Verify database relationships
+cd tests/debug && node test-database-data.js
+
+# Test foreign key constraints
+cd tests/debug && node test-database-structure.js
+
+# Test authentication flow
+cd tests/debug && node test-jwt-auth.js
+```
+
+## Development Tips
+
+### Architecture Decision Making
+- **New Features**: Use modern TypeScript architecture in `server/src/`
+- **Bug Fixes**: Fix in legacy files, then port to modern architecture
+- **API Changes**: Implement in modern architecture with legacy compatibility
+- **Database Changes**: Update both legacy and modern query patterns
+
+### Debugging Common Issues
+- **500 Errors**: Usually foreign key relationship problems
+- **401 Errors**: JWT token expiration or invalid credentials
+- **409 Errors**: Business logic conflicts (duplicate applications)
+- **Database Lock**: Restart SQLite connection or check for unclosed transactions
+
+### Performance Monitoring
+- **Response Times**: ~1000ms normal, >2000ms indicates issues
+- **Database Queries**: Monitor for N+1 problems and missing indexes
+- **Memory Usage**: Check for connection pool leaks in PostgreSQL

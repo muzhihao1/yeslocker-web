@@ -1,0 +1,313 @@
+{
+  "users": [
+    [
+      "13800000001",
+      {
+        "id": "admin_1",
+        "phone": "13800000001",
+        "name": "超级管理员",
+        "role": "admin",
+        "status": "active",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13800000003",
+      {
+        "phone": "13800000003",
+        "name": "张三",
+        "id": "user_1",
+        "status": "active",
+        "store_id": "1",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13800000004",
+      {
+        "phone": "13800000004",
+        "name": "李四",
+        "id": "user_2",
+        "status": "active",
+        "store_id": "1",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13800000005",
+      {
+        "phone": "13800000005",
+        "name": "王五",
+        "id": "user_3",
+        "status": "active",
+        "store_id": "1",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13800000006",
+      {
+        "phone": "13800000006",
+        "name": "赵六",
+        "id": "user_4",
+        "status": "active",
+        "store_id": "1",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13800000007",
+      {
+        "phone": "13800000007",
+        "name": "孙七",
+        "id": "user_5",
+        "status": "active",
+        "store_id": "1",
+        "created_at": "2025-08-05T00:20:06.677Z"
+      }
+    ],
+    [
+      "13988889999",
+      {
+        "id": "user_1754353554352_jzwglvak1",
+        "phone": "13988889999",
+        "name": "测试用户A",
+        "avatar_url": null,
+        "store_id": "1",
+        "status": "active",
+        "created_at": "2025-08-05T00:25:54.353Z"
+      }
+    ],
+    [
+      "18800000999",
+      {
+        "id": "user_1754706854004_oddie9n6a",
+        "phone": "18800000999",
+        "name": "测试用户李四",
+        "avatar_url": null,
+        "store_id": "1",
+        "status": "active",
+        "created_at": "2025-08-09T02:34:14.004Z"
+      }
+    ],
+    [
+      "18669203134",
+      {
+        "id": "user_1754755329268_eylz02yc7",
+        "phone": "18669203134",
+        "name": "木",
+        "avatar_url": "blob:https://a31577df-9c50-4f63-944f-3ae55782f29b-00-35lzpipz7ootz.sisko.replit.dev:3001/72c8a030-a86e-4005-98fc-df85a668662a",
+        "store_id": "1",
+        "status": "active",
+        "created_at": "2025-08-09T16:02:09.268Z"
+      }
+    ]
+  ],
+  "applications": [
+    [
+      "app_1",
+      {
+        "id": "app_1",
+        "user_id": "user_1",
+        "user_phone": "13800000003",
+        "store_id": "1",
+        "locker_id": "",
+        "status": "rejected",
+        "reason": "申请存放台球杆",
+        "created_at": "2025-01-03T10:00:00.000Z",
+        "rejected_at": "2025-08-09T02:20:39.513Z",
+        "rejected_by": "admin_1",
+        "reject_reason": "不符合申请条件"
+      }
+    ],
+    [
+      "app_2",
+      {
+        "id": "app_2",
+        "user_id": "user_2",
+        "user_phone": "13800000004",
+        "store_id": "1",
+        "locker_id": "A-001",
+        "status": "approved",
+        "reason": "申请存放台球杆",
+        "created_at": "2025-01-02T14:30:00.000Z",
+        "approved_at": "2025-01-02T15:00:00.000Z",
+        "approved_by": "admin_1"
+      }
+    ],
+    [
+      "app_3",
+      {
+        "id": "app_3",
+        "user_id": "user_3",
+        "user_phone": "13800000005",
+        "store_id": "2",
+        "locker_id": "",
+        "status": "rejected",
+        "reason": "申请存放台球杆",
+        "created_at": "2025-01-01T09:00:00.000Z",
+        "rejected_at": "2025-01-01T10:00:00.000Z",
+        "rejected_by": "admin_1",
+        "reject_reason": "资料不完整"
+      }
+    ],
+    [
+      "app_4",
+      {
+        "id": "app_4",
+        "user_id": "user_4",
+        "user_phone": "13800000006",
+        "store_id": "1",
+        "locker_id": "",
+        "status": "pending",
+        "reason": "会员存杆申请",
+        "created_at": "2025-01-05T00:00:00.000Z"
+      }
+    ],
+    [
+      "app_5",
+      {
+        "id": "app_5",
+        "user_id": "user_5",
+        "user_phone": "13800000007",
+        "store_id": "2",
+        "locker_id": "B-005",
+        "status": "approved",
+        "reason": "申请存放私人球杆",
+        "created_at": "2024-12-30T11:00:00.000Z",
+        "approved_at": "2024-12-30T12:00:00.000Z",
+        "approved_by": "admin_1"
+      }
+    ],
+    [
+      "app_1754354686827_5g6cz7ygh",
+      {
+        "id": "app_1754354686827_5g6cz7ygh",
+        "user_id": "user_1754353554352_jzwglvak1",
+        "user_phone": "13988889999",
+        "store_id": "1",
+        "locker_id": "1",
+        "reason": "",
+        "status": "approved",
+        "created_at": "2025-08-05T00:44:46.828Z",
+        "approved_at": "2025-08-09T02:20:29.944Z",
+        "approved_by": "admin_1"
+      }
+    ],
+    [
+      "app_1754706862607_k5zv4yjbj",
+      {
+        "id": "app_1754706862607_k5zv4yjbj",
+        "user_id": "user_1754706854004_oddie9n6a",
+        "user_phone": "18800000999",
+        "store_id": "1",
+        "locker_id": "1",
+        "reason": "日常存放台球杆需求",
+        "status": "approved",
+        "created_at": "2025-08-09T02:34:22.607Z",
+        "approved_at": "2025-08-09T02:34:42.947Z",
+        "approved_by": "admin_1"
+      }
+    ]
+  ],
+  "lockers": [
+    [
+      "1",
+      {
+        "id": "1",
+        "store_id": "1",
+        "number": "A01",
+        "status": "occupied",
+        "user_id": "user_1754706854004_oddie9n6a",
+        "last_use_time": "2025-08-09T02:43:36.935Z"
+      }
+    ],
+    [
+      "2",
+      {
+        "id": "2",
+        "store_id": "1",
+        "number": "A02",
+        "status": "occupied",
+        "user_id": "user_2"
+      }
+    ],
+    [
+      "3",
+      {
+        "id": "3",
+        "store_id": "1",
+        "number": "A03",
+        "status": "available"
+      }
+    ],
+    [
+      "4",
+      {
+        "id": "4",
+        "store_id": "1",
+        "number": "A04",
+        "status": "available"
+      }
+    ],
+    [
+      "5",
+      {
+        "id": "5",
+        "store_id": "1",
+        "number": "B01",
+        "status": "available"
+      }
+    ],
+    [
+      "6",
+      {
+        "id": "6",
+        "store_id": "1",
+        "number": "B02",
+        "status": "occupied"
+      }
+    ],
+    [
+      "7",
+      {
+        "id": "7",
+        "store_id": "1",
+        "number": "B03",
+        "status": "available"
+      }
+    ],
+    [
+      "8",
+      {
+        "id": "8",
+        "store_id": "1",
+        "number": "B04",
+        "status": "occupied"
+      }
+    ]
+  ],
+  "lockerRecords": [
+    {
+      "id": "record_1754707372046_mawgb133y",
+      "user_id": "user_1754706854004_oddie9n6a",
+      "locker_id": "1",
+      "action_type": "store",
+      "locker_number": "A01",
+      "store_name": "旗舰店",
+      "created_at": "2025-08-09T02:42:52.046Z",
+      "note": "存放台球杆"
+    },
+    {
+      "id": "record_1754707416935_ry8kvppew",
+      "user_id": "user_1754706854004_oddie9n6a",
+      "locker_id": "1",
+      "action_type": "retrieve",
+      "locker_number": "A01",
+      "store_name": "旗舰店",
+      "created_at": "2025-08-09T02:43:36.935Z",
+      "note": "取出台球杆"
+    }
+  ],
+  "lastSaved": "2025-08-10T01:15:15.713Z"
+}
