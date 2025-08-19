@@ -1085,6 +1085,95 @@ class RailwayServer {
       }
     });
 
+    // Locker application endpoint
+    this.app.post('/lockers-apply', async (req, res) => {
+      try {
+        const { store_id, locker_id, user_id, reason } = req.body;
+        
+        if (!store_id || !locker_id || !user_id) {
+          return res.status(400).json({
+            error: 'Missing required fields',
+            message: '门店、杆柜和用户信息为必填项'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check if user already has a pending application
+          const pendingCheck = await client.query(
+            `SELECT id FROM applications 
+             WHERE user_id = $1 AND status = 'pending'`,
+            [user_id]
+          );
+          
+          if (pendingCheck.rows.length > 0) {
+            client.release();
+            return res.status(409).json({
+              error: 'Duplicate application',
+              message: '您已有待审核的申请'
+            });
+          }
+          
+          // Check if locker is available
+          const lockerCheck = await client.query(
+            `SELECT status FROM lockers 
+             WHERE id = $1 AND store_id = $2`,
+            [locker_id, store_id]
+          );
+          
+          if (lockerCheck.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              error: 'Locker not found',
+              message: '指定的杆柜不存在'
+            });
+          }
+          
+          if (lockerCheck.rows[0].status !== 'available') {
+            client.release();
+            return res.status(400).json({
+              error: 'Locker not available',
+              message: '该杆柜已被占用'
+            });
+          }
+          
+          // Create application
+          const insertQuery = `
+            INSERT INTO applications (
+              user_id, store_id, assigned_locker_id, status, reason, 
+              applied_at, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, 'pending', $4, NOW(), NOW(), NOW())
+            RETURNING id, user_id, store_id, assigned_locker_id, status, reason, applied_at
+          `;
+          
+          const result = await client.query(insertQuery, [
+            user_id, store_id, locker_id, reason || ''
+          ]);
+          
+          client.release();
+          
+          res.json({
+            success: true,
+            message: '申请提交成功',
+            data: result.rows[0]
+          });
+          
+        } catch (innerError) {
+          client.release();
+          throw innerError;
+        }
+        
+      } catch (error) {
+        console.error('Locker application error:', error);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: '申请提交失败，请稍后重试'
+        });
+      }
+    });
+
     // User login
     this.app.post('/auth-login', async (req, res) => {
       try {
