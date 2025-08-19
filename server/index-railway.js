@@ -1407,7 +1407,8 @@ class RailwayServer {
       }
     });
 
-    // Locker application endpoint
+    // Locker application endpoint (DISABLED - duplicate endpoint with wrong schema, see line 2304)
+    /* COMMENTED OUT - This endpoint has applied_at column which doesn't exist in PostgreSQL schema
     this.app.post('/lockers-apply', async (req, res) => {
       try {
         const { store_id, locker_id, user_id, reason } = req.body;
@@ -1495,6 +1496,7 @@ class RailwayServer {
         });
       }
     });
+    */
 
     // Helper function to generate random voucher code
     function generateVoucherCode() {
@@ -2333,10 +2335,10 @@ class RailwayServer {
           });
         }
 
-        // Create new application
+        // Create new application (include locker_type and purpose from request)
         const insertQuery = `
-          INSERT INTO applications (user_id, store_id, assigned_locker_id, notes, status, created_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
+          INSERT INTO applications (user_id, store_id, assigned_locker_id, notes, status, locker_type, purpose, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
           RETURNING id, status, created_at
         `;
         
@@ -2345,7 +2347,9 @@ class RailwayServer {
           store_id, 
           locker_id,  // This is correctly mapped to assigned_locker_id
           reason || '',
-          'pending'
+          'pending',
+          req.body.locker_type || '标准杆柜',
+          req.body.purpose || '存放球杆'
         ]);
         
         client.release();
