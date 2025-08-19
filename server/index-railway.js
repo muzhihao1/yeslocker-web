@@ -468,6 +468,57 @@ class RailwayServer {
       }
     });
 
+    // Debug endpoint to check users table structure
+    this.app.get('/api/debug-users-table', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Get columns info
+        const columnsQuery = await client.query(`
+          SELECT column_name, data_type, is_nullable, column_default
+          FROM information_schema.columns
+          WHERE table_name = 'users'
+          ORDER BY ordinal_position;
+        `);
+        
+        // Test insert with debug info
+        let testResult = null;
+        let testError = null;
+        try {
+          const testInsert = await client.query(`
+            INSERT INTO users (phone, name, avatar_url, store_id, status)
+            VALUES ('99999999999', 'Debug Test', NULL, '00000000-0000-0000-0000-000000000001', 'active')
+            RETURNING *;
+          `);
+          testResult = testInsert.rows[0];
+          // Clean up
+          await client.query(`DELETE FROM users WHERE phone = '99999999999'`);
+        } catch (err) {
+          testError = {
+            code: err.code,
+            message: err.message,
+            detail: err.detail,
+            hint: err.hint,
+            column: err.column
+          };
+        }
+        
+        client.release();
+        
+        res.json({
+          columns: columnsQuery.rows,
+          testInsertResult: testResult,
+          testInsertError: testError
+        });
+      } catch (error) {
+        console.error('Debug error:', error);
+        res.status(500).json({
+          error: error.message,
+          code: error.code
+        });
+      }
+    });
+
     // Database migration endpoint to add avatar_url column
     this.app.post('/api/migrate-avatar-url', async (req, res) => {
       try {
