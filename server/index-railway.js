@@ -2343,7 +2343,7 @@ class RailwayServer {
         const result = await client.query(insertQuery, [
           user_id,
           store_id, 
-          locker_id,
+          locker_id,  // This is correctly mapped to assigned_locker_id
           reason || '',
           'pending'
         ]);
