@@ -468,6 +468,49 @@ class RailwayServer {
       }
     });
 
+    // Database migration endpoint to add avatar_url column
+    this.app.post('/api/migrate-avatar-url', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Check if avatar_url column exists
+        const checkColumn = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'avatar_url'
+        `);
+        
+        if (checkColumn.rows.length === 0) {
+          // Add avatar_url column
+          await client.query('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+          
+          // Make it nullable
+          await client.query('ALTER TABLE users ALTER COLUMN avatar_url DROP NOT NULL');
+          
+          client.release();
+          
+          res.json({
+            success: true,
+            message: 'Migration successful: avatar_url column added to users table'
+          });
+        } else {
+          client.release();
+          res.json({
+            success: true,
+            message: 'Migration skipped: avatar_url column already exists'
+          });
+        }
+      } catch (error) {
+        console.error('Migration error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Migration failed',
+          message: error.message,
+          details: error.stack
+        });
+      }
+    });
+
     // Public endpoint for getting stores (no authentication required for user applications)
     this.app.get('/stores-lockers', async (req, res) => {
       try {
