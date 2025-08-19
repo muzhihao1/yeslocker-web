@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
+const QRCode = require('qrcode');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development-only';
@@ -549,6 +550,109 @@ class RailwayServer {
           res.json({
             success: true,
             message: 'Migration skipped: avatar_url column already exists'
+          });
+        }
+      } catch (error) {
+        console.error('Migration error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Migration failed',
+          message: error.message,
+          details: error.stack
+        });
+      }
+    });
+
+    // Database migration endpoint to create vouchers tables
+    this.app.post('/api/migrate-vouchers-tables', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Check if vouchers table exists
+        const checkTable = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_name = 'vouchers'
+        `);
+        
+        if (checkTable.rows.length === 0) {
+          // Create vouchers table
+          await client.query(`
+            CREATE TABLE vouchers (
+              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+              user_id UUID NOT NULL REFERENCES users(id),
+              locker_id UUID NOT NULL REFERENCES lockers(id),
+              operation_type VARCHAR(20) NOT NULL CHECK (operation_type IN ('store', 'retrieve')),
+              code VARCHAR(8) UNIQUE NOT NULL,
+              qr_data TEXT NOT NULL,
+              status VARCHAR(20) NOT NULL DEFAULT 'issued' CHECK (status IN ('issued', 'used', 'expired', 'cancelled')),
+              
+              user_phone VARCHAR(20) NOT NULL,
+              user_name VARCHAR(100) NOT NULL,
+              user_avatar_url TEXT,
+              
+              locker_number VARCHAR(50) NOT NULL,
+              store_id UUID NOT NULL REFERENCES stores(id),
+              store_name VARCHAR(100) NOT NULL,
+              
+              issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+              used_at TIMESTAMP WITH TIME ZONE,
+              cancelled_at TIMESTAMP WITH TIME ZONE,
+              
+              used_by UUID REFERENCES admins(id),
+              used_at_store UUID REFERENCES stores(id),
+              verification_notes TEXT,
+              
+              device_info JSONB,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+          `);
+          
+          // Create indexes
+          await client.query(`
+            CREATE INDEX idx_vouchers_user_id ON vouchers(user_id);
+            CREATE INDEX idx_vouchers_code ON vouchers(code);
+            CREATE INDEX idx_vouchers_status ON vouchers(status);
+            CREATE INDEX idx_vouchers_issued_at ON vouchers(issued_at);
+            CREATE INDEX idx_vouchers_expires_at ON vouchers(expires_at);
+            CREATE INDEX idx_vouchers_locker_id ON vouchers(locker_id);
+            CREATE INDEX idx_vouchers_store_id ON vouchers(store_id);
+          `);
+          
+          // Create voucher_events table
+          await client.query(`
+            CREATE TABLE voucher_events (
+              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+              voucher_id UUID NOT NULL REFERENCES vouchers(id),
+              event_type VARCHAR(50) NOT NULL,
+              actor_type VARCHAR(20) NOT NULL CHECK (actor_type IN ('user', 'staff', 'system')),
+              actor_id UUID,
+              store_id UUID REFERENCES stores(id),
+              metadata JSONB,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+          `);
+          
+          // Create indexes for voucher_events
+          await client.query(`
+            CREATE INDEX idx_voucher_events_voucher_id ON voucher_events(voucher_id);
+            CREATE INDEX idx_voucher_events_created_at ON voucher_events(created_at);
+            CREATE INDEX idx_voucher_events_event_type ON voucher_events(event_type);
+          `);
+          
+          client.release();
+          
+          res.json({
+            success: true,
+            message: 'Voucher tables created successfully'
+          });
+        } else {
+          client.release();
+          res.json({
+            success: true,
+            message: 'Voucher tables already exist'
           });
         }
       } catch (error) {
@@ -1170,6 +1274,445 @@ class RailwayServer {
         res.status(500).json({
           error: 'Internal server error',
           message: '申请提交失败，请稍后重试'
+        });
+      }
+    });
+
+    // Helper function to generate random voucher code
+    function generateVoucherCode() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    // Voucher request endpoint - creates new voucher for each operation
+    this.app.post('/vouchers/request', async (req, res) => {
+      try {
+        const { user_id, locker_id, operation_type } = req.body;
+        
+        if (!user_id || !locker_id || !operation_type) {
+          return res.status(400).json({
+            error: 'Missing required fields',
+            message: '用户、杆柜和操作类型为必填项'
+          });
+        }
+        
+        if (!['store', 'retrieve'].includes(operation_type)) {
+          return res.status(400).json({
+            error: 'Invalid operation type',
+            message: '操作类型必须为 store 或 retrieve'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Get user info
+          const userQuery = await client.query(
+            'SELECT id, name, phone, avatar_url FROM users WHERE id = $1',
+            [user_id]
+          );
+          
+          if (userQuery.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              error: 'User not found',
+              message: '用户不存在'
+            });
+          }
+          
+          const user = userQuery.rows[0];
+          
+          // Get locker and store info
+          const lockerQuery = await client.query(
+            `SELECT l.id, l.number, l.store_id, s.name as store_name 
+             FROM lockers l 
+             JOIN stores s ON l.store_id = s.id 
+             WHERE l.id = $1`,
+            [locker_id]
+          );
+          
+          if (lockerQuery.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              error: 'Locker not found',
+              message: '杆柜不存在'
+            });
+          }
+          
+          const locker = lockerQuery.rows[0];
+          
+          // Generate unique voucher code
+          let voucherCode;
+          let codeExists = true;
+          while (codeExists) {
+            voucherCode = generateVoucherCode();
+            const checkCode = await client.query(
+              'SELECT id FROM vouchers WHERE code = $1',
+              [voucherCode]
+            );
+            codeExists = checkCode.rows.length > 0;
+          }
+          
+          // Generate QR code data
+          const qrData = {
+            code: voucherCode,
+            operation: operation_type,
+            user: user.name,
+            phone: user.phone,
+            locker: locker.number,
+            store: locker.store_name,
+            timestamp: new Date().toISOString()
+          };
+          
+          // Generate QR code image as base64
+          const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData));
+          
+          // Set expiry time (30 minutes from now)
+          const expiresAt = new Date();
+          expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+          
+          // Create voucher record
+          const insertQuery = `
+            INSERT INTO vouchers (
+              user_id, locker_id, operation_type, code, qr_data, 
+              user_phone, user_name, user_avatar_url,
+              locker_number, store_id, store_name,
+              expires_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *
+          `;
+          
+          const result = await client.query(insertQuery, [
+            user_id, locker_id, operation_type, voucherCode, qrCodeBase64,
+            user.phone, user.name, user.avatar_url,
+            locker.number, locker.store_id, locker.store_name,
+            expiresAt
+          ]);
+          
+          const voucher = result.rows[0];
+          
+          // Log voucher creation event
+          await client.query(
+            `INSERT INTO voucher_events (voucher_id, event_type, actor_type, actor_id, store_id)
+             VALUES ($1, 'issued', 'user', $2, $3)`,
+            [voucher.id, user_id, locker.store_id]
+          );
+          
+          client.release();
+          
+          // Format response
+          res.json({
+            success: true,
+            voucher: {
+              id: voucher.id,
+              code: voucher.code,
+              qr_data: voucher.qr_data,
+              operation_type: voucher.operation_type,
+              user_info: {
+                name: voucher.user_name,
+                phone: voucher.user_phone,
+                avatar_url: voucher.user_avatar_url
+              },
+              locker_info: {
+                number: voucher.locker_number,
+                store_name: voucher.store_name
+              },
+              issued_at: voucher.issued_at,
+              expires_at: voucher.expires_at,
+              status: voucher.status
+            }
+          });
+          
+        } catch (innerError) {
+          client.release();
+          throw innerError;
+        }
+        
+      } catch (error) {
+        console.error('Voucher request error:', error);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: '凭证申请失败，请稍后重试'
+        });
+      }
+    });
+    
+    // Get user's voucher history
+    this.app.get('/vouchers/my-history', async (req, res) => {
+      try {
+        const { user_id, status, operation_type, from, to } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            error: 'Missing user ID',
+            message: '缺少用户ID'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        let query = `
+          SELECT v.*, 
+            CASE WHEN v.expires_at < NOW() AND v.status = 'issued' THEN true ELSE false END as is_expired
+          FROM vouchers v
+          WHERE v.user_id = $1
+        `;
+        const params = [user_id];
+        let paramIndex = 2;
+        
+        if (status) {
+          query += ` AND v.status = $${paramIndex}`;
+          params.push(status);
+          paramIndex++;
+        }
+        
+        if (operation_type) {
+          query += ` AND v.operation_type = $${paramIndex}`;
+          params.push(operation_type);
+          paramIndex++;
+        }
+        
+        if (from) {
+          query += ` AND v.issued_at >= $${paramIndex}`;
+          params.push(from);
+          paramIndex++;
+        }
+        
+        if (to) {
+          query += ` AND v.issued_at <= $${paramIndex}`;
+          params.push(to);
+          paramIndex++;
+        }
+        
+        query += ' ORDER BY v.issued_at DESC LIMIT 50';
+        
+        const result = await client.query(query, params);
+        client.release();
+        
+        res.json({
+          success: true,
+          vouchers: result.rows,
+          total: result.rows.length
+        });
+        
+      } catch (error) {
+        console.error('Get voucher history error:', error);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: '获取凭证历史失败'
+        });
+      }
+    });
+    
+    // Admin endpoint: Scan/lookup voucher by code
+    this.app.get('/api/admin/vouchers/scan/:code', async (req, res) => {
+      try {
+        const { code } = req.params;
+        
+        if (!code) {
+          return res.status(400).json({
+            error: 'Missing voucher code',
+            message: '缺少凭证码'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        const query = `
+          SELECT v.*, 
+            u.name as current_user_name,
+            u.phone as current_user_phone,
+            u.avatar_url as current_user_avatar,
+            CASE WHEN v.expires_at < NOW() THEN true ELSE false END as is_expired,
+            EXTRACT(EPOCH FROM (v.expires_at - NOW()))/60 as minutes_remaining
+          FROM vouchers v
+          JOIN users u ON v.user_id = u.id
+          WHERE v.code = $1
+        `;
+        
+        const result = await client.query(query, [code.toUpperCase()]);
+        
+        // Log scan event
+        if (result.rows.length > 0) {
+          await client.query(
+            `INSERT INTO voucher_events (voucher_id, event_type, actor_type, store_id)
+             VALUES ($1, 'scanned', 'staff', $2)`,
+            [result.rows[0].id, result.rows[0].store_id]
+          );
+        }
+        
+        client.release();
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            error: 'Voucher not found',
+            message: '凭证不存在'
+          });
+        }
+        
+        const voucher = result.rows[0];
+        
+        res.json({
+          success: true,
+          voucher: {
+            id: voucher.id,
+            code: voucher.code,
+            operation_type: voucher.operation_type,
+            status: voucher.status,
+            user: {
+              id: voucher.user_id,
+              name: voucher.user_name,
+              phone: voucher.user_phone,
+              avatar_url: voucher.user_avatar_url
+            },
+            locker: {
+              id: voucher.locker_id,
+              number: voucher.locker_number,
+              store_name: voucher.store_name
+            },
+            issued_at: voucher.issued_at,
+            expires_at: voucher.expires_at,
+            is_expired: voucher.is_expired,
+            time_remaining: voucher.is_expired ? 0 : Math.max(0, Math.floor(voucher.minutes_remaining)) + ' 分钟'
+          }
+        });
+        
+      } catch (error) {
+        console.error('Voucher scan error:', error);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: '凭证查询失败'
+        });
+      }
+    });
+    
+    // Admin endpoint: Verify and mark voucher as used
+    this.app.post('/api/admin/vouchers/:id/verify', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { admin_id, verification_notes } = req.body;
+        
+        if (!id || !admin_id) {
+          return res.status(400).json({
+            error: 'Missing required fields',
+            message: '缺少必要参数'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          // Check voucher status
+          const checkQuery = await client.query(
+            'SELECT * FROM vouchers WHERE id = $1',
+            [id]
+          );
+          
+          if (checkQuery.rows.length === 0) {
+            client.release();
+            return res.status(404).json({
+              error: 'Voucher not found',
+              message: '凭证不存在'
+            });
+          }
+          
+          const voucher = checkQuery.rows[0];
+          
+          if (voucher.status !== 'issued') {
+            client.release();
+            return res.status(400).json({
+              error: 'Invalid voucher status',
+              message: `凭证状态无效：${voucher.status === 'used' ? '已使用' : voucher.status === 'expired' ? '已过期' : '已取消'}`
+            });
+          }
+          
+          // Check if expired
+          if (new Date(voucher.expires_at) < new Date()) {
+            // Update status to expired
+            await client.query(
+              'UPDATE vouchers SET status = $1, updated_at = NOW() WHERE id = $2',
+              ['expired', id]
+            );
+            
+            client.release();
+            return res.status(400).json({
+              error: 'Voucher expired',
+              message: '凭证已过期'
+            });
+          }
+          
+          // Mark voucher as used
+          const updateQuery = `
+            UPDATE vouchers 
+            SET status = 'used',
+                used_at = NOW(),
+                used_by = $1,
+                used_at_store = $2,
+                verification_notes = $3,
+                updated_at = NOW()
+            WHERE id = $4
+            RETURNING *
+          `;
+          
+          const result = await client.query(updateQuery, [
+            admin_id,
+            voucher.store_id,
+            verification_notes || null,
+            id
+          ]);
+          
+          // Log verification event
+          await client.query(
+            `INSERT INTO voucher_events (voucher_id, event_type, actor_type, actor_id, store_id, metadata)
+             VALUES ($1, 'verified', 'staff', $2, $3, $4)`,
+            [id, admin_id, voucher.store_id, JSON.stringify({ notes: verification_notes })]
+          );
+          
+          // Update locker status based on operation type
+          if (voucher.operation_type === 'store') {
+            // Mark locker as occupied
+            await client.query(
+              'UPDATE lockers SET status = $1, current_user_id = $2, assigned_at = NOW() WHERE id = $3',
+              ['occupied', voucher.user_id, voucher.locker_id]
+            );
+          } else if (voucher.operation_type === 'retrieve') {
+            // Mark locker as available
+            await client.query(
+              'UPDATE lockers SET status = $1, current_user_id = NULL, assigned_at = NULL WHERE id = $2',
+              ['available', voucher.locker_id]
+            );
+          }
+          
+          // Create locker record for history
+          await client.query(
+            `INSERT INTO locker_records (user_id, locker_id, action_type, action_time)
+             VALUES ($1, $2, $3, NOW())`,
+            [voucher.user_id, voucher.locker_id, voucher.operation_type]
+          );
+          
+          client.release();
+          
+          res.json({
+            success: true,
+            message: '凭证已验证使用',
+            voucher: result.rows[0]
+          });
+          
+        } catch (innerError) {
+          client.release();
+          throw innerError;
+        }
+        
+      } catch (error) {
+        console.error('Voucher verification error:', error);
+        res.status(500).json({
+          error: 'Internal server error',
+          message: '凭证验证失败'
         });
       }
     });
