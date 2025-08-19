@@ -95,7 +95,8 @@ const crypto = {
  */
 const validation = {
   storeId(storeId: string): boolean {
-    return ['1', '2', '3'].includes(storeId)
+    // 允许任何非空的storeId，实际验证由后端处理
+    return storeId !== null && storeId !== undefined && String(storeId).length > 0
   },
   
   lockerId(lockerId: string): boolean {
