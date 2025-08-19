@@ -908,6 +908,18 @@ class RailwayServer {
           });
         }
 
+        // 转换store_id为整数
+        const storeIdInt = parseInt(store_id, 10);
+        if (isNaN(storeIdInt)) {
+          return res.status(400).json({
+            error: 'Invalid store_id',
+            message: '门店ID格式不正确'
+          });
+        }
+
+        // 处理avatar_url为undefined的情况
+        const avatarUrl = avatar_url || null;
+
         const client = await this.pool.connect();
         
         try {
@@ -925,6 +937,20 @@ class RailwayServer {
             });
           }
 
+          // Check if store exists
+          const storeCheck = await client.query(
+            'SELECT id FROM stores WHERE id = $1',
+            [storeIdInt]
+          );
+
+          if (storeCheck.rows.length === 0) {
+            client.release();
+            return res.status(400).json({
+              error: 'Invalid store',
+              message: '选择的门店不存在'
+            });
+          }
+
           // Insert new user
           const insertQuery = `
             INSERT INTO users (phone, name, avatar_url, store_id, status)
@@ -932,7 +958,7 @@ class RailwayServer {
             RETURNING id, phone, name, store_id
           `;
           
-          const result = await client.query(insertQuery, [phone, name, avatar_url, store_id]);
+          const result = await client.query(insertQuery, [phone, name, avatarUrl, storeIdInt]);
           const newUser = result.rows[0];
           
           client.release();
