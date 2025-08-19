@@ -1,0 +1,213 @@
+/**
+ * LockerController - 杆柜管理控制器
+ * Handles locker operations including management, operations, and QR code generation
+ */
+
+import { Request, Response } from 'express';
+import { BaseController, AuthenticatedRequest } from './BaseController';
+import { LockerService } from '../services/LockerService';
+
+export class LockerController extends BaseController {
+  private lockerService: LockerService;
+
+  constructor() {
+    super();
+    this.lockerService = new LockerService();
+  }
+
+  /**
+   * GET /api/lockers/:id
+   * @desc Get locker details by ID
+   */
+  public getLockerDetails = this.asyncHandler(async (req: Request, res: Response) => {
+    this.logRequest(req, 'getLockerDetails');
+    
+    const lockerId = req.params.id;
+    if (!lockerId) {
+      return res.status(400).json(this.createErrorResponse('杆柜ID不能为空'));
+    }
+
+    const result = await this.lockerService.getLockerById(lockerId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/stores/:storeId/lockers
+   * @desc Get lockers by store ID
+   */
+  public getLockersByStore = this.asyncHandler(async (req: Request, res: Response) => {
+    this.logRequest(req, 'getLockersByStore');
+    
+    const storeId = req.params.storeId;
+    if (!storeId) {
+      return res.status(400).json(this.createErrorResponse('门店ID不能为空'));
+    }
+
+    const { status, available_only } = req.query;
+    const result = await this.lockerService.getLockersByStore(storeId, {
+      status: status as string,
+      availableOnly: available_only === 'true'
+    });
+    
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * POST /api/lockers
+   * @desc Create new locker (Admin only)
+   * @access Admin
+   */
+  public createLocker = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'createLocker');
+    
+    if (!this.validateRequiredFields(req, res, ['store_id', 'number'])) {
+      return;
+    }
+
+    const lockerData = {
+      storeId: req.body.store_id,
+      number: req.body.number,
+      status: req.body.status || 'available'
+    };
+
+    const result = await this.lockerService.createLocker(lockerData);
+    return this.handleServiceResponse(result, res, 201);
+  });
+
+  /**
+   * PATCH /api/lockers/:id
+   * @desc Update locker (Admin only)
+   * @access Admin
+   */
+  public updateLocker = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'updateLocker');
+    
+    const lockerId = req.params.id;
+    if (!lockerId) {
+      return res.status(400).json(this.createErrorResponse('杆柜ID不能为空'));
+    }
+
+    const updateData = {
+      number: req.body.number,
+      status: req.body.status,
+      currentUserId: req.body.current_user_id
+    };
+
+    const result = await this.lockerService.updateLocker(lockerId, updateData);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * DELETE /api/lockers/:id
+   * @desc Delete locker (Admin only)
+   * @access Admin
+   */
+  public deleteLocker = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'deleteLocker');
+    
+    const lockerId = req.params.id;
+    if (!lockerId) {
+      return res.status(400).json(this.createErrorResponse('杆柜ID不能为空'));
+    }
+
+    const result = await this.lockerService.deleteLocker(lockerId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/lockers/:id/qrcode
+   * @desc Generate QR code for locker
+   */
+  public generateQRCode = this.asyncHandler(async (req: Request, res: Response) => {
+    this.logRequest(req, 'generateQRCode');
+    
+    const lockerId = req.params.id;
+    if (!lockerId) {
+      return res.status(400).json(this.createErrorResponse('杆柜ID不能为空'));
+    }
+
+    const result = await this.lockerService.generateQRCode(lockerId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * POST /api/lockers/:id/operate
+   * @desc Record locker operation (store/retrieve cue)
+   * @access Authenticated
+   */
+  public recordOperation = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'recordOperation');
+    
+    const lockerId = req.params.id;
+    const userId = req.user?.id;
+
+    if (!lockerId) {
+      return res.status(400).json(this.createErrorResponse('杆柜ID不能为空'));
+    }
+
+    if (!this.validateRequiredFields(req, res, ['action_type'])) {
+      return;
+    }
+
+    const operationData = {
+      userId: userId!,
+      lockerId,
+      actionType: req.body.action_type as 'store' | 'retrieve',
+      note: req.body.note
+    };
+
+    const result = await this.lockerService.recordOperation(operationData);
+    return this.handleServiceResponse(result, res, 201);
+  });
+
+  /**
+   * GET /api/lockers/statistics
+   * @desc Get locker usage statistics
+   * @access Admin
+   */
+  public getStatistics = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getStatistics');
+    
+    const { store_id, date_range } = req.query;
+    const result = await this.lockerService.getStatistics({
+      storeId: store_id as string,
+      dateRange: date_range as string
+    });
+    
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * POST /api/lockers/bulk-update
+   * @desc Bulk update lockers (Admin only)
+   * @access Admin
+   */
+  public bulkUpdateLockers = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'bulkUpdateLockers');
+    
+    if (!this.validateRequiredFields(req, res, ['locker_ids', 'updates'])) {
+      return;
+    }
+
+    const { locker_ids, updates } = req.body;
+    const result = await this.lockerService.bulkUpdateLockers(locker_ids, updates);
+    
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/lockers/availability/:storeId
+   * @desc Get real-time locker availability for a store
+   */
+  public getAvailability = this.asyncHandler(async (req: Request, res: Response) => {
+    this.logRequest(req, 'getAvailability');
+    
+    const storeId = req.params.storeId;
+    if (!storeId) {
+      return res.status(400).json(this.createErrorResponse('门店ID不能为空'));
+    }
+
+    const result = await this.lockerService.getAvailability(storeId);
+    return this.handleServiceResponse(result, res);
+  });
+}

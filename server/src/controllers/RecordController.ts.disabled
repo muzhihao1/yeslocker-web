@@ -1,0 +1,209 @@
+/**
+ * RecordController - 记录管理控制器
+ * Handles locker operation records, statistics, and export functionality
+ */
+
+import { Request, Response } from 'express';
+import { BaseController, AuthenticatedRequest } from './BaseController';
+import { LockerService } from '../services/LockerService';
+
+export class RecordController extends BaseController {
+  private lockerService: LockerService;
+
+  constructor() {
+    super();
+    this.lockerService = new LockerService();
+  }
+
+  /**
+   * POST /api/records
+   * @desc Create new operation record
+   * @access Authenticated
+   */
+  public createRecord = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'createRecord');
+    
+    const userId = req.user?.id;
+    if (!this.validateRequiredFields(req, res, ['locker_id', 'action_type'])) {
+      return;
+    }
+
+    const recordData = {
+      userId: userId!,
+      lockerId: req.body.locker_id,
+      actionType: req.body.action_type as 'store' | 'retrieve',
+      lockerNumber: req.body.locker_number,
+      storeName: req.body.store_name,
+      note: req.body.note
+    };
+
+    const result = await this.lockerService.recordOperation(recordData);
+    return this.handleServiceResponse(result, res, 201);
+  });
+
+  /**
+   * GET /api/records
+   * @desc Get operation records with filters
+   * @access Admin
+   */
+  public getRecords = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getRecords');
+    
+    const filters = {
+      userId: req.query.user_id as string,
+      storeId: req.query.store_id as string,
+      actionType: req.query.action_type as string,
+      startDate: req.query.start_date as string,
+      endDate: req.query.end_date as string,
+      ...this.parsePagination(req)
+    };
+
+    const result = await this.lockerService.getOperationRecords(filters);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/records/:id
+   * @desc Get specific record details
+   * @access Authenticated
+   */
+  public getRecordDetails = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getRecordDetails');
+    
+    const recordId = req.params.id;
+    if (!recordId) {
+      return res.status(400).json(this.createErrorResponse('记录ID不能为空'));
+    }
+
+    const result = await this.lockerService.getRecordById(recordId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/records/user/:userId
+   * @desc Get user's operation records
+   * @access Authenticated (own records or admin)
+   */
+  public getUserRecords = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getUserRecords');
+    
+    const targetUserId = req.params.userId;
+    const currentUserId = req.user?.id;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Check permission: users can only view their own records unless admin
+    if (!isAdmin && targetUserId !== currentUserId) {
+      return res.status(403).json(this.createErrorResponse('无权访问其他用户的记录'));
+    }
+
+    const filters = {
+      userId: targetUserId,
+      ...this.parsePagination(req)
+    };
+
+    const result = await this.lockerService.getUserOperationRecords(targetUserId, filters);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/records/statistics
+   * @desc Get records statistics
+   * @access Admin
+   */
+  public getStatistics = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getStatistics');
+    
+    const filters = {
+      storeId: req.query.store_id as string,
+      dateRange: req.query.date_range as string,
+      actionType: req.query.action_type as string,
+      groupBy: req.query.group_by as string || 'day'
+    };
+
+    const result = await this.lockerService.getRecordStatistics(filters);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/records/export
+   * @desc Export records data
+   * @access Admin
+   */
+  public exportRecords = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'exportRecords');
+    
+    const exportParams = {
+      type: req.query.type as string || 'csv',
+      storeId: req.query.store_id as string,
+      dateRange: req.query.date_range as string,
+      actionType: req.query.action_type as string,
+      startDate: req.query.start_date as string,
+      endDate: req.query.end_date as string
+    };
+
+    const result = await this.lockerService.exportRecords(exportParams);
+    
+    if (result.success && result.data) {
+      // Set appropriate headers for file download
+      const filename = `records_export_${new Date().toISOString().split('T')[0]}.${exportParams.type}`;
+      res.setHeader('Content-Type', this.getContentType(exportParams.type));
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      return res.send(result.data);
+    }
+
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * DELETE /api/records/:id
+   * @desc Delete operation record (Admin only)
+   * @access Admin
+   */
+  public deleteRecord = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'deleteRecord');
+    
+    const recordId = req.params.id;
+    if (!recordId) {
+      return res.status(400).json(this.createErrorResponse('记录ID不能为空'));
+    }
+
+    const result = await this.lockerService.deleteRecord(recordId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * GET /api/records/daily/:date
+   * @desc Get daily usage summary
+   * @access Admin
+   */
+  public getDailySummary = this.asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    this.logRequest(req, 'getDailySummary');
+    
+    const date = req.params.date;
+    const storeId = req.query.store_id as string;
+    
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json(this.createErrorResponse('日期格式不正确，请使用YYYY-MM-DD'));
+    }
+
+    const result = await this.lockerService.getDailySummary(date, storeId);
+    return this.handleServiceResponse(result, res);
+  });
+
+  /**
+   * Helper method to get content type for export
+   */
+  private getContentType(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'csv':
+        return 'text/csv';
+      case 'json':
+        return 'application/json';
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+}
