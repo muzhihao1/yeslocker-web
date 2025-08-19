@@ -563,6 +563,224 @@ class RailwayServer {
       }
     });
 
+    // Cron endpoint: Auto-expire vouchers (call every 5 minutes)
+    this.app.post('/api/cron/expire-vouchers', async (req, res) => {
+      try {
+        // Optional security token to prevent unauthorized calls
+        const cronToken = req.headers['x-cron-token'];
+        if (process.env.CRON_TOKEN && cronToken !== process.env.CRON_TOKEN) {
+          return res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Invalid cron token'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        // Update expired vouchers
+        const updateQuery = `
+          UPDATE vouchers 
+          SET status = 'expired',
+              updated_at = NOW()
+          WHERE status = 'issued' 
+            AND expires_at < NOW()
+          RETURNING id, code, user_id, operation_type
+        `;
+        
+        const result = await client.query(updateQuery);
+        
+        // Log expiry events
+        for (const voucher of result.rows) {
+          await client.query(
+            `INSERT INTO voucher_events (voucher_id, event_type, actor_type, actor_id, metadata, created_at)
+             VALUES ($1, 'expired', 'system', NULL, $2, NOW())`,
+            [voucher.id, JSON.stringify({ reason: 'timeout', code: voucher.code })]
+          );
+        }
+        
+        client.release();
+        
+        const expiredCount = result.rows.length;
+        console.log(`✅ Cron: Expired ${expiredCount} vouchers at ${new Date().toISOString()}`);
+        
+        res.json({
+          success: true,
+          message: `Expired ${expiredCount} vouchers`,
+          expired_count: expiredCount,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Cron expire vouchers error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to expire vouchers',
+          message: error.message
+        });
+      }
+    });
+
+    // Cron endpoint: Check for 3-month unused lockers (call daily)
+    this.app.post('/api/cron/check-unused-lockers', async (req, res) => {
+      try {
+        // Optional security token
+        const cronToken = req.headers['x-cron-token'];
+        if (process.env.CRON_TOKEN && cronToken !== process.env.CRON_TOKEN) {
+          return res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Invalid cron token'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        // Find lockers with no activity in 3 months
+        const query = `
+          SELECT DISTINCT
+            l.id as locker_id,
+            l.number as locker_number,
+            l.current_user_id,
+            u.name as user_name,
+            u.phone as user_phone,
+            s.name as store_name,
+            MAX(lr.created_at) as last_activity
+          FROM lockers l
+          JOIN users u ON l.current_user_id = u.id
+          JOIN stores s ON l.store_id = s.id
+          LEFT JOIN locker_records lr ON l.id = lr.locker_id
+          WHERE l.status = 'occupied'
+          GROUP BY l.id, l.number, l.current_user_id, u.name, u.phone, s.name
+          HAVING MAX(lr.created_at) < NOW() - INTERVAL '3 months'
+             OR MAX(lr.created_at) IS NULL
+        `;
+        
+        const result = await client.query(query);
+        
+        // Create reminders for each unused locker
+        const reminders = [];
+        for (const locker of result.rows) {
+          // Check if reminder already exists for this locker
+          const existingReminder = await client.query(
+            `SELECT id FROM reminders 
+             WHERE locker_id = $1 
+               AND reminder_type = 'unused_3_months'
+               AND created_at > NOW() - INTERVAL '7 days'`,
+            [locker.locker_id]
+          );
+          
+          if (existingReminder.rows.length === 0) {
+            // Create new reminder
+            const reminderResult = await client.query(
+              `INSERT INTO reminders (
+                user_id, locker_id, reminder_type, 
+                title, content, status, created_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+              RETURNING id`,
+              [
+                locker.current_user_id,
+                locker.locker_id,
+                'unused_3_months',
+                '杆柜长期未使用提醒',
+                `您的杆柜 ${locker.locker_number} (${locker.store_name}) 已超过3个月未使用，请及时前往使用或办理退租。`,
+                'pending'
+              ]
+            );
+            
+            reminders.push({
+              reminder_id: reminderResult.rows[0].id,
+              user_name: locker.user_name,
+              user_phone: locker.user_phone,
+              locker_number: locker.locker_number,
+              store_name: locker.store_name,
+              last_activity: locker.last_activity
+            });
+          }
+        }
+        
+        client.release();
+        
+        console.log(`✅ Cron: Created ${reminders.length} reminders for unused lockers at ${new Date().toISOString()}`);
+        
+        res.json({
+          success: true,
+          message: `Checked unused lockers and created ${reminders.length} reminders`,
+          unused_lockers_count: result.rows.length,
+          new_reminders_count: reminders.length,
+          reminders: reminders,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Cron check unused lockers error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to check unused lockers',
+          message: error.message
+        });
+      }
+    });
+
+    // Database migration endpoint to create reminders table
+    this.app.post('/api/migrate-reminders-table', async (req, res) => {
+      try {
+        const client = await this.pool.connect();
+        
+        // Check if reminders table exists
+        const checkTable = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_name = 'reminders'
+        `);
+        
+        if (checkTable.rows.length === 0) {
+          // Create reminders table
+          await client.query(`
+            CREATE TABLE reminders (
+              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+              user_id UUID NOT NULL REFERENCES users(id),
+              locker_id UUID REFERENCES lockers(id),
+              reminder_type VARCHAR(50) NOT NULL,
+              title VARCHAR(200) NOT NULL,
+              content TEXT,
+              status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'read', 'dismissed')),
+              sent_at TIMESTAMP WITH TIME ZONE,
+              read_at TIMESTAMP WITH TIME ZONE,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+          `);
+          
+          // Create indexes
+          await client.query(`
+            CREATE INDEX idx_reminders_user_id ON reminders(user_id);
+            CREATE INDEX idx_reminders_locker_id ON reminders(locker_id);
+            CREATE INDEX idx_reminders_status ON reminders(status);
+            CREATE INDEX idx_reminders_reminder_type ON reminders(reminder_type);
+            CREATE INDEX idx_reminders_created_at ON reminders(created_at);
+          `);
+          
+          client.release();
+          
+          res.json({
+            success: true,
+            message: 'Reminders table created successfully'
+          });
+        } else {
+          client.release();
+          res.json({
+            success: true,
+            message: 'Reminders table already exists'
+          });
+        }
+      } catch (error) {
+        console.error('Migration error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Migration failed',
+          message: error.message,
+          details: error.stack
+        });
+      }
+    });
+
     // Database migration endpoint to create vouchers tables
     this.app.post('/api/migrate-vouchers-tables', async (req, res) => {
       try {
@@ -1287,6 +1505,132 @@ class RailwayServer {
       }
       return code;
     }
+
+    // Voucher statistics endpoint
+    this.app.get('/api/vouchers/statistics', async (req, res) => {
+      try {
+        const { start_date, end_date, group_by = 'day' } = req.query;
+        
+        const client = await this.pool.connect();
+        
+        // Get overall statistics
+        const overallStats = await client.query(`
+          SELECT 
+            COUNT(*) as total_vouchers,
+            COUNT(CASE WHEN status = 'issued' THEN 1 END) as issued,
+            COUNT(CASE WHEN status = 'used' THEN 1 END) as used,
+            COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired,
+            COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled,
+            COUNT(CASE WHEN operation_type = 'store' THEN 1 END) as store_operations,
+            COUNT(CASE WHEN operation_type = 'retrieve' THEN 1 END) as retrieve_operations,
+            ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(used_at, NOW()) - issued_at)) / 60), 2) as avg_usage_time_minutes
+          FROM vouchers
+          WHERE ($1::timestamp IS NULL OR issued_at >= $1)
+            AND ($2::timestamp IS NULL OR issued_at <= $2)
+        `, [start_date || null, end_date || null]);
+        
+        // Get time-based statistics
+        let timeGrouping;
+        if (group_by === 'hour') {
+          timeGrouping = `DATE_TRUNC('hour', issued_at)`;
+        } else if (group_by === 'day') {
+          timeGrouping = `DATE_TRUNC('day', issued_at)`;
+        } else if (group_by === 'week') {
+          timeGrouping = `DATE_TRUNC('week', issued_at)`;
+        } else if (group_by === 'month') {
+          timeGrouping = `DATE_TRUNC('month', issued_at)`;
+        } else {
+          timeGrouping = `DATE_TRUNC('day', issued_at)`;
+        }
+        
+        const timeStats = await client.query(`
+          SELECT 
+            ${timeGrouping} as period,
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'used' THEN 1 END) as used,
+            COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired,
+            COUNT(CASE WHEN operation_type = 'store' THEN 1 END) as store_ops,
+            COUNT(CASE WHEN operation_type = 'retrieve' THEN 1 END) as retrieve_ops
+          FROM vouchers
+          WHERE ($1::timestamp IS NULL OR issued_at >= $1)
+            AND ($2::timestamp IS NULL OR issued_at <= $2)
+          GROUP BY period
+          ORDER BY period DESC
+          LIMIT 30
+        `, [start_date || null, end_date || null]);
+        
+        // Get top users
+        const topUsers = await client.query(`
+          SELECT 
+            v.user_id,
+            v.user_name,
+            v.user_phone,
+            COUNT(*) as voucher_count,
+            COUNT(CASE WHEN v.status = 'used' THEN 1 END) as used_count,
+            COUNT(CASE WHEN v.operation_type = 'store' THEN 1 END) as store_count,
+            COUNT(CASE WHEN v.operation_type = 'retrieve' THEN 1 END) as retrieve_count
+          FROM vouchers v
+          WHERE ($1::timestamp IS NULL OR v.issued_at >= $1)
+            AND ($2::timestamp IS NULL OR v.issued_at <= $2)
+          GROUP BY v.user_id, v.user_name, v.user_phone
+          ORDER BY voucher_count DESC
+          LIMIT 10
+        `, [start_date || null, end_date || null]);
+        
+        // Get store statistics
+        const storeStats = await client.query(`
+          SELECT 
+            v.store_id,
+            v.store_name,
+            COUNT(*) as voucher_count,
+            COUNT(CASE WHEN v.status = 'used' THEN 1 END) as used_count,
+            COUNT(DISTINCT v.user_id) as unique_users
+          FROM vouchers v
+          WHERE ($1::timestamp IS NULL OR v.issued_at >= $1)
+            AND ($2::timestamp IS NULL OR v.issued_at <= $2)
+          GROUP BY v.store_id, v.store_name
+          ORDER BY voucher_count DESC
+        `, [start_date || null, end_date || null]);
+        
+        // Get hourly distribution (for pattern analysis)
+        const hourlyPattern = await client.query(`
+          SELECT 
+            EXTRACT(HOUR FROM issued_at) as hour,
+            COUNT(*) as count,
+            COUNT(CASE WHEN status = 'used' THEN 1 END) as used_count
+          FROM vouchers
+          WHERE ($1::timestamp IS NULL OR issued_at >= $1)
+            AND ($2::timestamp IS NULL OR issued_at <= $2)
+          GROUP BY hour
+          ORDER BY hour
+        `, [start_date || null, end_date || null]);
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          period: {
+            start_date: start_date || 'all_time',
+            end_date: end_date || 'now',
+            group_by: group_by
+          },
+          overall: overallStats.rows[0],
+          time_series: timeStats.rows,
+          top_users: topUsers.rows,
+          stores: storeStats.rows,
+          hourly_pattern: hourlyPattern.rows,
+          generated_at: new Date().toISOString()
+        });
+        
+      } catch (error) {
+        console.error('Get voucher statistics error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get statistics',
+          message: error.message
+        });
+      }
+    });
 
     // Voucher request endpoint - creates new voucher for each operation
     this.app.post('/vouchers/request', async (req, res) => {

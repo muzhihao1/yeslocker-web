@@ -66,15 +66,57 @@
           </div>
         </div>
 
-        <div v-else-if="currentStep === 1" class="step-scan">
-          <div class="scan-placeholder" @click="handleScan">
-            <span class="scan-icon">📷</span>
-            <span class="scan-text">点击扫描杆柜二维码</span>
+        <div v-else-if="currentStep === 1" class="step-voucher">
+          <div v-if="voucherLoading" class="voucher-loading">
+            <div class="loading-spinner"></div>
+            <p>正在生成凭证...</p>
           </div>
-          <p class="scan-hint">请将镜头对准杆柜上的二维码</p>
-          <div v-if="scanSuccess" class="scan-success">
-            <span class="success-icon">✅</span>
-            <span class="success-text">扫描成功！杆柜已解锁</span>
+          
+          <div v-else-if="voucherError" class="voucher-error">
+            <span class="error-icon">❌</span>
+            <p class="error-text">{{ voucherError }}</p>
+            <button class="retry-button" @click="requestVoucher">重试</button>
+          </div>
+          
+          <div v-else-if="currentVoucher" class="voucher-display">
+            <div class="voucher-header">
+              <h3 class="voucher-title">操作凭证</h3>
+              <div class="voucher-code">{{ currentVoucher.code }}</div>
+            </div>
+            
+            <div class="voucher-qr">
+              <img :src="currentVoucher.qr_data" alt="凭证二维码" class="qr-image">
+            </div>
+            
+            <div class="voucher-info">
+              <div class="info-row">
+                <span class="info-label">用户：</span>
+                <span class="info-value">{{ currentVoucher.user_info.name }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">手机：</span>
+                <span class="info-value">{{ currentVoucher.user_info.phone }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">操作：</span>
+                <span class="info-value">{{ currentVoucher.operation_type === 'store' ? '存放' : '取回' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">有效期：</span>
+                <span class="info-value timer">{{ formatTime(voucherTimeRemaining) }}</span>
+              </div>
+            </div>
+            
+            <p class="voucher-hint">请向工作人员出示此凭证</p>
+            
+            <!-- Development: Simulate verification -->
+            <button 
+              v-if="!scanSuccess" 
+              class="simulate-verify-btn" 
+              @click="simulateStaffVerification"
+            >
+              模拟工作人员验证 (开发环境)
+            </button>
           </div>
         </div>
 
@@ -208,6 +250,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-vue'
 import { lockersApi } from '@/services/api/lockers-vue'
+import { vouchersApi } from '@/services/api/vouchers-vue'
+import type { Voucher } from '@/services/api/vouchers-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -227,15 +271,15 @@ const userPhone = computed(() => authStore.user?.phone || '')
 const steps = computed(() => {
   if (actionType.value === 'store') {
     return [
-      { title: '身份验证' },
-      { title: '扫码开柜' },
+      { title: '身份确认' },
+      { title: '获取凭证' },
       { title: '存放台球杆' },
       { title: '完成' }
     ]
   } else {
     return [
-      { title: '身份验证' },
-      { title: '扫码开柜' },
+      { title: '身份确认' },
+      { title: '获取凭证' },
       { title: '取出台球杆' },
       { title: '完成' }
     ]
@@ -250,6 +294,13 @@ const showTimer = ref(false)
 const countdown = ref(180) // 3 minutes
 const countdownTimer = ref<any>(null)
 const completedAt = ref(new Date())
+
+// Voucher states
+const currentVoucher = ref<Voucher | null>(null)
+const voucherLoading = ref(false)
+const voucherError = ref('')
+const voucherTimeRemaining = ref(0)
+const voucherTimer = ref<any>(null)
 
 // QR Scanner states
 const showScannerModal = ref(false)
@@ -281,10 +332,10 @@ const currentStepData = computed(() => {
     case 1:
       return {
         ...step,
-        description: '请扫描杆柜上的二维码以开启柜门',
-        buttonText: '已扫描',
+        description: '请向工作人员出示凭证验证身份',
+        buttonText: '已验证',
         status: scanSuccess.value ? 'success' : 'warning',
-        statusText: scanSuccess.value ? '已扫描' : '待扫描'
+        statusText: scanSuccess.value ? '已验证' : '待验证'
       }
     case 2:
       return {
@@ -334,6 +385,72 @@ const formatDateTime = (date: Date) => {
   })
 }
 
+// Request voucher for operation
+const requestVoucher = async () => {
+  voucherLoading.value = true
+  voucherError.value = ''
+  
+  try {
+    const user = authStore.user
+    if (!user) {
+      throw new Error('请先登录')
+    }
+    
+    const voucher = await vouchersApi.requestVoucher({
+      user_id: user.id,
+      locker_id: lockerId.value,
+      operation_type: actionType.value
+    })
+    
+    currentVoucher.value = voucher
+    canProceed.value = false // Need staff verification
+    
+    // Start countdown timer
+    startVoucherTimer()
+    
+    showToastMessage('凭证生成成功', 'success')
+  } catch (error: any) {
+    voucherError.value = error.message || '生成凭证失败'
+    showToastMessage(voucherError.value, 'error')
+  } finally {
+    voucherLoading.value = false
+  }
+}
+
+// Start voucher countdown timer
+const startVoucherTimer = () => {
+  if (voucherTimer.value) {
+    clearInterval(voucherTimer.value)
+  }
+  
+  if (!currentVoucher.value) return
+  
+  voucherTimeRemaining.value = vouchersApi.calculateTimeRemaining(currentVoucher.value.expires_at)
+  
+  voucherTimer.value = setInterval(() => {
+    if (!currentVoucher.value) {
+      clearInterval(voucherTimer.value)
+      return
+    }
+    
+    voucherTimeRemaining.value = vouchersApi.calculateTimeRemaining(currentVoucher.value.expires_at)
+    
+    if (voucherTimeRemaining.value <= 0) {
+      clearInterval(voucherTimer.value)
+      currentVoucher.value = null
+      voucherError.value = '凭证已过期，请重新申请'
+      showToastMessage('凭证已过期', 'error')
+    }
+  }, 1000)
+}
+
+// Simulate staff verification
+const simulateStaffVerification = () => {
+  scanSuccess.value = true
+  canProceed.value = true
+  showToastMessage('工作人员已验证凭证', 'success')
+}
+
 const handleScan = () => {
   // In web environment, show scanner modal
   showScannerModal.value = true
@@ -365,33 +482,24 @@ const validateLockerQRCode = (qrContent: string): boolean => {
 }
 
 const handleNextStep = async () => {
-  if (!canProceed.value && currentStep.value === 1) {
-    showToastMessage('请先扫描二维码', 'error')
-    return
-  }
-
   processing.value = true
   
   try {
     // Handle different steps
     if (currentStep.value === 0) {
-      // Identity verification - just proceed
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Identity verification - proceed to voucher generation
+      await requestVoucher()
     } else if (currentStep.value === 1) {
-      // QR code scan - check if scanned
+      // Voucher verification - check if verified by staff
       if (!scanSuccess.value) {
-        showToastMessage('请先扫描二维码', 'error')
+        showToastMessage('请等待工作人员验证凭证', 'error')
         processing.value = false
         return
       }
     } else if (currentStep.value === 2) {
-      // Actual operation - record to API
-      await lockersApi.recordOperation({
-        lockerId: lockerId.value,
-        actionType: actionType.value,
-        lockerNumber: lockerNumber.value,
-        storeName: storeName.value
-      })
+      // Actual operation - voucher is already used by staff
+      // Just record completion locally
+      completedAt.value = new Date()
       
       showToastMessage(
         actionType.value === 'store' ? '存杆成功' : '取杆成功', 
@@ -480,6 +588,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (countdownTimer.value) {
     clearInterval(countdownTimer.value)
+  }
+  if (voucherTimer.value) {
+    clearInterval(voucherTimer.value)
   }
 })
 </script>
@@ -1095,5 +1206,150 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* Voucher Display */
+.step-voucher {
+  padding: 24px;
+}
+
+.voucher-loading {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.voucher-loading .loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1B5E20;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 1s linear infinite;
+}
+
+.voucher-error {
+  text-align: center;
+  padding: 32px;
+}
+
+.voucher-error .error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.voucher-error .error-text {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.retry-button {
+  background-color: #1B5E20;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.voucher-display {
+  padding: 24px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+}
+
+.voucher-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.voucher-title {
+  font-size: 18px;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.voucher-code {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1B5E20;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  background-color: white;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.voucher-qr {
+  text-align: center;
+  margin: 24px 0;
+}
+
+.qr-image {
+  width: 200px;
+  height: 200px;
+  border: 4px solid white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.voucher-info {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 24px 0;
+}
+
+.voucher-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.voucher-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.voucher-info .info-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.voucher-info .info-value {
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.voucher-info .info-value.timer {
+  color: #FF5722;
+  font-size: 16px;
+}
+
+.voucher-hint {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+.simulate-verify-btn {
+  display: block;
+  width: 100%;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+.simulate-verify-btn:hover {
+  background-color: #1976D2;
 }
 </style>
