@@ -12,14 +12,18 @@ RUN npm ci
 
 # Copy source and build user app  
 COPY . ./
-RUN npm run build:client
+RUN npm run build:client && \
+    echo "✅ User app build completed" && \
+    ls -la dist/ || echo "⚠️  Warning: dist/ directory not found"
 
 # Build admin panel
 WORKDIR /app/admin
 COPY admin/package*.json ./
 RUN npm ci  
 COPY admin/ ./
-RUN npm run build
+RUN npm run build && \
+    echo "✅ Admin panel build completed" && \
+    ls -la dist/ || echo "⚠️  Warning: admin dist/ directory not found"
 
 # ============= BACKEND PREPARATION =============
 FROM node:lts-alpine AS backend-prep
@@ -43,12 +47,18 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S yeslocker -u 1001
 
-# Copy frontend build artifacts
-COPY --from=frontend-build --chown=yeslocker:nodejs /app/dist ./public/
+# Copy frontend build artifacts to correct locations
+COPY --from=frontend-build --chown=yeslocker:nodejs /app/dist ./dist/
 COPY --from=frontend-build --chown=yeslocker:nodejs /app/admin/dist ./admin/dist/
 
 # Copy backend files (production dependencies already installed)
 COPY --from=backend-prep --chown=yeslocker:nodejs /app/server ./server/
+
+# Verify frontend files are in place
+RUN echo "🔍 Verifying frontend builds in production stage:" && \
+    ls -la /app/dist/ 2>/dev/null || echo "⚠️  User app dist not found" && \
+    ls -la /app/admin/dist/ 2>/dev/null || echo "⚠️  Admin dist not found" && \
+    ls -la /app/server/index-railway.js 2>/dev/null || echo "⚠️  Server entry point not found"
 
 # Set up proper file permissions
 RUN chown -R yeslocker:nodejs /app
