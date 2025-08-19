@@ -1045,14 +1045,17 @@ class RailwayServer {
             });
           }
 
-          // Insert new user
+          // Insert new user with a default password (phone number as password)
+          // In production, you should hash the password or use a different auth method
           const insertQuery = `
-            INSERT INTO users (phone, name, avatar_url, store_id, status)
-            VALUES ($1, $2, $3, $4, 'active')
+            INSERT INTO users (phone, name, password, avatar_url, store_id, status)
+            VALUES ($1, $2, $3, $4, $5, 'active')
             RETURNING id, phone, name, store_id
           `;
           
-          const result = await client.query(insertQuery, [phone, name, avatarUrl, store_id]);
+          // Use phone as default password (in production, this should be hashed)
+          const defaultPassword = phone;
+          const result = await client.query(insertQuery, [phone, name, defaultPassword, avatarUrl, store_id]);
           const newUser = result.rows[0];
           
           client.release();
