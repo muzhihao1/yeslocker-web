@@ -951,9 +951,9 @@ class RailwayServer {
           });
         }
 
-        // 转换store_id为整数
-        const storeIdInt = parseInt(store_id, 10);
-        if (isNaN(storeIdInt)) {
+        // Validate store_id as UUID (PostgreSQL uses UUIDs for store IDs)
+        // The database foreign key constraint will validate if it exists
+        if (typeof store_id !== 'string' || store_id.trim() === '') {
           return res.status(400).json({
             error: 'Invalid store_id',
             message: '门店ID格式不正确'
@@ -983,7 +983,7 @@ class RailwayServer {
           // Check if store exists
           const storeCheck = await client.query(
             'SELECT id FROM stores WHERE id = $1',
-            [storeIdInt]
+            [store_id]
           );
 
           if (storeCheck.rows.length === 0) {
@@ -1001,7 +1001,7 @@ class RailwayServer {
             RETURNING id, phone, name, store_id
           `;
           
-          const result = await client.query(insertQuery, [phone, name, avatarUrl, storeIdInt]);
+          const result = await client.query(insertQuery, [phone, name, avatarUrl, store_id]);
           const newUser = result.rows[0];
           
           client.release();
