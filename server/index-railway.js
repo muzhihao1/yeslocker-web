@@ -1690,9 +1690,9 @@ class RailwayServer {
           
           // Create locker record for history
           await client.query(
-            `INSERT INTO locker_records (user_id, locker_id, action_type, action_time)
-             VALUES ($1, $2, $3, NOW())`,
-            [voucher.user_id, voucher.locker_id, voucher.operation_type]
+            `INSERT INTO locker_records (user_id, locker_id, action, notes, created_at)
+             VALUES ($1, $2, $3, $4, NOW())`,
+            [voucher.user_id, voucher.locker_id, voucher.operation_type, `凭证验证：${voucher.operation_type === 'store' ? '存放' : '取回'}球杆`]
           );
           
           client.release();
