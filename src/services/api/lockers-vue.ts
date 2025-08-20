@@ -181,5 +181,36 @@ export const lockersApi = {
       console.error('获取二维码失败:', error.message)
       throw error
     }
+  },
+  
+  // 获取用户当前的杆柜分配
+  async getUserLockerAssignment(): Promise<any> {
+    try {
+      // 获取当前用户
+      const authStore = (await import('@/stores/auth-vue')).useAuthStore()
+      const user = authStore.user
+      
+      if (!user) {
+        throw new Error('请先登录')
+      }
+      
+      const response = await apiClient.get(`user/locker-assignment?user_id=${user.id}`)
+      
+      if (!response.success) {
+        return null
+      }
+      
+      // Store locker info in localStorage for quick access
+      if (response.data) {
+        localStorage.setItem('user_locker', JSON.stringify(response.data))
+      } else {
+        localStorage.removeItem('user_locker')
+      }
+      
+      return response.data
+    } catch (error: any) {
+      console.error('获取用户杆柜分配失败:', error.message)
+      return null
+    }
   }
 }

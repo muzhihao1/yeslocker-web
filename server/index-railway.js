@@ -2917,6 +2917,88 @@ class RailwayServer {
       }
     });
 
+    // Get user's current locker assignment
+    this.app.get('/api/user/locker-assignment', async (req, res) => {
+      console.log('Getting user locker assignment');
+      
+      // Get user from auth header or query
+      const authHeader = req.headers.authorization;
+      let userId = null;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        // Extract user ID from token (simplified for test)
+        userId = token.replace('test_token_', '');
+      } else if (req.query.user_id) {
+        userId = req.query.user_id;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({
+          error: 'Unauthorized',
+          message: '请先登录'
+        });
+      }
+      
+      const client = await this.pool.connect();
+      try {
+        // Get user's approved application with locker details
+        const query = `
+          SELECT 
+            a.id as application_id,
+            a.status,
+            a.approved_at,
+            l.id as locker_id,
+            l.number as locker_number,
+            l.status as locker_status,
+            s.id as store_id,
+            s.name as store_name,
+            s.address as store_address
+          FROM applications a
+          LEFT JOIN lockers l ON a.assigned_locker_id = l.id
+          LEFT JOIN stores s ON l.store_id = s.id
+          WHERE a.user_id = $1 
+            AND a.status = 'approved'
+          ORDER BY a.approved_at DESC
+          LIMIT 1
+        `;
+        
+        const result = await client.query(query, [userId]);
+        
+        if (result.rows.length === 0) {
+          return res.json({
+            success: true,
+            data: null,
+            message: '用户暂无分配的杆柜'
+          });
+        }
+        
+        const assignment = result.rows[0];
+        
+        res.json({
+          success: true,
+          data: {
+            id: assignment.locker_id,
+            number: assignment.locker_number,
+            status: assignment.locker_status,
+            store_id: assignment.store_id,
+            store_name: assignment.store_name,
+            store_address: assignment.store_address,
+            assigned_at: assignment.approved_at
+          }
+        });
+        
+      } catch (error) {
+        console.error('Get locker assignment error:', error);
+        res.status(500).json({
+          error: 'Database error',
+          message: '获取杆柜分配信息失败'
+        });
+      } finally {
+        client.release();
+      }
+    });
+
     // Admin login
     this.app.post('/api/admin-login', async (req, res) => {
       try {

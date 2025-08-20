@@ -115,8 +115,8 @@ const fetchLockerDetail = async () => {
     error.value = ''
     
     // 这里需要调用获取单个杆柜的API
-    // 由于目前API可能没有单独的获取杆柜详情接口，我们先用获取门店杆柜的方式
-    const response = await adminApi.getStoresLockers()
+    // 由于目前API可能没有单独的获取杆柜详情接口，我们先用获取门店和杆柜的方式
+    const response = await adminApi.getStoresAndLockers()
     
     // 从所有杆柜中找到目标杆柜
     let targetLocker = null

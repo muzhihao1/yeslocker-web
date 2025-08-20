@@ -68,6 +68,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-vue'
+import { lockersApi } from '@/services/api/lockers-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -77,9 +78,11 @@ const hasNotice = ref(false)
 const noticeContent = ref('')
 const unreadCount = ref(0)
 const loading = ref(false)
+const userLocker = ref<any>(null)
 
 onMounted(async () => {
   await checkLoginStatus()
+  await loadUserLocker()
   loadNotice()
   await loadUnreadCount()
 })
@@ -117,6 +120,33 @@ const loadNotice = () => {
 }
 
 /**
+ * 加载用户的杆柜信息
+ */
+const loadUserLocker = async () => {
+  try {
+    // Get user's active locker from their application
+    const user = authStore.user
+    if (!user) return
+    
+    // Call API to get user's assigned locker
+    const lockerData = await lockersApi.getUserLockerAssignment()
+    
+    if (lockerData) {
+      userLocker.value = lockerData
+      console.log('用户杆柜信息:', userLocker.value)
+    } else {
+      // Also check localStorage as fallback
+      const storedLocker = localStorage.getItem('user_locker')
+      if (storedLocker) {
+        userLocker.value = JSON.parse(storedLocker)
+      }
+    }
+  } catch (error) {
+    console.error('加载用户杆柜信息失败:', error)
+  }
+}
+
+/**
  * 加载未读消息数量
  */
 const loadUnreadCount = async () => {
@@ -136,7 +166,24 @@ const navigateToApply = () => {
 }
 
 const navigateToLocker = () => {
-  router.push('/locker/action')
+  // Check if user has an assigned locker
+  if (!userLocker.value) {
+    // Show message to apply for a locker first
+    alert('您还没有分配的杆柜，请先申请杆柜')
+    router.push('/user/apply')
+    return
+  }
+  
+  // Navigate with proper parameters
+  router.push({
+    path: '/locker/action',
+    query: {
+      type: 'store', // Default to store action
+      lockerId: userLocker.value.id,
+      lockerNumber: userLocker.value.number,
+      storeName: userLocker.value.store_name || '未知门店'
+    }
+  })
 }
 
 const navigateToQRCode = () => {

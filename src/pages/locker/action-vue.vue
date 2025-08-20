@@ -396,6 +396,21 @@ const requestVoucher = async () => {
       throw new Error('请先登录')
     }
     
+    // Validate required parameters
+    if (!lockerId.value) {
+      throw new Error('缺少杆柜ID参数')
+    }
+    
+    if (!actionType.value) {
+      throw new Error('缺少操作类型参数')
+    }
+    
+    console.log('请求凭证参数:', {
+      user_id: user.id,
+      locker_id: lockerId.value,
+      operation_type: actionType.value
+    })
+    
     const voucher = await vouchersApi.requestVoucher({
       user_id: user.id,
       locker_id: lockerId.value,
@@ -410,6 +425,7 @@ const requestVoucher = async () => {
     
     showToastMessage('凭证生成成功', 'success')
   } catch (error: any) {
+    console.error('请求凭证失败:', error)
     voucherError.value = error.message || '生成凭证失败'
     showToastMessage(voucherError.value, 'error')
   } finally {
@@ -564,12 +580,28 @@ const confirmCancel = () => {
 // Initialize from route params
 onMounted(() => {
   const query = route.query
+  
+  // Set default action type if not provided
   if (query.type) {
     actionType.value = query.type as 'store' | 'retrieve'
+  } else {
+    // Default to 'store' if not specified
+    actionType.value = 'store'
+    console.warn('操作类型未指定，默认为存杆操作')
   }
+  
   if (query.lockerId) {
     lockerId.value = query.lockerId as string
+  } else {
+    console.error('缺少必需的杆柜ID参数')
+    showToastMessage('缺少杆柜信息，请重新选择杆柜', 'error')
+    // Redirect back after a delay
+    setTimeout(() => {
+      router.back()
+    }, 2000)
+    return
   }
+  
   if (query.lockerNumber) {
     lockerNumber.value = query.lockerNumber as string
   }
