@@ -4252,11 +4252,12 @@ class RailwayServer {
 
     // Admin Lockers API - Get all lockers with user info
     this.app.get('/api/admin-lockers', authenticateToken, async (req, res) => {
+      let client;
       try {
         const { store_id, status, page = 1, limit = 20 } = req.query;
         const offset = (page - 1) * limit;
         
-        const client = await this.pool.connect();
+        client = await this.pool.connect();
         
         // Build query with user info from current_user_id
         let query = `
@@ -4264,7 +4265,7 @@ class RailwayServer {
             l.id, l.number, l.status, l.store_id, l.assigned_at, l.created_at, l.updated_at,
             l.current_user_id,
             s.name as store_name, s.location as store_location,
-            u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar as user_avatar
+            u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url as user_avatar
           FROM lockers l
           LEFT JOIN stores s ON l.store_id = s.id
           LEFT JOIN users u ON l.current_user_id = u.id
@@ -4336,10 +4337,14 @@ class RailwayServer {
         });
       } catch (error) {
         console.error('Error fetching lockers:', error);
+        if (client) {
+          client.release();
+        }
         res.status(500).json({
           success: false,
           error: 'Database error',
-          message: '获取杆柜列表失败'
+          message: '获取杆柜列表失败',
+          details: error.message
         });
       }
     });
@@ -4429,7 +4434,7 @@ class RailwayServer {
             l.current_user_id,
             s.name as store_name, s.location as store_location,
             u.id as user_id, u.name as user_name, u.phone as user_phone, 
-            u.avatar as user_avatar, u.email as user_email,
+            u.avatar_url as user_avatar,
             a.id as application_id, a.status as application_status, 
             a.created_at as application_date, a.approved_at
           FROM lockers l
@@ -4467,7 +4472,6 @@ class RailwayServer {
             id: row.user_id,
             name: row.user_name,
             phone: row.user_phone,
-            email: row.user_email,
             avatar: row.user_avatar,
             application_id: row.application_id,
             application_status: row.application_status,
