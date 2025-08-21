@@ -6,36 +6,36 @@
 FROM node:lts-alpine AS frontend-build
 WORKDIR /app
 
-# Build user application first
+# Install dependencies for main app
 COPY package*.json ./
-RUN npm ci
+RUN echo "📦 Installing main app dependencies..." && \
+    npm ci && \
+    echo "✅ Main app dependencies installed"
 
-# Copy source files for user app (excluding admin and server)
-COPY index.html ./
-COPY vite.config.ts ./
-COPY tsconfig*.json ./
-COPY public/ ./public/
-COPY src/ ./src/
+# Copy ALL source files (we'll build both apps)
+COPY . ./
 
-# Build user app with detailed logging
-RUN echo "🔨 Building user application..." && \
+# Build user application (main app)
+RUN echo "🔨 Starting user application build..." && \
+    echo "📁 Current directory contents:" && \
+    ls -la && \
+    echo "📁 Source directory contents:" && \
+    ls -la src/ && \
+    echo "🚀 Running: npm run build:client" && \
     npm run build:client && \
     echo "✅ User app build completed" && \
-    echo "📁 Contents of /app after user build:" && \
-    ls -la /app/ && \
-    echo "📁 Contents of /app/dist (if exists):" && \
-    ls -la /app/dist/ 2>/dev/null || echo "❌ User dist/ directory not found"
+    echo "📁 Checking for dist directory:" && \
+    ls -la dist/ || (echo "❌ CRITICAL: User app dist/ directory not found!" && exit 1)
 
 # Build admin panel
 WORKDIR /app/admin
-COPY admin/package*.json ./
-RUN npm ci  
-COPY admin/ ./
-RUN echo "🔨 Building admin panel..." && \
+RUN echo "📦 Installing admin panel dependencies..." && \
+    npm ci && \
+    echo "🔨 Building admin panel..." && \
     npm run build && \
     echo "✅ Admin panel build completed" && \
-    echo "📁 Contents of /app/admin/dist:" && \
-    ls -la /app/admin/dist/ 2>/dev/null || echo "❌ Admin dist/ directory not found"
+    echo "📁 Admin dist contents:" && \
+    ls -la dist/ || (echo "❌ CRITICAL: Admin dist/ directory not found!" && exit 1)
 
 # ============= BACKEND PREPARATION =============
 FROM node:lts-alpine AS backend-prep
