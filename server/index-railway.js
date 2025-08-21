@@ -2599,9 +2599,10 @@ class RailwayServer {
           overviewQuery = `
             WITH stats AS (
               SELECT 
-                (SELECT COUNT(*) FROM users u 
+                (SELECT COUNT(DISTINCT u.id) FROM users u 
                  JOIN applications a ON u.id = a.user_id
                  WHERE a.store_id = $1
+                   AND a.status = 'approved'
                    AND u.status = 'active') as active_users,
                 (SELECT COUNT(*) FROM applications 
                  WHERE store_id = $1
@@ -2645,9 +2646,11 @@ class RailwayServer {
           overviewQuery = `
             WITH stats AS (
               SELECT 
-                (SELECT COUNT(*) FROM users u 
-                 JOIN applications a ON u.id = a.user_id
-                 WHERE u.status = 'active') as active_users,
+                (SELECT COUNT(DISTINCT u.id) FROM users u 
+                 WHERE u.status = 'active'
+                   AND EXISTS (SELECT 1 FROM applications a 
+                               WHERE a.user_id = u.id 
+                               AND a.status = 'approved')) as active_users,
                 (SELECT COUNT(*) FROM applications 
                  WHERE status = 'pending') as pending_applications,
                 (SELECT COUNT(*) FROM locker_records lr
@@ -3954,6 +3957,14 @@ class RailwayServer {
         
         const application = appResult.rows[0];
         
+        console.log(`📋 审批申请详情:`, {
+          application_id: application.id,
+          user_id: application.user_id,
+          assigned_locker_id: application.assigned_locker_id,
+          store_id: application.store_id,
+          status: application.status
+        });
+        
         // RBAC permission check
         if (adminRole === 'store_admin') {
           // Store admins can only approve/reject applications for their own store
@@ -3977,7 +3988,7 @@ class RailwayServer {
           
           // Update locker status to occupied (use assigned_locker_id from application)
           await client.query(
-            'UPDATE lockers SET status = $1, current_user_id = $2 WHERE id = $3',
+            'UPDATE lockers SET status = $1, current_user_id = $2, assigned_at = NOW(), updated_at = NOW() WHERE id = $3',
             ['occupied', application.user_id, application.assigned_locker_id]
           );
           
