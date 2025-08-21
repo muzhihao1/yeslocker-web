@@ -143,7 +143,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
+import { useAuthStore } from '@/stores/auth-vue'
 import { userApi } from '../../services/api/user-vue'
 
 interface HistoryItem {
