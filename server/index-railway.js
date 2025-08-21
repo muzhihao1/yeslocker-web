@@ -2472,6 +2472,57 @@ class RailwayServer {
       }
     });
 
+    // Diagnostic endpoint for debugging locker-user relationships
+    this.app.get('/api/debug-locker-user/:user_id', authenticateToken, async (req, res) => {
+      try {
+        const { user_id } = req.params;
+        const client = await this.pool.connect();
+        
+        // Get user info
+        const userResult = await client.query('SELECT * FROM users WHERE id = $1', [user_id]);
+        
+        // Get all applications for this user
+        const appResult = await client.query(
+          'SELECT * FROM applications WHERE user_id = $1 ORDER BY created_at DESC',
+          [user_id]
+        );
+        
+        // Get lockers that have this user as current_user_id
+        const lockerResult = await client.query(
+          'SELECT * FROM lockers WHERE current_user_id = $1',
+          [user_id]
+        );
+        
+        // Get lockers referenced by approved applications
+        const lockerByAppResult = await client.query(`
+          SELECT l.*, a.id as app_id, a.status as app_status, a.approved_at
+          FROM applications a
+          LEFT JOIN lockers l ON a.assigned_locker_id = l.id
+          WHERE a.user_id = $1 AND a.status = 'approved'
+        `, [user_id]);
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          data: {
+            user: userResult.rows[0] || null,
+            applications: appResult.rows,
+            lockers_by_current_user_id: lockerResult.rows,
+            lockers_by_application: lockerByAppResult.rows,
+            analysis: {
+              has_approved_application: appResult.rows.some(a => a.status === 'approved'),
+              assigned_locker_ids: appResult.rows.filter(a => a.assigned_locker_id).map(a => a.assigned_locker_id),
+              locker_with_user_as_current: lockerResult.rows.length > 0
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Debug error:', error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
     // User login
     this.app.post('/auth-login', async (req, res) => {
       try {
@@ -3962,7 +4013,8 @@ class RailwayServer {
           user_id: application.user_id,
           assigned_locker_id: application.assigned_locker_id,
           store_id: application.store_id,
-          status: application.status
+          status: application.status,
+          action: action
         });
         
         // RBAC permission check
@@ -3981,16 +4033,22 @@ class RailwayServer {
         if (action === 'approve') {
           
           // Update application status (locker is already assigned in assigned_locker_id)
-          await client.query(
-            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2 WHERE id = $3',
+          const appUpdateResult = await client.query(
+            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2 WHERE id = $3 RETURNING *',
             ['approved', admin_id || adminInfo.id, application_id]
           );
+          console.log(`✅ 申请已批准:`, appUpdateResult.rows[0]);
           
           // Update locker status to occupied (use assigned_locker_id from application)
-          await client.query(
-            'UPDATE lockers SET status = $1, current_user_id = $2, assigned_at = NOW(), updated_at = NOW() WHERE id = $3',
+          const lockerUpdateResult = await client.query(
+            'UPDATE lockers SET status = $1, current_user_id = $2, assigned_at = NOW(), updated_at = NOW() WHERE id = $3 RETURNING *',
             ['occupied', application.user_id, application.assigned_locker_id]
           );
+          console.log(`✅ 杆柜已分配:`, {
+            locker_id: application.assigned_locker_id,
+            user_id: application.user_id,
+            locker_data: lockerUpdateResult.rows[0]
+          });
           
         } else if (action === 'reject') {
           await client.query(
@@ -4192,6 +4250,100 @@ class RailwayServer {
       }
     });
 
+    // Admin Lockers API - Get all lockers with user info
+    this.app.get('/api/admin-lockers', authenticateToken, async (req, res) => {
+      try {
+        const { store_id, status, page = 1, limit = 20 } = req.query;
+        const offset = (page - 1) * limit;
+        
+        const client = await this.pool.connect();
+        
+        // Build query with user info from current_user_id
+        let query = `
+          SELECT 
+            l.id, l.number, l.status, l.store_id, l.assigned_at, l.created_at, l.updated_at,
+            l.current_user_id,
+            s.name as store_name, s.location as store_location,
+            u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar as user_avatar
+          FROM lockers l
+          LEFT JOIN stores s ON l.store_id = s.id
+          LEFT JOIN users u ON l.current_user_id = u.id
+        `;
+        
+        const params = [];
+        const conditions = [];
+        let paramIndex = 0;
+        
+        if (store_id) {
+          paramIndex++;
+          conditions.push(`l.store_id = $${paramIndex}`);
+          params.push(store_id);
+        }
+        
+        if (status) {
+          paramIndex++;
+          conditions.push(`l.status = $${paramIndex}`);
+          params.push(status);
+        }
+        
+        if (conditions.length > 0) {
+          query += ' WHERE ' + conditions.join(' AND ');
+        }
+        
+        // Get total count
+        const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) FROM').replace(/LEFT JOIN users u ON l.current_user_id = u.id/, '');
+        const countResult = await client.query(countQuery, params);
+        const total = parseInt(countResult.rows[0].count);
+        
+        // Add pagination and ordering
+        query += ` ORDER BY l.created_at DESC LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        params.push(limit, offset);
+        
+        const result = await client.query(query, params);
+        
+        // Process results to format properly
+        const lockers = result.rows.map(row => ({
+          id: row.id,
+          number: row.number,
+          status: row.status,
+          store_id: row.store_id,
+          store_name: row.store_name,
+          store_location: row.store_location,
+          assigned_at: row.assigned_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          user: row.current_user_id ? {
+            id: row.user_id,
+            name: row.user_name,
+            phone: row.user_phone,
+            avatar: row.user_avatar
+          } : null
+        }));
+        
+        client.release();
+        
+        console.log(`📋 获取杆柜列表: 找到 ${lockers.length} 个杆柜`);
+        
+        res.json({
+          success: true,
+          data: {
+            items: lockers,
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total_pages: Math.ceil(total / limit)
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching lockers:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取杆柜列表失败'
+        });
+      }
+    });
+
     // Admin Lockers API - Create new locker
     this.app.post('/api/admin-lockers', authenticateToken, async (req, res) => {
       try {
@@ -4259,6 +4411,100 @@ class RailwayServer {
           success: false,
           error: 'Database error',
           message: '创建杆柜失败'
+        });
+      }
+    });
+
+    // Admin Lockers API - Get single locker details
+    this.app.get('/api/admin-lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        
+        const client = await this.pool.connect();
+        
+        // Get locker with full user and application info
+        const query = `
+          SELECT 
+            l.id, l.number, l.status, l.store_id, l.assigned_at, l.created_at, l.updated_at,
+            l.current_user_id,
+            s.name as store_name, s.location as store_location,
+            u.id as user_id, u.name as user_name, u.phone as user_phone, 
+            u.avatar as user_avatar, u.email as user_email,
+            a.id as application_id, a.status as application_status, 
+            a.created_at as application_date, a.approved_at
+          FROM lockers l
+          LEFT JOIN stores s ON l.store_id = s.id
+          LEFT JOIN users u ON l.current_user_id = u.id
+          LEFT JOIN applications a ON a.user_id = u.id AND a.assigned_locker_id = l.id AND a.status = 'approved'
+          WHERE l.id = $1
+        `;
+        
+        const result = await client.query(query, [id]);
+        
+        if (result.rows.length === 0) {
+          client.release();
+          return res.status(404).json({
+            success: false,
+            error: 'Locker not found',
+            message: '杆柜不存在'
+          });
+        }
+        
+        const row = result.rows[0];
+        
+        // Format the response
+        const locker = {
+          id: row.id,
+          number: row.number,
+          status: row.status,
+          store_id: row.store_id,
+          store_name: row.store_name,
+          store_location: row.store_location,
+          assigned_at: row.assigned_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          user: row.current_user_id ? {
+            id: row.user_id,
+            name: row.user_name,
+            phone: row.user_phone,
+            email: row.user_email,
+            avatar: row.user_avatar,
+            application_id: row.application_id,
+            application_status: row.application_status,
+            application_date: row.application_date,
+            approved_at: row.approved_at
+          } : null
+        };
+        
+        // Get recent records for this locker
+        const recordsQuery = `
+          SELECT 
+            lr.id, lr.action, lr.created_at, lr.notes,
+            u.name as user_name, u.phone as user_phone
+          FROM locker_records lr
+          JOIN users u ON lr.user_id = u.id
+          WHERE lr.locker_id = $1
+          ORDER BY lr.created_at DESC
+          LIMIT 10
+        `;
+        
+        const recordsResult = await client.query(recordsQuery, [id]);
+        locker.recent_records = recordsResult.rows;
+        
+        client.release();
+        
+        console.log(`📋 获取杆柜详情: ${row.number} (ID: ${id})`);
+        
+        res.json({
+          success: true,
+          data: locker
+        });
+      } catch (error) {
+        console.error('Error fetching locker details:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取杆柜详情失败'
         });
       }
     });
