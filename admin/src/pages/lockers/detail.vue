@@ -40,15 +40,35 @@
         </div>
       </div>
       
-      <div class="info-section" v-if="lockerInfo.current_user_id">
+      <div class="info-section" v-if="lockerInfo.user">
         <div class="section-title">使用信息</div>
         <div class="info-item">
-          <span class="label">用户ID:</span>
-          <span class="value">{{ lockerInfo.current_user_id }}</span>
+          <span class="label">使用者:</span>
+          <span class="value">{{ lockerInfo.user.name || '未知用户' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">手机号:</span>
+          <span class="value">{{ lockerInfo.user.phone }}</span>
+        </div>
+        <div class="info-item" v-if="lockerInfo.user.email">
+          <span class="label">邮箱:</span>
+          <span class="value">{{ lockerInfo.user.email }}</span>
         </div>
         <div class="info-item">
           <span class="label">分配时间:</span>
           <span class="value">{{ formatDate(lockerInfo.assigned_at) }}</span>
+        </div>
+      </div>
+      
+      <div class="info-section" v-if="lockerInfo.recent_records && lockerInfo.recent_records.length > 0">
+        <div class="section-title">最近使用记录</div>
+        <div class="record-item" v-for="record in lockerInfo.recent_records" :key="record.id">
+          <div class="record-info">
+            <span class="record-action">{{ record.action === 'check_in' ? '存杆' : '取杆' }}</span>
+            <span class="record-user">{{ record.user_name }}</span>
+            <span class="record-time">{{ formatDate(record.created_at) }}</span>
+          </div>
+          <div class="record-notes" v-if="record.notes">备注: {{ record.notes }}</div>
         </div>
       </div>
     </div>
@@ -114,29 +134,13 @@ const fetchLockerDetail = async () => {
     loading.value = true
     error.value = ''
     
-    // 这里需要调用获取单个杆柜的API
-    // 由于目前API可能没有单独的获取杆柜详情接口，我们先用获取门店和杆柜的方式
-    const response = await adminApi.getStoresAndLockers()
+    // 调用新的获取单个杆柜详情API
+    const response = await adminApi.getLockerDetail(lockerId)
     
-    // 从所有杆柜中找到目标杆柜
-    let targetLocker = null
-    if (response.data && response.data.stores) {
-      for (const store of response.data.stores) {
-        if (store.lockers) {
-          targetLocker = store.lockers.find(locker => locker.id === lockerId)
-          if (targetLocker) {
-            // 添加门店信息
-            targetLocker.store = { name: store.name }
-            break
-          }
-        }
-      }
-    }
-
-    if (targetLocker) {
-      lockerInfo.value = targetLocker
+    if (response.success && response.data) {
+      lockerInfo.value = response.data
     } else {
-      error.value = '杆柜不存在或已被删除'
+      error.value = response.error || '获取杆柜详情失败'
     }
   } catch (err: any) {
     console.error('获取杆柜详情失败:', err)
@@ -325,5 +329,47 @@ onMounted(() => {
 .btn-secondary {
   background-color: #666;
   color: white;
+}
+
+.record-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-info {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.record-action {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: #1B5E20;
+  color: white;
+}
+
+.record-user {
+  font-weight: 500;
+  color: #333;
+}
+
+.record-time {
+  color: #666;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.record-notes {
+  color: #999;
+  font-size: 13px;
+  margin-top: 5px;
+  padding-left: 60px;
 }
 </style>

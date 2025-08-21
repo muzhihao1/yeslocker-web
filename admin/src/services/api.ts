@@ -251,13 +251,28 @@ export const adminApi = {
     return apiClient.delete(`/admin/stores/${id}`)
   },
 
+  // 获取杆柜列表
+  getLockers: (params?: {
+    store_id?: string
+    status?: string
+    page?: number
+    limit?: number
+  }) => {
+    return apiClient.get('/admin-lockers', { params })
+  },
+
+  // 获取单个杆柜详情
+  getLockerDetail: (id: string) => {
+    return apiClient.get(`/admin-lockers/${id}`)
+  },
+
   // 创建杆柜
   createLocker: (data: {
     store_id: string
     number: string
     status?: string
   }) => {
-    return apiClient.post('/admin/lockers', data)
+    return apiClient.post('/admin-lockers', data)
   },
 
   // 更新杆柜
@@ -266,12 +281,12 @@ export const adminApi = {
     status?: string
     current_user_id?: string | null
   }) => {
-    return apiClient.patch(`/admin/lockers/${id}`, data)
+    return apiClient.put(`/admin-lockers/${id}`, data)
   },
 
   // 删除杆柜
   deleteLocker: (id: string) => {
-    return apiClient.delete(`/admin/lockers/${id}`)
+    return apiClient.delete(`/admin-lockers/${id}`)
   },
   
   // 获取用户列表

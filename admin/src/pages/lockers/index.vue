@@ -463,26 +463,42 @@ const getLockers = async (isRefresh = false) => {
   loading.value = true
   
   try {
-    const response = await adminApi.getStoresAndLockers()
+    // 使用新的API获取杆柜列表
+    const response = await adminApi.getLockers({
+      page: 1,
+      limit: 100 // 一次获取所有杆柜
+    })
     
     // 存储所有原始数据
-    allLockers.value = response.data?.lockers || []
+    if (response.success && response.data) {
+      allLockers.value = response.data.items || []
+      totalCount.value = response.data.total || 0
+    } else {
+      allLockers.value = []
+    }
     
     // 应用筛选
     applyFilters()
     
     // 更新统计数据
-    if (response.data?.stats) {
-      stats.value = response.data.stats
-    }
+    updateStats()
     
-    totalCount.value = lockers.value.length
   } catch (error) {
     console.error('获取杆柜列表失败:', error)
     showToast('获取数据失败')
   } finally {
     loading.value = false
     refreshing.value = false
+  }
+}
+
+// 更新统计数据
+const updateStats = () => {
+  stats.value = {
+    available: allLockers.value.filter(l => l.status === 'available').length,
+    occupied: allLockers.value.filter(l => l.status === 'occupied').length,
+    storing: allLockers.value.filter(l => l.status === 'storing').length,
+    maintenance: allLockers.value.filter(l => l.status === 'maintenance').length
   }
 }
 
@@ -510,8 +526,18 @@ const applyFilters = () => {
 // 获取门店列表
 const getStores = async () => {
   try {
-    const response = await adminApi.getStoresAndLockers()
-    storeOptions.value = response.data?.stores || []
+    // 从杆柜数据中提取唯一的门店信息
+    const storeMap = new Map()
+    allLockers.value.forEach(locker => {
+      if (locker.store_id && !storeMap.has(locker.store_id)) {
+        storeMap.set(locker.store_id, {
+          id: locker.store_id,
+          name: locker.store_name || '未知门店',
+          address: locker.store_location || ''
+        })
+      }
+    })
+    storeOptions.value = Array.from(storeMap.values())
   } catch (error) {
     console.error('获取门店列表失败:', error)
   }
@@ -667,9 +693,11 @@ const confirmAddLocker = async () => {
 }
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
+  // 先获取杆柜数据
+  await getLockers(true)
+  // 然后从杆柜数据中提取门店信息
   getStores()
-  getLockers(true)
 })
 
 // 门店管理方法
