@@ -191,6 +191,13 @@ class RailwayServer {
       console.log(`📁 Serving public static files from: ${publicPath}`);
       this.app.use('/static', express.static(publicPath));
     }
+    
+    // Also serve admin public directory for admin-specific static files
+    const adminPublicPath = path.join(__dirname, '../admin/public');
+    if (fs.existsSync(adminPublicPath)) {
+      console.log(`📁 Serving admin public files from: ${adminPublicPath}`);
+      this.app.use('/static', express.static(adminPublicPath));
+    }
   }
 
   setupRoutes() {
@@ -291,11 +298,28 @@ class RailwayServer {
           'CREATE INDEX IF NOT EXISTS idx_applications_status_created ON applications(status, created_at DESC)',
           'CREATE INDEX IF NOT EXISTS idx_users_status_active ON users(status, created_at DESC) WHERE status = \'active\'',
           
+          // New indexes for admin statistics performance
+          'CREATE INDEX IF NOT EXISTS idx_applications_store_id ON applications(store_id)',
+          'CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id)',
+          'CREATE INDEX IF NOT EXISTS idx_lockers_store_id ON lockers(store_id)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_locker_id ON locker_records(locker_id)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_user_id ON locker_records(user_id)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_action ON locker_records(action)',
+          'CREATE INDEX IF NOT EXISTS idx_vouchers_created_at ON vouchers(created_at)',
+          
+          // Composite indexes for complex queries
+          'CREATE INDEX IF NOT EXISTS idx_applications_store_status ON applications(store_id, status)',
+          'CREATE INDEX IF NOT EXISTS idx_lockers_store_status ON lockers(store_id, status)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_locker_created ON locker_records(locker_id, created_at DESC)',
+          'CREATE INDEX IF NOT EXISTS idx_locker_records_action_created ON locker_records(action, created_at DESC)',
+          
           // Analyze tables for query planner
           'ANALYZE users',
           'ANALYZE lockers', 
           'ANALYZE applications',
-          'ANALYZE locker_records'
+          'ANALYZE locker_records',
+          'ANALYZE vouchers',
+          'ANALYZE stores'
         ];
         
         const results = [];
@@ -3781,22 +3805,22 @@ class RailwayServer {
         
         if (action === 'approve') {
           
-          // Update application status and assign locker
+          // Update application status (locker is already assigned in assigned_locker_id)
           await client.query(
-            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2, assigned_locker_id = $3 WHERE id = $4',
-            ['approved', admin_id, application.locker_id, application_id]
+            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2 WHERE id = $3',
+            ['approved', admin_id || adminInfo.id, application_id]
           );
           
-          // Update locker status to occupied
+          // Update locker status to occupied (use assigned_locker_id from application)
           await client.query(
-            'UPDATE lockers SET status = $1, user_id = $2 WHERE id = $3',
-            ['occupied', application.user_id, application.locker_id]
+            'UPDATE lockers SET status = $1, current_user_id = $2 WHERE id = $3',
+            ['occupied', application.user_id, application.assigned_locker_id]
           );
           
         } else if (action === 'reject') {
           await client.query(
-            'UPDATE applications SET status = $1, reject_reason = $2, approved_at = NOW(), approved_by = $3 WHERE id = $4',
-            ['rejected', reject_reason, admin_id, application_id]
+            'UPDATE applications SET status = $1, rejection_reason = $2, approved_at = NOW(), approved_by = $3 WHERE id = $4',
+            ['rejected', reject_reason || '', admin_id || adminInfo.id, application_id]
           );
         }
         
