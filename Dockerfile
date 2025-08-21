@@ -6,24 +6,36 @@
 FROM node:lts-alpine AS frontend-build
 WORKDIR /app
 
-# Build user application
+# Build user application first
 COPY package*.json ./
 RUN npm ci
 
-# Copy source and build user app  
-COPY . ./
-RUN npm run build:client && \
+# Copy source files for user app (excluding admin and server)
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig*.json ./
+COPY public/ ./public/
+COPY src/ ./src/
+
+# Build user app with detailed logging
+RUN echo "🔨 Building user application..." && \
+    npm run build:client && \
     echo "✅ User app build completed" && \
-    ls -la dist/ || echo "⚠️  Warning: dist/ directory not found"
+    echo "📁 Contents of /app after user build:" && \
+    ls -la /app/ && \
+    echo "📁 Contents of /app/dist (if exists):" && \
+    ls -la /app/dist/ 2>/dev/null || echo "❌ User dist/ directory not found"
 
 # Build admin panel
 WORKDIR /app/admin
 COPY admin/package*.json ./
 RUN npm ci  
 COPY admin/ ./
-RUN npm run build && \
+RUN echo "🔨 Building admin panel..." && \
+    npm run build && \
     echo "✅ Admin panel build completed" && \
-    ls -la dist/ || echo "⚠️  Warning: admin dist/ directory not found"
+    echo "📁 Contents of /app/admin/dist:" && \
+    ls -la /app/admin/dist/ 2>/dev/null || echo "❌ Admin dist/ directory not found"
 
 # ============= BACKEND PREPARATION =============
 FROM node:lts-alpine AS backend-prep
