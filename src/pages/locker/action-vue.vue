@@ -84,8 +84,19 @@
               <div class="voucher-code">{{ currentVoucher.code }}</div>
             </div>
             
-            <div class="voucher-qr">
-              <img :src="currentVoucher.qr_data" alt="凭证二维码" class="qr-image">
+            <!-- PRD: Simple display with user avatar, no QR code -->
+            <div class="voucher-user-display">
+              <div class="user-avatar">
+                <img 
+                  v-if="currentVoucher.user_info.avatar_url" 
+                  :src="currentVoucher.user_info.avatar_url" 
+                  alt="用户头像" 
+                  class="avatar-image"
+                >
+                <div v-else class="avatar-placeholder">
+                  {{ currentVoucher.user_info.name.charAt(0) }}
+                </div>
+              </div>
             </div>
             
             <div class="voucher-info">
@@ -99,7 +110,15 @@
               </div>
               <div class="info-row">
                 <span class="info-label">操作：</span>
-                <span class="info-value">{{ currentVoucher.operation_type === 'store' ? '存放' : '取回' }}</span>
+                <span class="info-value operation-type">{{ currentVoucher.operation_type === 'store' ? '存放球杆' : '取回球杆' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">杆柜：</span>
+                <span class="info-value">{{ currentVoucher.locker_info.number }} · {{ currentVoucher.locker_info.store_name }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">申请时间：</span>
+                <span class="info-value">{{ formatDateTime(new Date(currentVoucher.issued_at)) }}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">有效期：</span>
@@ -107,7 +126,7 @@
               </div>
             </div>
             
-            <p class="voucher-hint">请向工作人员出示此凭证</p>
+            <p class="voucher-hint">请向工作人员出示此凭证（无需扫码）</p>
             
             <!-- Development: Simulate verification -->
             <button 
@@ -1314,17 +1333,43 @@ onUnmounted(() => {
   display: inline-block;
 }
 
-.voucher-qr {
+.voucher-user-display {
   text-align: center;
   margin: 24px 0;
 }
 
-.qr-image {
-  width: 200px;
-  height: 200px;
+.user-avatar {
+  display: inline-block;
+  position: relative;
+}
+
+.avatar-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
   border: 4px solid white;
-  border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+}
+
+.operation-type {
+  font-weight: 600;
+  color: #4CAF50;
 }
 
 .voucher-info {

@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
-const QRCode = require('qrcode');
+// QRCode removed per PRD requirement - no QR scanning needed
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development-only';
@@ -52,8 +52,94 @@ class RailwayServer {
       this.dbConnected = false;
     }
     
+    this.setupRBAC();
     this.setupMiddleware();
     this.setupRoutes();
+  }
+
+  // Setup Role-Based Access Control
+  setupRBAC() {
+    // Define permission mappings for each role
+    this.rolePermissions = {
+      super_admin: [
+        'all', // Super admin has all permissions
+        'manage_all_stores',
+        'manage_all_users',
+        'manage_all_applications',
+        'manage_all_lockers',
+        'view_all_statistics',
+        'manage_system_settings',
+        'manage_admins'
+      ],
+      hq_admin: [
+        'manage_all_stores',
+        'manage_all_users',
+        'manage_all_applications',
+        'manage_all_lockers',
+        'view_all_statistics',
+        'manage_admins'
+      ],
+      store_admin: [
+        'manage_own_store',
+        'manage_store_users',
+        'manage_store_applications',
+        'manage_store_lockers',
+        'view_store_statistics'
+      ]
+    };
+  }
+
+  // Get permissions for a given role
+  getAdminPermissions(role) {
+    return this.rolePermissions[role] || [];
+  }
+
+  // Check if admin has a specific permission
+  hasPermission(adminRole, permission) {
+    const permissions = this.getAdminPermissions(adminRole);
+    return permissions.includes('all') || permissions.includes(permission);
+  }
+
+  // Middleware to check admin permissions
+  requirePermission(permission) {
+    return (req, res, next) => {
+      const token = req.headers.authorization?.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          error: 'No authorization token provided'
+        });
+      }
+
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (!decoded.isAdmin) {
+          return res.status(403).json({
+            success: false,
+            error: 'Admin access required'
+          });
+        }
+
+        if (!this.hasPermission(decoded.role, permission)) {
+          return res.status(403).json({
+            success: false,
+            error: 'Insufficient permissions',
+            required: permission,
+            role: decoded.role
+          });
+        }
+
+        req.admin = decoded;
+        next();
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid or expired token'
+        });
+      }
+    };
   }
 
   setupMiddleware() {
@@ -1703,8 +1789,9 @@ class RailwayServer {
             codeExists = checkCode.rows.length > 0;
           }
           
-          // Generate QR code data
-          const qrData = {
+          // PRD Requirement: No QR codes - simple display only
+          // Create voucher display data (no QR code)
+          const voucherDisplay = {
             code: voucherCode,
             operation: operation_type,
             user: user.name,
@@ -1714,14 +1801,11 @@ class RailwayServer {
             timestamp: new Date().toISOString()
           };
           
-          // Generate QR code image as base64
-          const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrData));
-          
           // Set expiry time (30 minutes from now)
           const expiresAt = new Date();
           expiresAt.setMinutes(expiresAt.getMinutes() + 30);
           
-          // Create voucher record
+          // Create voucher record (without QR data)
           const insertQuery = `
             INSERT INTO vouchers (
               user_id, locker_id, operation_type, code, qr_data, 
@@ -1729,12 +1813,12 @@ class RailwayServer {
               locker_number, store_id, store_name,
               expires_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
           `;
           
           const result = await client.query(insertQuery, [
-            user_id, locker_id, operation_type, voucherCode, qrCodeBase64,
+            user_id, locker_id, operation_type, voucherCode,
             user.phone, user.name, user.avatar_url,
             locker.number, locker.store_id, locker.store_name,
             expiresAt
@@ -1751,14 +1835,15 @@ class RailwayServer {
           
           client.release();
           
-          // Format response
+          // Format response (PRD: No QR code, simple display only)
           res.json({
             success: true,
             voucher: {
               id: voucher.id,
               code: voucher.code,
-              qr_data: voucher.qr_data,
+              // qr_data removed per PRD requirement
               operation_type: voucher.operation_type,
+              display_text: `${operation_type === 'store' ? '存杆' : '取杆'}凭证`,
               user_info: {
                 name: voucher.user_name,
                 phone: voucher.user_phone,
@@ -2063,6 +2148,142 @@ class RailwayServer {
       }
     });
 
+    // User Registration (with avatar and store selection per PRD)
+    this.app.post('/api/register', async (req, res) => {
+      console.log('User registration request received');
+      const { phone, name, store_id, avatar_base64 } = req.body;
+      
+      // Validation
+      if (!phone || !name || !store_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+          message: '请填写所有必填项（手机号、姓名、门店）'
+        });
+      }
+      
+      // Validate phone format
+      const phoneRegex = /^1[3-9]\d{9}$/;
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid phone number',
+          message: '请输入有效的手机号码'
+        });
+      }
+      
+      // Validate name length
+      if (name.length < 2 || name.length > 50) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid name',
+          message: '姓名长度应在2-50个字符之间'
+        });
+      }
+      
+      // Process avatar if provided
+      let avatarUrl = null;
+      if (avatar_base64) {
+        // Validate base64 size (max 5MB after encoding)
+        const base64Size = Buffer.byteLength(avatar_base64, 'base64');
+        if (base64Size > 5 * 1024 * 1024) {
+          return res.status(400).json({
+            success: false,
+            error: 'Avatar too large',
+            message: '头像文件过大，请选择小于5MB的图片'
+          });
+        }
+        // Store base64 directly for now (in production, should use cloud storage)
+        avatarUrl = avatar_base64;
+      }
+      
+      const client = await this.pool.connect();
+      let clientReleased = false;
+      
+      try {
+        // Check if user already exists
+        const existingUser = await client.query(
+          'SELECT id FROM users WHERE phone = $1',
+          [phone]
+        );
+        
+        if (existingUser.rows.length > 0) {
+          client.release();
+          return res.status(409).json({
+            success: false,
+            error: 'User already exists',
+            message: '该手机号已注册'
+          });
+        }
+        
+        // Verify store exists
+        const storeCheck = await client.query(
+          'SELECT id, name FROM stores WHERE id = $1',
+          [store_id]
+        );
+        
+        if (storeCheck.rows.length === 0) {
+          client.release();
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid store',
+            message: '选择的门店不存在'
+          });
+        }
+        
+        // Create new user
+        const createUserQuery = `
+          INSERT INTO users (
+            id, phone, name, avatar_url, store_id, 
+            status, created_at
+          ) VALUES (
+            gen_random_uuid(), $1, $2, $3, $4, 
+            'active', NOW()
+          ) RETURNING *
+        `;
+        
+        const result = await client.query(createUserQuery, [
+          phone, name, avatarUrl, store_id
+        ]);
+        
+        const newUser = result.rows[0];
+        client.release();
+        clientReleased = true;
+        
+        console.log(`✅ User registered successfully: ${name} (${phone})`);
+        
+        // Generate token for auto-login
+        const token = 'test_token_' + newUser.id;
+        
+        res.json({
+          success: true,
+          message: '注册成功',
+          data: {
+            user: {
+              id: newUser.id,
+              phone: newUser.phone,
+              name: newUser.name,
+              avatar: newUser.avatar_url,
+              store_id: newUser.store_id,
+              store_name: storeCheck.rows[0].name
+            },
+            token: token
+          }
+        });
+        
+      } catch (error) {
+        if (!clientReleased) {
+          client.release();
+        }
+        console.error('Registration error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '注册失败，请稍后重试'
+        });
+      }
+    });
+
     // User login
     this.app.post('/auth-login', async (req, res) => {
       try {
@@ -2151,54 +2372,219 @@ class RailwayServer {
     });
 
     // Admin Statistics API - Ultra-optimized for performance 
+    // Enhanced Statistics API with RBAC support
     this.app.get('/api/admin-statistics', authenticateToken, async (req, res) => {
       try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        const { store_id, period = '7d' } = req.query;
+        
         const client = await this.pool.connect();
         
-        // Single optimized query to get all statistics in one go
-        const combinedQuery = `
-          WITH stats AS (
+        // Determine store filter based on RBAC
+        let storeFilter = '';
+        let storeParams = [];
+        
+        if (adminRole === 'store_admin') {
+          // Store admins can only see their own store stats
+          storeFilter = 'WHERE s.id = $1';
+          storeParams = [adminStoreId];
+        } else if (store_id) {
+          // Super admin and HQ admin can filter by store
+          storeFilter = 'WHERE s.id = $1';
+          storeParams = [store_id];
+        }
+        
+        // Calculate date range for trends
+        let dateRange = '7 days';
+        if (period === '30d') dateRange = '30 days';
+        else if (period === '90d') dateRange = '90 days';
+        else if (period === '1y') dateRange = '1 year';
+        
+        // Get overview statistics
+        const overviewQuery = `
+          WITH store_filter AS (
+            SELECT id FROM stores
+            ${storeFilter}
+          ),
+          stats AS (
             SELECT 
-              (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
-              (SELECT COUNT(*) FROM applications WHERE status = 'pending') as pending_applications,
-              (SELECT COUNT(*) FROM locker_records 
-               WHERE created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day') as today_records
+              (SELECT COUNT(*) FROM users u 
+               JOIN applications a ON u.id = a.user_id
+               WHERE a.store_id IN (SELECT id FROM store_filter) 
+                 AND u.status = 'active') as active_users,
+              (SELECT COUNT(*) FROM applications 
+               WHERE store_id IN (SELECT id FROM store_filter) 
+                 AND status = 'pending') as pending_applications,
+              (SELECT COUNT(*) FROM locker_records lr
+               JOIN lockers l ON lr.locker_id = l.id
+               WHERE l.store_id IN (SELECT id FROM store_filter)
+                 AND lr.created_at >= CURRENT_DATE 
+                 AND lr.created_at < CURRENT_DATE + INTERVAL '1 day') as today_records,
+              (SELECT COUNT(*) FROM stores ${storeFilter ? 'WHERE id IN (SELECT id FROM store_filter)' : ''}) as total_stores
           ),
           locker_stats AS (
             SELECT 
+              COUNT(*) as total_lockers,
               COALESCE(SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END), 0) as occupied_lockers,
               COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available_lockers,
               COALESCE(SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END), 0) as maintenance_lockers
             FROM lockers
+            WHERE store_id IN (SELECT id FROM store_filter)
+          ),
+          voucher_stats AS (
+            SELECT
+              COUNT(*) as total_vouchers,
+              COALESCE(SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END), 0) as used_vouchers,
+              COALESCE(SUM(CASE WHEN expires_at > NOW() THEN 1 ELSE 0 END), 0) as active_vouchers
+            FROM vouchers v
+            JOIN users u ON v.user_id = u.id
+            JOIN applications a ON u.id = a.user_id
+            WHERE a.store_id IN (SELECT id FROM store_filter)
+              AND v.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
           )
           SELECT 
-            s.active_users,
-            s.pending_applications,  
-            s.today_records,
-            ls.occupied_lockers,
-            ls.available_lockers,
-            ls.maintenance_lockers
-          FROM stats s, locker_stats ls
+            s.*,
+            ls.*,
+            vs.*
+          FROM stats s, locker_stats ls, voucher_stats vs
         `;
         
-        const result = await client.query(combinedQuery);
+        const overviewResult = await client.query(
+          storeFilter ? overviewQuery : overviewQuery.replace(/WHERE.*store_filter\)/g, ''),
+          storeParams
+        );
+        
+        // Get trend data
+        const trendQuery = `
+          WITH daily_stats AS (
+            SELECT 
+              DATE(created_at) as date,
+              COUNT(*) FILTER (WHERE action = 'check_in') as check_ins,
+              COUNT(*) FILTER (WHERE action = 'check_out') as check_outs,
+              COUNT(DISTINCT user_id) as unique_users
+            FROM locker_records lr
+            JOIN lockers l ON lr.locker_id = l.id
+            ${storeFilter ? 'WHERE l.store_id = $1' : ''}
+            ${storeFilter ? 'AND' : 'WHERE'} lr.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+          )
+          SELECT * FROM daily_stats
+        `;
+        
+        const trendResult = await client.query(trendQuery, storeParams);
+        
+        // Get top stores (for super admin and HQ admin only)
+        let topStores = [];
+        if (adminRole !== 'store_admin' && !store_id) {
+          const topStoresQuery = `
+            SELECT 
+              s.id,
+              s.name,
+              s.address,
+              COUNT(DISTINCT l.id) as total_lockers,
+              COUNT(DISTINCT l.id) FILTER (WHERE l.status = 'occupied') as occupied_lockers,
+              COUNT(DISTINCT lr.id) as total_operations,
+              COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'approved') as approved_applications
+            FROM stores s
+            LEFT JOIN lockers l ON s.id = l.store_id
+            LEFT JOIN locker_records lr ON l.id = lr.locker_id 
+              AND lr.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+            LEFT JOIN applications a ON s.id = a.store_id
+            GROUP BY s.id, s.name, s.address
+            ORDER BY total_operations DESC
+            LIMIT 10
+          `;
+          
+          const topStoresResult = await client.query(topStoresQuery);
+          topStores = topStoresResult.rows;
+        }
+        
+        // Get recent activities
+        const recentQuery = `
+          SELECT 
+            'application' as type,
+            a.id,
+            a.created_at,
+            u.name as user_name,
+            s.name as store_name,
+            a.status
+          FROM applications a
+          JOIN users u ON a.user_id = u.id
+          JOIN stores s ON a.store_id = s.id
+          ${storeFilter ? 'WHERE s.id = $1' : ''}
+          ORDER BY a.created_at DESC
+          LIMIT 10
+        `;
+        
+        const recentResult = await client.query(recentQuery, storeParams);
+        
         client.release();
         
-        // Extract stats from the single query result
-        const row = result.rows[0];
-        const stats = {
-          active_users: parseInt(row.active_users) || 0,
-          occupied_lockers: parseInt(row.occupied_lockers) || 0,
-          available_lockers: parseInt(row.available_lockers) || 0,
-          maintenance_lockers: parseInt(row.maintenance_lockers) || 0,
-          pending_applications: parseInt(row.pending_applications) || 0,
-          today_records: parseInt(row.today_records) || 0
+        // Format response
+        const overview = overviewResult.rows[0];
+        const response = {
+          success: true,
+          data: {
+            overview: {
+              users: {
+                active: parseInt(overview.active_users) || 0,
+                growth: 0 // TODO: Calculate growth percentage
+              },
+              lockers: {
+                total: parseInt(overview.total_lockers) || 0,
+                occupied: parseInt(overview.occupied_lockers) || 0,
+                available: parseInt(overview.available_lockers) || 0,
+                maintenance: parseInt(overview.maintenance_lockers) || 0,
+                occupancy_rate: overview.total_lockers > 0 
+                  ? Math.round((overview.occupied_lockers / overview.total_lockers) * 100) 
+                  : 0
+              },
+              applications: {
+                pending: parseInt(overview.pending_applications) || 0,
+                today: parseInt(overview.today_records) || 0
+              },
+              vouchers: {
+                total: parseInt(overview.total_vouchers) || 0,
+                used: parseInt(overview.used_vouchers) || 0,
+                active: parseInt(overview.active_vouchers) || 0
+              },
+              stores: {
+                total: parseInt(overview.total_stores) || 0
+              }
+            },
+            trends: trendResult.rows.map(row => ({
+              date: row.date,
+              checkIns: parseInt(row.check_ins) || 0,
+              checkOuts: parseInt(row.check_outs) || 0,
+              uniqueUsers: parseInt(row.unique_users) || 0
+            })),
+            topStores: topStores.map(store => ({
+              id: store.id,
+              name: store.name,
+              address: store.address,
+              totalLockers: parseInt(store.total_lockers) || 0,
+              occupiedLockers: parseInt(store.occupied_lockers) || 0,
+              totalOperations: parseInt(store.total_operations) || 0,
+              approvedApplications: parseInt(store.approved_applications) || 0
+            })),
+            recentActivities: recentResult.rows.map(activity => ({
+              type: activity.type,
+              id: activity.id,
+              createdAt: activity.created_at,
+              userName: activity.user_name,
+              storeName: activity.store_name,
+              status: activity.status
+            })),
+            period: period,
+            role: adminRole,
+            storeId: store_id || adminStoreId
+          }
         };
         
-        res.json({
-          success: true,
-          data: stats
-        });
+        res.json(response);
         
       } catch (error) {
         console.error('Get admin statistics error:', error);
@@ -2210,13 +2596,19 @@ class RailwayServer {
       }
     });
 
-    // Admin Applications API
+    // Admin Applications API with RBAC
     this.app.get('/api/admin-approval', authenticateToken, async (req, res) => {
       try {
         const { page = 1, pageSize = 20, status, storeId, adminId } = req.query;
         const offset = (page - 1) * pageSize;
         
-        console.log(`📋 获取申请列表请求 - page: ${page}, pageSize: ${pageSize}, status: ${status}, storeId: ${storeId}, adminId: ${adminId}`);
+        // Get admin info from token
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        console.log(`📋 获取申请列表请求 - Admin: ${adminInfo.name}, Role: ${adminRole}, Store: ${adminStoreId}`);
+        console.log(`📋 参数 - page: ${page}, pageSize: ${pageSize}, status: ${status}, storeId: ${storeId}`);
         
         const client = await this.pool.connect();
         
@@ -2232,16 +2624,31 @@ class RailwayServer {
         const params = [parseInt(pageSize), parseInt(offset)];
         let paramIndex = 2;
         
+        // Apply RBAC filtering
+        if (adminRole === 'store_admin') {
+          // Store admins can only see applications for their own store
+          if (!adminStoreId) {
+            client.release();
+            return res.status(403).json({
+              success: false,
+              error: 'Store admin without store assignment',
+              message: '门店管理员未分配门店'
+            });
+          }
+          paramIndex++;
+          whereClause += ` AND a.store_id = $${paramIndex}`;
+          params.push(adminStoreId);
+        } else if (storeId) {
+          // Super admin or HQ admin can filter by specific store if provided
+          paramIndex++;
+          whereClause += ` AND a.store_id = $${paramIndex}`;
+          params.push(storeId);
+        }
+        
         if (status && status !== 'all') {
           paramIndex++;
           whereClause += ` AND a.status = $${paramIndex}`;
           params.push(status);
-        }
-        
-        if (storeId) {
-          paramIndex++;
-          whereClause += ` AND a.store_id = $${paramIndex}`;
-          params.push(storeId);
         }
         
         const applicationsQuery = `
@@ -2378,7 +2785,869 @@ class RailwayServer {
       }
     });
 
-    // Admin Approval Action API
+    // Store Management CRUD APIs with RBAC
+    
+    // Get all stores (with filtering based on admin role)
+    this.app.get('/api/stores', authenticateToken, async (req, res) => {
+      try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        const client = await this.pool.connect();
+        
+        let query = `
+          SELECT 
+            s.id, s.name, s.address, s.phone, s.status, s.created_at,
+            s.business_hours, s.contact_person, s.total_lockers,
+            COUNT(DISTINCT l.id) as locker_count,
+            COUNT(DISTINCT CASE WHEN l.status = 'available' THEN l.id END) as available_lockers,
+            COUNT(DISTINCT u.id) as user_count
+          FROM stores s
+          LEFT JOIN lockers l ON s.id = l.store_id
+          LEFT JOIN users u ON s.id = u.store_id
+        `;
+        
+        const params = [];
+        
+        // Apply RBAC filtering
+        if (adminRole === 'store_admin') {
+          query += ' WHERE s.id = $1';
+          params.push(adminStoreId);
+        }
+        
+        query += ' GROUP BY s.id ORDER BY s.created_at DESC';
+        
+        const result = await client.query(query, params);
+        client.release();
+        
+        res.json({
+          success: true,
+          data: result.rows
+        });
+      } catch (error) {
+        console.error('Get stores error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch stores'
+        });
+      }
+    });
+    
+    // Get single store details
+    this.app.get('/api/stores/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        // RBAC check
+        if (adminRole === 'store_admin' && id !== adminStoreId) {
+          return res.status(403).json({
+            success: false,
+            error: 'Permission denied'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        const query = `
+          SELECT 
+            s.*,
+            COUNT(DISTINCT l.id) as locker_count,
+            COUNT(DISTINCT CASE WHEN l.status = 'available' THEN l.id END) as available_lockers,
+            COUNT(DISTINCT u.id) as user_count,
+            COUNT(DISTINCT a.id) as total_applications,
+            COUNT(DISTINCT CASE WHEN a.status = 'pending' THEN a.id END) as pending_applications
+          FROM stores s
+          LEFT JOIN lockers l ON s.id = l.store_id
+          LEFT JOIN users u ON s.id = u.store_id
+          LEFT JOIN applications a ON s.id = a.store_id
+          WHERE s.id = $1
+          GROUP BY s.id
+        `;
+        
+        const result = await client.query(query, [id]);
+        client.release();
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Store not found'
+          });
+        }
+        
+        res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Get store details error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch store details'
+        });
+      }
+    });
+    
+    // Create new store (super_admin and hq_admin only)
+    this.app.post('/api/stores', authenticateToken, async (req, res) => {
+      try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        
+        // Permission check
+        if (!this.hasPermission(adminRole, 'manage_all_stores')) {
+          return res.status(403).json({
+            success: false,
+            error: 'Permission denied',
+            message: '您没有创建门店的权限'
+          });
+        }
+        
+        const { name, address, phone, business_hours, contact_person, total_lockers } = req.body;
+        
+        // Validation
+        if (!name || !address) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        // Check if store name already exists
+        const existing = await client.query(
+          'SELECT id FROM stores WHERE name = $1',
+          [name]
+        );
+        
+        if (existing.rows.length > 0) {
+          client.release();
+          return res.status(409).json({
+            success: false,
+            error: 'Store name already exists'
+          });
+        }
+        
+        const insertQuery = `
+          INSERT INTO stores (name, address, phone, business_hours, contact_person, total_lockers, status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `;
+        
+        const result = await client.query(insertQuery, [
+          name,
+          address,
+          phone || '',
+          business_hours || '09:00-22:00',
+          contact_person || '',
+          total_lockers || 50,
+          'active'
+        ]);
+        
+        client.release();
+        
+        console.log(`✅ New store created: ${name} by ${adminInfo.name}`);
+        
+        res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Create store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create store'
+        });
+      }
+    });
+    
+    // Update store
+    this.app.put('/api/stores/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        // RBAC check
+        if (adminRole === 'store_admin') {
+          if (id !== adminStoreId) {
+            return res.status(403).json({
+              success: false,
+              error: 'Permission denied',
+              message: '您只能编辑自己的门店'
+            });
+          }
+        } else if (!this.hasPermission(adminRole, 'manage_all_stores')) {
+          return res.status(403).json({
+            success: false,
+            error: 'Permission denied'
+          });
+        }
+        
+        const { name, address, phone, business_hours, contact_person, total_lockers, status } = req.body;
+        
+        const client = await this.pool.connect();
+        
+        // Build dynamic update query
+        const updates = [];
+        const params = [];
+        let paramIndex = 1;
+        
+        if (name !== undefined) {
+          updates.push(`name = $${paramIndex++}`);
+          params.push(name);
+        }
+        if (address !== undefined) {
+          updates.push(`address = $${paramIndex++}`);
+          params.push(address);
+        }
+        if (phone !== undefined) {
+          updates.push(`phone = $${paramIndex++}`);
+          params.push(phone);
+        }
+        if (business_hours !== undefined) {
+          updates.push(`business_hours = $${paramIndex++}`);
+          params.push(business_hours);
+        }
+        if (contact_person !== undefined) {
+          updates.push(`contact_person = $${paramIndex++}`);
+          params.push(contact_person);
+        }
+        if (total_lockers !== undefined) {
+          updates.push(`total_lockers = $${paramIndex++}`);
+          params.push(total_lockers);
+        }
+        
+        // Store admins cannot change store status
+        if (status !== undefined && adminRole !== 'store_admin') {
+          updates.push(`status = $${paramIndex++}`);
+          params.push(status);
+        }
+        
+        if (updates.length === 0) {
+          client.release();
+          return res.status(400).json({
+            success: false,
+            error: 'No fields to update'
+          });
+        }
+        
+        params.push(id);
+        const updateQuery = `
+          UPDATE stores 
+          SET ${updates.join(', ')}, updated_at = NOW()
+          WHERE id = $${paramIndex}
+          RETURNING *
+        `;
+        
+        const result = await client.query(updateQuery, params);
+        client.release();
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Store not found'
+          });
+        }
+        
+        console.log(`✅ Store updated: ${id} by ${adminInfo.name}`);
+        
+        res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Update store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update store'
+        });
+      }
+    });
+    
+    // Delete store (super_admin only)
+    this.app.delete('/api/stores/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        
+        // Only super_admin can delete stores
+        if (adminRole !== 'super_admin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Permission denied',
+            message: '只有超级管理员可以删除门店'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        // Check if store has active users or lockers
+        const checkQuery = `
+          SELECT 
+            COUNT(DISTINCT u.id) as user_count,
+            COUNT(DISTINCT l.id) as locker_count
+          FROM stores s
+          LEFT JOIN users u ON s.id = u.store_id AND u.status = 'active'
+          LEFT JOIN lockers l ON s.id = l.store_id AND l.status != 'inactive'
+          WHERE s.id = $1
+          GROUP BY s.id
+        `;
+        
+        const checkResult = await client.query(checkQuery, [id]);
+        
+        if (checkResult.rows.length > 0) {
+          const counts = checkResult.rows[0];
+          if (counts.user_count > 0 || counts.locker_count > 0) {
+            client.release();
+            return res.status(409).json({
+              success: false,
+              error: 'Cannot delete store',
+              message: `门店还有 ${counts.user_count} 个用户和 ${counts.locker_count} 个杆柜在使用`
+            });
+          }
+        }
+        
+        // Soft delete - set status to inactive
+        const deleteQuery = `
+          UPDATE stores 
+          SET status = 'inactive', updated_at = NOW()
+          WHERE id = $1
+          RETURNING id, name
+        `;
+        
+        const result = await client.query(deleteQuery, [id]);
+        client.release();
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Store not found'
+          });
+        }
+        
+        console.log(`✅ Store deleted: ${result.rows[0].name} by ${adminInfo.name}`);
+        
+        res.json({
+          success: true,
+          message: '门店已删除',
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Delete store error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to delete store'
+        });
+      }
+    });
+
+    // Locker Management CRUD APIs with RBAC
+    
+    // Get all lockers (with filtering based on admin role)
+    this.app.get('/api/admin/lockers', authenticateToken, async (req, res) => {
+      try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        const { store_id } = req.query;
+        
+        let query;
+        let params = [];
+        
+        if (adminRole === 'store_admin') {
+          // Store admins can only see their own store's lockers
+          query = `
+            SELECT l.*, s.name as store_name, s.address as store_address,
+                   u.name as current_user_name, u.phone as current_user_phone
+            FROM lockers l
+            LEFT JOIN stores s ON l.store_id = s.id
+            LEFT JOIN users u ON l.current_user_id = u.id
+            WHERE l.store_id = $1
+            ORDER BY l.locker_number
+          `;
+          params = [adminStoreId];
+        } else {
+          // Super admin and HQ admin can see all or filter by store
+          if (store_id) {
+            query = `
+              SELECT l.*, s.name as store_name, s.address as store_address,
+                     u.name as current_user_name, u.phone as current_user_phone
+              FROM lockers l
+              LEFT JOIN stores s ON l.store_id = s.id
+              LEFT JOIN users u ON l.current_user_id = u.id
+              WHERE l.store_id = $1
+              ORDER BY l.locker_number
+            `;
+            params = [store_id];
+          } else {
+            query = `
+              SELECT l.*, s.name as store_name, s.address as store_address,
+                     u.name as current_user_name, u.phone as current_user_phone
+              FROM lockers l
+              LEFT JOIN stores s ON l.store_id = s.id
+              LEFT JOIN users u ON l.current_user_id = u.id
+              ORDER BY s.name, l.locker_number
+            `;
+          }
+        }
+        
+        const result = await this.pool.query(query, params);
+        
+        res.json({
+          success: true,
+          data: result.rows
+        });
+      } catch (error) {
+        console.error('Error fetching lockers:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch lockers'
+        });
+      }
+    });
+    
+    // Get single locker details
+    this.app.get('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        const result = await this.pool.query(
+          `SELECT l.*, s.name as store_name, s.address as store_address,
+                  u.name as current_user_name, u.phone as current_user_phone,
+                  a.name as applicant_name, a.phone as applicant_phone
+           FROM lockers l
+           LEFT JOIN stores s ON l.store_id = s.id
+           LEFT JOIN users u ON l.current_user_id = u.id
+           LEFT JOIN applications app ON l.id = app.assigned_locker_id
+           LEFT JOIN users a ON app.user_id = a.id
+           WHERE l.id = $1`,
+          [id]
+        );
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Locker not found'
+          });
+        }
+        
+        const locker = result.rows[0];
+        
+        // RBAC check
+        if (adminRole === 'store_admin' && locker.store_id !== adminStoreId) {
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied'
+          });
+        }
+        
+        // Get recent operation records
+        const recordsResult = await this.pool.query(
+          `SELECT r.*, u.name as user_name, u.phone as user_phone
+           FROM locker_records r
+           LEFT JOIN users u ON r.user_id = u.id
+           WHERE r.locker_id = $1
+           ORDER BY r.created_at DESC
+           LIMIT 10`,
+          [id]
+        );
+        
+        locker.recent_records = recordsResult.rows;
+        
+        res.json({
+          success: true,
+          data: locker
+        });
+      } catch (error) {
+        console.error('Error fetching locker details:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch locker details'
+        });
+      }
+    });
+    
+    // Create new locker
+    this.app.post('/api/admin/lockers', authenticateToken, async (req, res) => {
+      try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        const {
+          store_id,
+          locker_number,
+          location,
+          capacity,
+          monthly_rent,
+          deposit_amount,
+          description
+        } = req.body;
+        
+        // Validate required fields
+        if (!store_id || !locker_number) {
+          return res.status(400).json({
+            success: false,
+            error: 'Store ID and locker number are required'
+          });
+        }
+        
+        // RBAC check
+        if (adminRole === 'store_admin' && store_id !== adminStoreId) {
+          return res.status(403).json({
+            success: false,
+            error: 'You can only create lockers for your own store'
+          });
+        }
+        
+        // Check if locker number already exists in this store
+        const existingCheck = await this.pool.query(
+          'SELECT id FROM lockers WHERE store_id = $1 AND locker_number = $2',
+          [store_id, locker_number]
+        );
+        
+        if (existingCheck.rows.length > 0) {
+          return res.status(409).json({
+            success: false,
+            error: 'Locker number already exists in this store'
+          });
+        }
+        
+        // Create locker
+        const result = await this.pool.query(
+          `INSERT INTO lockers (
+            store_id, locker_number, location, capacity,
+            monthly_rent, deposit_amount, description,
+            status, is_available, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'available', true, NOW(), NOW())
+          RETURNING *`,
+          [
+            store_id,
+            locker_number,
+            location || '',
+            capacity || 1,
+            monthly_rent || 0,
+            deposit_amount || 0,
+            description || ''
+          ]
+        );
+        
+        res.status(201).json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Error creating locker:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create locker'
+        });
+      }
+    });
+    
+    // Update locker
+    this.app.put('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        // First check if locker exists and get its store_id
+        const lockerCheck = await this.pool.query(
+          'SELECT store_id FROM lockers WHERE id = $1',
+          [id]
+        );
+        
+        if (lockerCheck.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Locker not found'
+          });
+        }
+        
+        const lockerStoreId = lockerCheck.rows[0].store_id;
+        
+        // RBAC check
+        if (adminRole === 'store_admin' && lockerStoreId !== adminStoreId) {
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied'
+          });
+        }
+        
+        const {
+          locker_number,
+          location,
+          capacity,
+          monthly_rent,
+          deposit_amount,
+          description,
+          status,
+          is_available
+        } = req.body;
+        
+        // Build dynamic update query
+        const updates = [];
+        const values = [];
+        let paramIndex = 1;
+        
+        if (locker_number !== undefined) {
+          updates.push(`locker_number = $${paramIndex++}`);
+          values.push(locker_number);
+        }
+        if (location !== undefined) {
+          updates.push(`location = $${paramIndex++}`);
+          values.push(location);
+        }
+        if (capacity !== undefined) {
+          updates.push(`capacity = $${paramIndex++}`);
+          values.push(capacity);
+        }
+        if (monthly_rent !== undefined) {
+          updates.push(`monthly_rent = $${paramIndex++}`);
+          values.push(monthly_rent);
+        }
+        if (deposit_amount !== undefined) {
+          updates.push(`deposit_amount = $${paramIndex++}`);
+          values.push(deposit_amount);
+        }
+        if (description !== undefined) {
+          updates.push(`description = $${paramIndex++}`);
+          values.push(description);
+        }
+        if (status !== undefined) {
+          updates.push(`status = $${paramIndex++}`);
+          values.push(status);
+        }
+        if (is_available !== undefined) {
+          updates.push(`is_available = $${paramIndex++}`);
+          values.push(is_available);
+        }
+        
+        updates.push(`updated_at = NOW()`);
+        values.push(id);
+        
+        const result = await this.pool.query(
+          `UPDATE lockers SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+          values
+        );
+        
+        res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (error) {
+        console.error('Error updating locker:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update locker'
+        });
+      }
+    });
+    
+    // Delete locker
+    this.app.delete('/api/admin/lockers/:id', authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        const client = await this.pool.connect();
+        
+        try {
+          await client.query('BEGIN');
+          
+          // Check if locker exists and get its details
+          const lockerCheck = await client.query(
+            'SELECT store_id, current_user_id, status FROM lockers WHERE id = $1',
+            [id]
+          );
+          
+          if (lockerCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+              success: false,
+              error: 'Locker not found'
+            });
+          }
+          
+          const locker = lockerCheck.rows[0];
+          
+          // RBAC check
+          if (adminRole === 'store_admin' && locker.store_id !== adminStoreId) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({
+              success: false,
+              error: 'Access denied'
+            });
+          }
+          
+          // Check if locker is currently in use
+          if (locker.current_user_id || locker.status === 'occupied') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+              success: false,
+              error: 'Cannot delete locker that is currently in use'
+            });
+          }
+          
+          // Check for any active applications
+          const appCheck = await client.query(
+            'SELECT COUNT(*) FROM applications WHERE assigned_locker_id = $1 AND status IN ($2, $3)',
+            [id, 'pending', 'approved']
+          );
+          
+          if (parseInt(appCheck.rows[0].count) > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+              success: false,
+              error: 'Cannot delete locker with active applications'
+            });
+          }
+          
+          // Delete locker
+          await client.query('DELETE FROM lockers WHERE id = $1', [id]);
+          
+          await client.query('COMMIT');
+          
+          res.json({
+            success: true,
+            message: 'Locker deleted successfully'
+          });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        console.error('Error deleting locker:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to delete locker'
+        });
+      }
+    });
+    
+    // Batch create lockers
+    this.app.post('/api/admin/lockers/batch', authenticateToken, async (req, res) => {
+      try {
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
+        const {
+          store_id,
+          prefix,
+          start_number,
+          end_number,
+          location,
+          capacity,
+          monthly_rent,
+          deposit_amount
+        } = req.body;
+        
+        // Validate required fields
+        if (!store_id || !prefix || !start_number || !end_number) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required fields'
+          });
+        }
+        
+        // RBAC check
+        if (adminRole === 'store_admin' && store_id !== adminStoreId) {
+          return res.status(403).json({
+            success: false,
+            error: 'You can only create lockers for your own store'
+          });
+        }
+        
+        const client = await this.pool.connect();
+        
+        try {
+          await client.query('BEGIN');
+          
+          const created = [];
+          const failed = [];
+          
+          for (let i = start_number; i <= end_number; i++) {
+            const locker_number = `${prefix}${String(i).padStart(3, '0')}`;
+            
+            // Check if locker number already exists
+            const existingCheck = await client.query(
+              'SELECT id FROM lockers WHERE store_id = $1 AND locker_number = $2',
+              [store_id, locker_number]
+            );
+            
+            if (existingCheck.rows.length > 0) {
+              failed.push({
+                locker_number,
+                reason: 'Already exists'
+              });
+              continue;
+            }
+            
+            // Create locker
+            const result = await client.query(
+              `INSERT INTO lockers (
+                store_id, locker_number, location, capacity,
+                monthly_rent, deposit_amount, status, is_available,
+                created_at, updated_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, 'available', true, NOW(), NOW())
+              RETURNING id, locker_number`,
+              [
+                store_id,
+                locker_number,
+                location || '',
+                capacity || 1,
+                monthly_rent || 0,
+                deposit_amount || 0
+              ]
+            );
+            
+            created.push(result.rows[0]);
+          }
+          
+          await client.query('COMMIT');
+          
+          res.json({
+            success: true,
+            data: {
+              created,
+              failed,
+              total_created: created.length,
+              total_failed: failed.length
+            }
+          });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        console.error('Error batch creating lockers:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to batch create lockers'
+        });
+      }
+    });
+
+    // Admin Approval Action API with RBAC
     this.app.post('/api/admin-approval', authenticateToken, async (req, res) => {
       try {
         const { application_id, action, admin_id, reject_reason } = req.body;
@@ -2391,13 +3660,57 @@ class RailwayServer {
           });
         }
         
+        // Get admin info from token
+        const adminInfo = req.user;
+        const adminRole = adminInfo.role;
+        const adminStoreId = adminInfo.store_id;
+        
         const client = await this.pool.connect();
         
+        // First get the application details
+        const appResult = await client.query(
+          'SELECT * FROM applications WHERE id = $1',
+          [application_id]
+        );
+        
+        if (appResult.rows.length === 0) {
+          client.release();
+          return res.status(404).json({
+            success: false,
+            error: 'Application not found',
+            message: '申请不存在'
+          });
+        }
+        
+        const application = appResult.rows[0];
+        
+        // RBAC permission check
+        if (adminRole === 'store_admin') {
+          // Store admins can only approve/reject applications for their own store
+          if (application.store_id !== adminStoreId) {
+            client.release();
+            return res.status(403).json({
+              success: false,
+              error: 'Permission denied',
+              message: '您只能审核本门店的申请'
+            });
+          }
+        }
+        
         if (action === 'approve') {
+          
+          // Update application status and assign locker
           await client.query(
-            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2 WHERE id = $3',
-            ['approved', admin_id, application_id]
+            'UPDATE applications SET status = $1, approved_at = NOW(), approved_by = $2, assigned_locker_id = $3 WHERE id = $4',
+            ['approved', admin_id, application.locker_id, application_id]
           );
+          
+          // Update locker status to occupied
+          await client.query(
+            'UPDATE lockers SET status = $1, user_id = $2 WHERE id = $3',
+            ['occupied', application.user_id, application.locker_id]
+          );
+          
         } else if (action === 'reject') {
           await client.query(
             'UPDATE applications SET status = $1, reject_reason = $2, approved_at = NOW(), approved_by = $3 WHERE id = $4',
@@ -2917,6 +4230,157 @@ class RailwayServer {
       }
     });
 
+    // Get user history - Applications, Operations, Vouchers
+    this.app.get('/api/user/history', async (req, res) => {
+      console.log('Getting user history');
+      
+      const { user_id, type = 'all', page = 1, limit = 20 } = req.query;
+      const offset = (page - 1) * limit;
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing user ID',
+          message: '缺少用户ID参数'
+        });
+      }
+      
+      const client = await this.pool.connect();
+      
+      try {
+        const results = {
+          applications: [],
+          operations: [],
+          vouchers: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0
+          }
+        };
+        
+        // Get application history
+        if (type === 'all' || type === 'applications') {
+          const appQuery = `
+            SELECT 
+              a.id, a.status, a.created_at, a.approved_at, a.reject_reason,
+              l.number as locker_number,
+              s.name as store_name
+            FROM applications a
+            LEFT JOIN lockers l ON a.locker_id = l.id
+            LEFT JOIN stores s ON a.store_id = s.id
+            WHERE a.user_id = $1
+            ORDER BY a.created_at DESC
+            LIMIT $2 OFFSET $3
+          `;
+          
+          const appResult = await client.query(appQuery, [user_id, limit, offset]);
+          results.applications = appResult.rows.map(row => ({
+            id: row.id,
+            type: 'application',
+            status: row.status,
+            locker_number: row.locker_number,
+            store_name: row.store_name,
+            created_at: row.created_at,
+            approved_at: row.approved_at,
+            reject_reason: row.reject_reason
+          }));
+          
+          // Get total count
+          const countResult = await client.query(
+            'SELECT COUNT(*) FROM applications WHERE user_id = $1',
+            [user_id]
+          );
+          results.pagination.total += parseInt(countResult.rows[0].count);
+        }
+        
+        // Get store/retrieve operations history
+        if (type === 'all' || type === 'operations') {
+          const opsQuery = `
+            SELECT 
+              lr.id, lr.action, lr.created_at, lr.notes,
+              l.number as locker_number,
+              s.name as store_name
+            FROM locker_records lr
+            LEFT JOIN lockers l ON lr.locker_id = l.id
+            LEFT JOIN stores s ON l.store_id = s.id
+            WHERE lr.user_id = $1
+            ORDER BY lr.created_at DESC
+            LIMIT $2 OFFSET $3
+          `;
+          
+          const opsResult = await client.query(opsQuery, [user_id, limit, offset]);
+          results.operations = opsResult.rows.map(row => ({
+            id: row.id,
+            type: 'operation',
+            action: row.action,
+            locker_number: row.locker_number,
+            store_name: row.store_name,
+            created_at: row.created_at,
+            notes: row.notes
+          }));
+          
+          // Get total count
+          const opsCountResult = await client.query(
+            'SELECT COUNT(*) FROM locker_records WHERE user_id = $1',
+            [user_id]
+          );
+          results.pagination.total += parseInt(opsCountResult.rows[0].count);
+        }
+        
+        // Get voucher usage history
+        if (type === 'all' || type === 'vouchers') {
+          const voucherQuery = `
+            SELECT 
+              v.id, v.code, v.operation_type, v.status,
+              v.issued_at, v.expires_at, v.used_at,
+              v.locker_number, v.store_name
+            FROM vouchers v
+            WHERE v.user_id = $1
+            ORDER BY v.issued_at DESC
+            LIMIT $2 OFFSET $3
+          `;
+          
+          const voucherResult = await client.query(voucherQuery, [user_id, limit, offset]);
+          results.vouchers = voucherResult.rows.map(row => ({
+            id: row.id,
+            type: 'voucher',
+            code: row.code,
+            operation_type: row.operation_type,
+            status: row.status,
+            locker_number: row.locker_number,
+            store_name: row.store_name,
+            issued_at: row.issued_at,
+            expires_at: row.expires_at,
+            used_at: row.used_at
+          }));
+          
+          // Get total count
+          const voucherCountResult = await client.query(
+            'SELECT COUNT(*) FROM vouchers WHERE user_id = $1',
+            [user_id]
+          );
+          results.pagination.total += parseInt(voucherCountResult.rows[0].count);
+        }
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          data: results
+        });
+        
+      } catch (error) {
+        client.release();
+        console.error('Get user history error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取历史记录失败'
+        });
+      }
+    });
+
     // Get user's current locker assignment
     this.app.get('/api/user/locker-assignment', async (req, res) => {
       console.log('Getting user locker assignment');
@@ -2999,7 +4463,7 @@ class RailwayServer {
       }
     });
 
-    // Admin login
+    // Admin login with enhanced RBAC
     this.app.post('/api/admin-login', async (req, res) => {
       try {
         const { phone, password } = req.body;
@@ -3014,7 +4478,16 @@ class RailwayServer {
         const client = await this.pool.connect();
         
         try {
-          const adminQuery = 'SELECT * FROM admins WHERE phone = $1 AND status = $2';
+          // Get admin with store information
+          const adminQuery = `
+            SELECT 
+              a.*,
+              s.name as store_name,
+              s.address as store_address
+            FROM admins a
+            LEFT JOIN stores s ON a.store_id = s.id
+            WHERE a.phone = $1 AND a.status = $2
+          `;
           const result = await client.query(adminQuery, [phone, 'active']);
           
           if (result.rows.length === 0) {
@@ -3052,15 +4525,21 @@ class RailwayServer {
 
           client.release();
 
-          console.log(`✅ 管理员登录成功: ${admin.name} (${phone})`);
+          // Get permissions based on role
+          const permissions = this.getAdminPermissions(admin.role);
 
-          // Generate real JWT token
+          console.log(`✅ 管理员登录成功: ${admin.name} (${phone}) - Role: ${admin.role}`);
+
+          // Generate JWT token with permissions
           const token = jwt.sign(
             { 
               adminId: admin.id, 
               phone: admin.phone, 
               name: admin.name,
-              role: admin.role 
+              role: admin.role,
+              store_id: admin.store_id,
+              permissions: permissions,
+              isAdmin: true
             },
             JWT_SECRET,
             { expiresIn: '8h' }
@@ -3074,7 +4553,10 @@ class RailwayServer {
                 phone: admin.phone,
                 name: admin.name,
                 role: admin.role,
-                permissions: ['all']
+                store_id: admin.store_id,
+                store_name: admin.store_name,
+                store_address: admin.store_address,
+                permissions: permissions
               },
               token: token
             }

@@ -79,6 +79,20 @@
         </div>
       </div>
 
+      <!-- Quick Actions section -->
+      <div class="section-card">
+        <h3 class="section-title">快捷功能</h3>
+        <div class="info-item" @click="goToHistory">
+          <span class="info-label">历史记录</span>
+          <span class="arrow">›</span>
+        </div>
+        
+        <div class="info-item" @click="goToRecords">
+          <span class="info-label">使用记录</span>
+          <span class="arrow">›</span>
+        </div>
+      </div>
+
       <!-- Settings section -->
       <div class="section-card">
         <h3 class="section-title">设置</h3>
@@ -321,6 +335,14 @@ const closeLogoutModal = () => {
 
 const goToApply = () => {
   router.push('/user/apply')
+}
+
+const goToHistory = () => {
+  router.push('/user/history')
+}
+
+const goToRecords = () => {
+  router.push('/user/records')
 }
 
 const goToAbout = () => {

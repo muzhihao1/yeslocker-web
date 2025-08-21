@@ -4,50 +4,46 @@
     <div class="page-header">
       <div class="header-title">
         <span class="title">门店管理</span>
-        <span class="subtitle">共 {{ stores.length }} 家门店</span>
+        <span class="subtitle">{{ stores.length }} 个门店</span>
       </div>
       <div class="header-actions">
-        <button class="btn-add" @click="addStore">
+        <button 
+          v-if="canCreateStore" 
+          class="btn-create"
+          @click="showCreateModal = true"
+        >
           <span class="iconfont icon-plus"></span>
-          新增门店
+          新建门店
         </button>
-      </div>
-    </div>
-
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-input-wrapper">
-        <span class="iconfont icon-search"></span>
-        <input 
-          v-model="searchKey"
-          class="search-input"
-          placeholder="搜索门店名称、地址"
-          @keyup.enter="handleSearch"
-        />
-        <span v-if="searchKey" class="iconfont icon-close" @click="clearSearch"></span>
+        <button class="btn-refresh" @click="refreshList">
+          <span class="iconfont icon-refresh"></span>
+          刷新
+        </button>
       </div>
     </div>
 
     <!-- 门店列表 -->
     <div class="stores-list">
       <div v-if="loading" class="loading-container">
-        <loading-spinner />
+        <div class="loading-spinner"></div>
+        <span class="loading-text">加载中...</span>
       </div>
       
-      <div v-else-if="filteredStores.length === 0" class="empty-container">
-        <div class="empty-icon">🏢</div>
+      <div v-else-if="stores.length === 0" class="empty-container">
+        <div class="empty-icon">🏪</div>
         <span class="empty-text">暂无门店数据</span>
       </div>
 
-      <div v-else>
-        <div v-for="store in filteredStores" :key="store.id" class="store-card">
-          <!-- 门店基本信息 -->
-          <div class="store-header">
-            <div class="store-info">
-              <span class="store-name">{{ store.name }}</span>
-              <div class="store-meta">
-                <span class="store-code">编码：{{ store.code }}</span>
-                <div class="store-status" :class="store.is_active ? 'active' : 'inactive'">
+      <div v-else class="stores-grid">
+        <div 
+          v-for="store in stores" 
+          :key="store.id" 
+          class="store-card"
+          @click="goToDetail(store.id)"
+        >
+          <div class="card-header">
+            <h3 class="store-name">{{ store.name }}</h3>
+            <span class="store-status" :class="`status-${store.status}`">
                   {{ store.is_active ? '营业中' : '已停业' }}
                 </div>
               </div>

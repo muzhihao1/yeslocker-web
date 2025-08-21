@@ -6,7 +6,11 @@ export interface AdminInfo {
   id: string
   phone: string
   name: string
-  role: 'super_admin' | 'store_admin'
+  role: 'super_admin' | 'hq_admin' | 'store_admin'
+  store_id?: string
+  store_name?: string
+  store_address?: string
+  permissions: string[]
   store?: {
     id: string
     name: string
@@ -23,8 +27,21 @@ export const useAdminStore = defineStore('admin', () => {
   // Getters
   const isAuthenticated = computed(() => !!token.value && !!adminInfo.value)
   const isSuperAdmin = computed(() => adminInfo.value?.role === 'super_admin')
+  const isHQAdmin = computed(() => adminInfo.value?.role === 'hq_admin')
   const isStoreAdmin = computed(() => adminInfo.value?.role === 'store_admin')
-  const currentStoreId = computed(() => adminInfo.value?.store?.id)
+  const currentStoreId = computed(() => adminInfo.value?.store_id || adminInfo.value?.store?.id)
+  
+  // Permission helpers
+  const hasPermission = (permission: string) => {
+    if (!adminInfo.value) return false
+    return adminInfo.value.permissions.includes('all') || 
+           adminInfo.value.permissions.includes(permission)
+  }
+  
+  const canManageAllStores = computed(() => hasPermission('manage_all_stores'))
+  const canManageOwnStore = computed(() => hasPermission('manage_own_store'))
+  const canManageAllApplications = computed(() => hasPermission('manage_all_applications'))
+  const canManageStoreApplications = computed(() => hasPermission('manage_store_applications'))
 
   // Actions
   const login = async (phone: string, password: string) => {
@@ -42,10 +59,14 @@ export const useAdminStore = defineStore('admin', () => {
           phone: adminData.phone,
           name: adminData.name,
           role: adminData.role,
+          store_id: adminData.store_id,
+          store_name: adminData.store_name,
+          store_address: adminData.store_address,
+          permissions: adminData.permissions || [],
           store: adminData.store_id ? {
             id: adminData.store_id,
             name: adminData.store_name || '',
-            address: '' // 服务器没有返回地址，暂时置空
+            address: adminData.store_address || ''
           } : undefined
         }
         
@@ -150,8 +171,16 @@ export const useAdminStore = defineStore('admin', () => {
     // Getters
     isAuthenticated,
     isSuperAdmin,
+    isHQAdmin,
     isStoreAdmin,
     currentStoreId,
+    
+    // Permission helpers
+    hasPermission,
+    canManageAllStores,
+    canManageOwnStore,
+    canManageAllApplications,
+    canManageStoreApplications,
     
     // Actions
     login,

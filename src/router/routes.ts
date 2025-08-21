@@ -57,6 +57,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/user/history',
+    name: 'History',
+    component: () => import('@/pages/user/history.vue'),
+    meta: {
+      title: '历史记录',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/user/apply',
     name: 'Apply',
     component: () => import('@/pages/user/apply-vue.vue'),
