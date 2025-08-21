@@ -4264,7 +4264,7 @@ class RailwayServer {
           SELECT 
             l.id, l.number, l.status, l.store_id, l.assigned_at, l.created_at, l.updated_at,
             l.current_user_id,
-            s.name as store_name, s.location as store_location,
+            s.name as store_name, s.address as store_location,
             u.id as user_id, u.name as user_name, u.phone as user_phone, u.avatar_url as user_avatar
           FROM lockers l
           LEFT JOIN stores s ON l.store_id = s.id
@@ -4294,11 +4294,14 @@ class RailwayServer {
         // Get total count
         const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) FROM').replace(/LEFT JOIN users u ON l.current_user_id = u.id/, '');
         const countResult = await client.query(countQuery, params);
-        const total = parseInt(countResult.rows[0].count);
+        const total = parseInt(countResult.rows[0]?.count || 0);
         
         // Add pagination and ordering
-        query += ` ORDER BY l.created_at DESC LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        query += ` ORDER BY l.created_at DESC NULLS LAST LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
         params.push(limit, offset);
+        
+        console.log('Executing lockers query:', query);
+        console.log('With params:', params);
         
         const result = await client.query(query, params);
         
@@ -4337,6 +4340,7 @@ class RailwayServer {
         });
       } catch (error) {
         console.error('Error fetching lockers:', error);
+        console.error('Error stack:', error.stack);
         if (client) {
           client.release();
         }
@@ -4344,7 +4348,8 @@ class RailwayServer {
           success: false,
           error: 'Database error',
           message: '获取杆柜列表失败',
-          details: error.message
+          details: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
     });
@@ -4432,7 +4437,7 @@ class RailwayServer {
           SELECT 
             l.id, l.number, l.status, l.store_id, l.assigned_at, l.created_at, l.updated_at,
             l.current_user_id,
-            s.name as store_name, s.location as store_location,
+            s.name as store_name, s.address as store_location,
             u.id as user_id, u.name as user_name, u.phone as user_phone, 
             u.avatar_url as user_avatar,
             a.id as application_id, a.status as application_status, 
