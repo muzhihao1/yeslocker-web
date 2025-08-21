@@ -2308,6 +2308,170 @@ class RailwayServer {
       }
     });
 
+    // Get current authenticated user info
+    this.app.get('/auth/me', async (req, res) => {
+      try {
+        const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({
+            success: false,
+            error: 'Unauthorized',
+            message: '未授权访问'
+          });
+        }
+        
+        const token = authHeader.substring(7);
+        
+        // For test environment, extract user ID from test token
+        if (token.startsWith('test_token_')) {
+          const userId = token.replace('test_token_', '');
+          
+          const client = await this.pool.connect();
+          try {
+            // Get user with locker info
+            const userQuery = `
+              SELECT 
+                u.id, u.phone, u.name, u.avatar_url, u.status, u.created_at,
+                s.id as store_id, s.name as store_name,
+                l.id as locker_id, l.number as locker_number, l.status as locker_status
+              FROM users u
+              LEFT JOIN stores s ON u.store_id = s.id
+              LEFT JOIN applications a ON a.user_id = u.id AND a.status = 'approved'
+              LEFT JOIN lockers l ON a.assigned_locker_id = l.id
+              WHERE u.id = $1
+            `;
+            
+            const result = await client.query(userQuery, [userId]);
+            
+            if (result.rows.length === 0) {
+              client.release();
+              return res.status(404).json({
+                success: false,
+                error: 'User not found',
+                message: '用户不存在'
+              });
+            }
+            
+            const user = result.rows[0];
+            
+            client.release();
+            
+            res.json({
+              success: true,
+              data: {
+                id: user.id,
+                phone: user.phone,
+                name: user.name,
+                avatar_url: user.avatar_url,
+                status: user.status,
+                created_at: user.created_at,
+                store: user.store_id ? {
+                  id: user.store_id,
+                  name: user.store_name
+                } : null,
+                locker: user.locker_id ? {
+                  id: user.locker_id,
+                  number: user.locker_number,
+                  status: user.locker_status
+                } : null
+              }
+            });
+            
+          } catch (error) {
+            console.error('Get user info error:', error);
+            client.release();
+            res.status(500).json({
+              success: false,
+              error: 'Database error',
+              message: '获取用户信息失败'
+            });
+          }
+        } else {
+          // For JWT token validation in production
+          const jwt = require('jsonwebtoken');
+          try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'yeslocker-secret-key-2024');
+            const userId = decoded.id || decoded.userId;
+            
+            const client = await this.pool.connect();
+            try {
+              const userQuery = `
+                SELECT 
+                  u.id, u.phone, u.name, u.avatar_url, u.status, u.created_at,
+                  s.id as store_id, s.name as store_name,
+                  l.id as locker_id, l.number as locker_number, l.status as locker_status
+                FROM users u
+                LEFT JOIN stores s ON u.store_id = s.id
+                LEFT JOIN applications a ON a.user_id = u.id AND a.status = 'approved'
+                LEFT JOIN lockers l ON a.assigned_locker_id = l.id
+                WHERE u.id = $1
+              `;
+              
+              const result = await client.query(userQuery, [userId]);
+              
+              if (result.rows.length === 0) {
+                client.release();
+                return res.status(404).json({
+                  success: false,
+                  error: 'User not found',
+                  message: '用户不存在'
+                });
+              }
+              
+              const user = result.rows[0];
+              
+              client.release();
+              
+              res.json({
+                success: true,
+                data: {
+                  id: user.id,
+                  phone: user.phone,
+                  name: user.name,
+                  avatar_url: user.avatar_url,
+                  status: user.status,
+                  created_at: user.created_at,
+                  store: user.store_id ? {
+                    id: user.store_id,
+                    name: user.store_name
+                  } : null,
+                  locker: user.locker_id ? {
+                    id: user.locker_id,
+                    number: user.locker_number,
+                    status: user.locker_status
+                  } : null
+                }
+              });
+              
+            } catch (error) {
+              console.error('Get user info error:', error);
+              client.release();
+              res.status(500).json({
+                success: false,
+                error: 'Database error',
+                message: '获取用户信息失败'
+              });
+            }
+          } catch (error) {
+            console.error('Token validation error:', error);
+            res.status(401).json({
+              success: false,
+              error: 'Invalid token',
+              message: '无效的认证令牌'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+          message: '服务器内部错误'
+        });
+      }
+    });
+
     // User login
     this.app.post('/auth-login', async (req, res) => {
       try {
@@ -3276,7 +3440,7 @@ class RailwayServer {
             LEFT JOIN stores s ON l.store_id = s.id
             LEFT JOIN users u ON l.current_user_id = u.id
             WHERE l.store_id = $1
-            ORDER BY l.locker_number
+            ORDER BY l.number
           `;
           params = [adminStoreId];
         } else {
@@ -3289,7 +3453,7 @@ class RailwayServer {
               LEFT JOIN stores s ON l.store_id = s.id
               LEFT JOIN users u ON l.current_user_id = u.id
               WHERE l.store_id = $1
-              ORDER BY l.locker_number
+              ORDER BY l.number
             `;
             params = [store_id];
           } else {
@@ -3299,7 +3463,7 @@ class RailwayServer {
               FROM lockers l
               LEFT JOIN stores s ON l.store_id = s.id
               LEFT JOIN users u ON l.current_user_id = u.id
-              ORDER BY s.name, l.locker_number
+              ORDER BY s.name, l.number
             `;
           }
         }
