@@ -2383,17 +2383,17 @@ class RailwayServer {
         const client = await this.pool.connect();
         
         // Determine store filter based on RBAC
-        let storeFilter = '';
-        let storeParams = [];
+        let hasStoreFilter = false;
+        let storeFilterId = null;
         
         if (adminRole === 'store_admin') {
           // Store admins can only see their own store stats
-          storeFilter = 'WHERE s.id = $1';
-          storeParams = [adminStoreId];
+          hasStoreFilter = true;
+          storeFilterId = adminStoreId;
         } else if (store_id) {
           // Super admin and HQ admin can filter by store
-          storeFilter = 'WHERE s.id = $1';
-          storeParams = [store_id];
+          hasStoreFilter = true;
+          storeFilterId = store_id;
         }
         
         // Calculate date range for trends
@@ -2402,79 +2402,139 @@ class RailwayServer {
         else if (period === '90d') dateRange = '90 days';
         else if (period === '1y') dateRange = '1 year';
         
-        // Get overview statistics
-        const overviewQuery = `
-          WITH store_filter AS (
-            SELECT id FROM stores
-            ${storeFilter}
-          ),
-          stats AS (
-            SELECT 
-              (SELECT COUNT(*) FROM users u 
-               JOIN applications a ON u.id = a.user_id
-               WHERE a.store_id IN (SELECT id FROM store_filter) 
-                 AND u.status = 'active') as active_users,
-              (SELECT COUNT(*) FROM applications 
-               WHERE store_id IN (SELECT id FROM store_filter) 
-                 AND status = 'pending') as pending_applications,
-              (SELECT COUNT(*) FROM locker_records lr
-               JOIN lockers l ON lr.locker_id = l.id
-               WHERE l.store_id IN (SELECT id FROM store_filter)
-                 AND lr.created_at >= CURRENT_DATE 
-                 AND lr.created_at < CURRENT_DATE + INTERVAL '1 day') as today_records,
-              (SELECT COUNT(*) FROM stores ${storeFilter ? 'WHERE id IN (SELECT id FROM store_filter)' : ''}) as total_stores
-          ),
-          locker_stats AS (
-            SELECT 
-              COUNT(*) as total_lockers,
-              COALESCE(SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END), 0) as occupied_lockers,
-              COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available_lockers,
-              COALESCE(SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END), 0) as maintenance_lockers
-            FROM lockers
-            WHERE store_id IN (SELECT id FROM store_filter)
-          ),
-          voucher_stats AS (
-            SELECT
-              COUNT(*) as total_vouchers,
-              COALESCE(SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END), 0) as used_vouchers,
-              COALESCE(SUM(CASE WHEN expires_at > NOW() THEN 1 ELSE 0 END), 0) as active_vouchers
-            FROM vouchers v
-            JOIN users u ON v.user_id = u.id
-            JOIN applications a ON u.id = a.user_id
-            WHERE a.store_id IN (SELECT id FROM store_filter)
-              AND v.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
-          )
-          SELECT 
-            s.*,
-            ls.*,
-            vs.*
-          FROM stats s, locker_stats ls, voucher_stats vs
-        `;
+        // Build query based on whether we have a store filter
+        let overviewQuery;
+        let overviewParams = [];
         
-        const overviewResult = await client.query(
-          storeFilter ? overviewQuery : overviewQuery.replace(/WHERE.*store_filter\)/g, ''),
-          storeParams
-        );
+        if (hasStoreFilter) {
+          // Query with store filter
+          overviewQuery = `
+            WITH stats AS (
+              SELECT 
+                (SELECT COUNT(*) FROM users u 
+                 JOIN applications a ON u.id = a.user_id
+                 WHERE a.store_id = $1
+                   AND u.status = 'active') as active_users,
+                (SELECT COUNT(*) FROM applications 
+                 WHERE store_id = $1
+                   AND status = 'pending') as pending_applications,
+                (SELECT COUNT(*) FROM locker_records lr
+                 JOIN lockers l ON lr.locker_id = l.id
+                 WHERE l.store_id = $1
+                   AND lr.created_at >= CURRENT_DATE 
+                   AND lr.created_at < CURRENT_DATE + INTERVAL '1 day') as today_records,
+                1 as total_stores
+            ),
+            locker_stats AS (
+              SELECT 
+                COUNT(*) as total_lockers,
+                COALESCE(SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END), 0) as occupied_lockers,
+                COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available_lockers,
+                COALESCE(SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END), 0) as maintenance_lockers
+              FROM lockers
+              WHERE store_id = $1
+            ),
+            voucher_stats AS (
+              SELECT
+                COUNT(*) as total_vouchers,
+                COALESCE(SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END), 0) as used_vouchers,
+                COALESCE(SUM(CASE WHEN expires_at > NOW() THEN 1 ELSE 0 END), 0) as active_vouchers
+              FROM vouchers v
+              JOIN users u ON v.user_id = u.id
+              JOIN applications a ON u.id = a.user_id
+              WHERE a.store_id = $1
+                AND v.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+            )
+            SELECT 
+              s.*,
+              ls.*,
+              vs.*
+            FROM stats s, locker_stats ls, voucher_stats vs
+          `;
+          overviewParams = [storeFilterId];
+        } else {
+          // Query without store filter (all stores)
+          overviewQuery = `
+            WITH stats AS (
+              SELECT 
+                (SELECT COUNT(*) FROM users u 
+                 JOIN applications a ON u.id = a.user_id
+                 WHERE u.status = 'active') as active_users,
+                (SELECT COUNT(*) FROM applications 
+                 WHERE status = 'pending') as pending_applications,
+                (SELECT COUNT(*) FROM locker_records lr
+                 WHERE lr.created_at >= CURRENT_DATE 
+                   AND lr.created_at < CURRENT_DATE + INTERVAL '1 day') as today_records,
+                (SELECT COUNT(*) FROM stores) as total_stores
+            ),
+            locker_stats AS (
+              SELECT 
+                COUNT(*) as total_lockers,
+                COALESCE(SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END), 0) as occupied_lockers,
+                COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as available_lockers,
+                COALESCE(SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END), 0) as maintenance_lockers
+              FROM lockers
+            ),
+            voucher_stats AS (
+              SELECT
+                COUNT(*) as total_vouchers,
+                COALESCE(SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END), 0) as used_vouchers,
+                COALESCE(SUM(CASE WHEN expires_at > NOW() THEN 1 ELSE 0 END), 0) as active_vouchers
+              FROM vouchers v
+              WHERE v.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+            )
+            SELECT 
+              s.*,
+              ls.*,
+              vs.*
+            FROM stats s, locker_stats ls, voucher_stats vs
+          `;
+          overviewParams = [];
+        }
+        
+        const overviewResult = await client.query(overviewQuery, overviewParams);
         
         // Get trend data
-        const trendQuery = `
-          WITH daily_stats AS (
-            SELECT 
-              DATE(created_at) as date,
-              COUNT(*) FILTER (WHERE action = 'check_in') as check_ins,
-              COUNT(*) FILTER (WHERE action = 'check_out') as check_outs,
-              COUNT(DISTINCT user_id) as unique_users
-            FROM locker_records lr
-            JOIN lockers l ON lr.locker_id = l.id
-            ${storeFilter ? 'WHERE l.store_id = $1' : ''}
-            ${storeFilter ? 'AND' : 'WHERE'} lr.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
-            GROUP BY DATE(created_at)
-            ORDER BY date
-          )
-          SELECT * FROM daily_stats
-        `;
+        let trendQuery;
+        let trendParams = [];
         
-        const trendResult = await client.query(trendQuery, storeParams);
+        if (hasStoreFilter) {
+          trendQuery = `
+            WITH daily_stats AS (
+              SELECT 
+                DATE(lr.created_at) as date,
+                COUNT(*) FILTER (WHERE lr.action = 'check_in') as check_ins,
+                COUNT(*) FILTER (WHERE lr.action = 'check_out') as check_outs,
+                COUNT(DISTINCT lr.user_id) as unique_users
+              FROM locker_records lr
+              JOIN lockers l ON lr.locker_id = l.id
+              WHERE l.store_id = $1
+                AND lr.created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+              GROUP BY DATE(lr.created_at)
+              ORDER BY date
+            )
+            SELECT * FROM daily_stats
+          `;
+          trendParams = [storeFilterId];
+        } else {
+          trendQuery = `
+            WITH daily_stats AS (
+              SELECT 
+                DATE(created_at) as date,
+                COUNT(*) FILTER (WHERE action = 'check_in') as check_ins,
+                COUNT(*) FILTER (WHERE action = 'check_out') as check_outs,
+                COUNT(DISTINCT user_id) as unique_users
+              FROM locker_records
+              WHERE created_at >= CURRENT_DATE - INTERVAL '${dateRange}'
+              GROUP BY DATE(created_at)
+              ORDER BY date
+            )
+            SELECT * FROM daily_stats
+          `;
+          trendParams = [];
+        }
+        
+        const trendResult = await client.query(trendQuery, trendParams);
         
         // Get top stores (for super admin and HQ admin only)
         let topStores = [];
@@ -2503,23 +2563,45 @@ class RailwayServer {
         }
         
         // Get recent activities
-        const recentQuery = `
-          SELECT 
-            'application' as type,
-            a.id,
-            a.created_at,
-            u.name as user_name,
-            s.name as store_name,
-            a.status
-          FROM applications a
-          JOIN users u ON a.user_id = u.id
-          JOIN stores s ON a.store_id = s.id
-          ${storeFilter ? 'WHERE s.id = $1' : ''}
-          ORDER BY a.created_at DESC
-          LIMIT 10
-        `;
+        let recentQuery;
+        let recentParams = [];
         
-        const recentResult = await client.query(recentQuery, storeParams);
+        if (hasStoreFilter) {
+          recentQuery = `
+            SELECT 
+              'application' as type,
+              a.id,
+              a.created_at,
+              u.name as user_name,
+              s.name as store_name,
+              a.status
+            FROM applications a
+            JOIN users u ON a.user_id = u.id
+            JOIN stores s ON a.store_id = s.id
+            WHERE s.id = $1
+            ORDER BY a.created_at DESC
+            LIMIT 10
+          `;
+          recentParams = [storeFilterId];
+        } else {
+          recentQuery = `
+            SELECT 
+              'application' as type,
+              a.id,
+              a.created_at,
+              u.name as user_name,
+              s.name as store_name,
+              a.status
+            FROM applications a
+            JOIN users u ON a.user_id = u.id
+            JOIN stores s ON a.store_id = s.id
+            ORDER BY a.created_at DESC
+            LIMIT 10
+          `;
+          recentParams = [];
+        }
+        
+        const recentResult = await client.query(recentQuery, recentParams);
         
         client.release();
         
