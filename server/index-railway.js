@@ -2533,7 +2533,7 @@ class RailwayServer {
             id,
             action,
             created_at,
-            remark
+            notes
           FROM locker_records
           WHERE locker_id = $1 AND user_id = $2
           ORDER BY created_at DESC
@@ -3102,7 +3102,7 @@ class RailwayServer {
         const applications = result.rows.map(row => ({
           id: row.id,
           status: row.status,
-          remark: row.remark,
+          notes: row.notes,
           created_at: row.created_at,
           user: {
             id: row.user_id,
@@ -4184,7 +4184,7 @@ class RailwayServer {
         
         let query = `
           SELECT 
-            lr.id, lr.action, lr.created_at, lr.notes as remark,
+            lr.id, lr.action, lr.created_at, lr.notes,
             u.id as user_id, u.name as user_name, u.phone as user_phone,
             l.id as locker_id, l.number as locker_number,
             s.id as store_id, s.name as store_name
@@ -4230,7 +4230,7 @@ class RailwayServer {
           id: row.id,
           action: row.action,
           created_at: row.created_at,
-          remark: row.remark,
+          notes: row.notes,
           user: {
             id: row.user_id,
             name: row.user_name,
