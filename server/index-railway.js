@@ -4151,6 +4151,18 @@ class RailwayServer {
             locker_data: lockerUpdateResult.rows[0]
           });
           
+          // IMPORTANT: Update user's store_id to match the locker's store
+          // This ensures the user is associated with the store where their locker is located
+          const userUpdateResult = await client.query(
+            'UPDATE users SET store_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+            [application.store_id, application.user_id]
+          );
+          console.log(`✅ 用户门店已更新:`, {
+            user_id: application.user_id,
+            store_id: application.store_id,
+            user_data: userUpdateResult.rows[0]
+          });
+          
         } else if (action === 'reject') {
           await client.query(
             'UPDATE applications SET status = $1, rejection_reason = $2, approved_at = NOW(), approved_by = $3 WHERE id = $4',
