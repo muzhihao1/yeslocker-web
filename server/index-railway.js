@@ -2472,6 +2472,107 @@ class RailwayServer {
       }
     });
 
+    // Get user's locker information
+    this.app.get('/users/:id/locker', async (req, res) => {
+      let client;
+      try {
+        const { id: userId } = req.params;
+        
+        // Validate authorization
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({
+            success: false,
+            error: 'Unauthorized',
+            message: '未授权访问'
+          });
+        }
+        
+        client = await this.pool.connect();
+        
+        // Get user's locker information through approved applications
+        const query = `
+          SELECT 
+            l.id, 
+            l.number, 
+            l.status, 
+            l.store_id,
+            l.assigned_at,
+            l.current_user_id,
+            s.name as store_name,
+            s.address as store_address,
+            s.phone as store_phone,
+            a.id as application_id,
+            a.status as application_status
+          FROM lockers l
+          INNER JOIN applications a ON a.assigned_locker_id = l.id
+          LEFT JOIN stores s ON l.store_id = s.id
+          WHERE a.user_id = $1 
+            AND a.status = 'approved'
+            AND l.current_user_id = $1
+          ORDER BY a.approved_at DESC
+          LIMIT 1
+        `;
+        
+        const result = await client.query(query, [userId]);
+        
+        if (result.rows.length === 0) {
+          client.release();
+          return res.json({
+            success: true,
+            data: null,
+            message: '用户暂无分配的杆柜'
+          });
+        }
+        
+        const locker = result.rows[0];
+        
+        // Get recent records for this locker
+        const recordsQuery = `
+          SELECT 
+            id,
+            action,
+            created_at,
+            remark
+          FROM locker_records
+          WHERE locker_id = $1 AND user_id = $2
+          ORDER BY created_at DESC
+          LIMIT 10
+        `;
+        
+        const recordsResult = await client.query(recordsQuery, [locker.id, userId]);
+        
+        client.release();
+        
+        res.json({
+          success: true,
+          data: {
+            id: locker.id,
+            number: locker.number,
+            status: locker.status,
+            assigned_at: locker.assigned_at,
+            store: {
+              id: locker.store_id,
+              name: locker.store_name || '未知门店',
+              address: locker.store_address,
+              phone: locker.store_phone
+            },
+            records: recordsResult.rows
+          }
+        });
+        
+      } catch (error) {
+        console.error('Get user locker error:', error);
+        if (client) client.release();
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '获取用户杆柜信息失败',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+      }
+    });
+
     // Diagnostic endpoint for debugging locker-user relationships
     this.app.get('/api/debug-locker-user/:user_id', authenticateToken, async (req, res) => {
       try {
@@ -4468,8 +4569,11 @@ class RailwayServer {
           number: row.number,
           status: row.status,
           store_id: row.store_id,
-          store_name: row.store_name,
-          store_location: row.store_location,
+          store: {
+            id: row.store_id,
+            name: row.store_name || '未知门店',
+            location: row.store_location
+          },
           assigned_at: row.assigned_at,
           created_at: row.created_at,
           updated_at: row.updated_at,
