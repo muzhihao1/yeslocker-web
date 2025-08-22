@@ -2573,6 +2573,88 @@ class RailwayServer {
       }
     });
 
+    // Fix user-store associations for existing users
+    this.app.post('/api/fix-user-store-associations', authenticateToken, async (req, res) => {
+      let client;
+      try {
+        // Check if admin
+        const authHeader = req.headers.authorization;
+        const token = authHeader.substring(7);
+        
+        client = await this.pool.connect();
+        
+        // First, get stats on how many users need fixing
+        const checkQuery = `
+          SELECT COUNT(*) as need_fix
+          FROM users u
+          INNER JOIN applications a ON a.user_id = u.id
+          WHERE a.status = 'approved'
+            AND u.store_id IS NULL
+            AND a.store_id IS NOT NULL
+        `;
+        
+        const checkResult = await client.query(checkQuery);
+        const needFix = parseInt(checkResult.rows[0].need_fix);
+        
+        if (needFix === 0) {
+          client.release();
+          return res.json({
+            success: true,
+            message: '没有需要修复的用户',
+            fixed: 0
+          });
+        }
+        
+        // Fix all users with approved applications but NULL store_id
+        const fixQuery = `
+          UPDATE users u
+          SET 
+            store_id = a.store_id,
+            updated_at = NOW()
+          FROM applications a
+          WHERE 
+            u.id = a.user_id 
+            AND a.status = 'approved'
+            AND u.store_id IS NULL
+            AND a.store_id IS NOT NULL
+          RETURNING u.id, u.name, u.phone
+        `;
+        
+        const fixResult = await client.query(fixQuery);
+        
+        // Also check for test store
+        const testStoreQuery = `
+          SELECT id, name, address, status 
+          FROM stores 
+          WHERE name LIKE '%测试%' OR address LIKE '%测试%'
+        `;
+        
+        const testStoreResult = await client.query(testStoreQuery);
+        
+        client.release();
+        
+        console.log(`✅ 修复了 ${fixResult.rows.length} 个用户的门店关联`);
+        
+        res.json({
+          success: true,
+          message: `成功修复 ${fixResult.rows.length} 个用户的门店关联`,
+          fixed: fixResult.rows.length,
+          users: fixResult.rows,
+          testStores: testStoreResult.rows
+        });
+        
+      } catch (error) {
+        console.error('Fix user-store associations error:', error);
+        if (client) client.release();
+        res.status(500).json({
+          success: false,
+          error: 'Database error',
+          message: '修复用户门店关联失败',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+      }
+    });
+
     // Diagnostic endpoint for debugging locker-user relationships
     this.app.get('/api/debug-locker-user/:user_id', authenticateToken, async (req, res) => {
       try {
